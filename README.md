@@ -104,7 +104,7 @@ npx vercel
 
 | Role | Username / Email | Password | Access |
 |---|---|---|---|
-| **Lead Operations Admin** | `adityarenake` *(or `aditya.renake@outlook.com`)* | `Aditya@11` | Full Control Room + Gate Scanner |
+| **Lead Operations Admin** | Aditya Renake | Full Control Room + Gate Scanner |
 
 ---
 
