@@ -32,12 +32,6 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
     }
   };
 
-  const fillCredentials = (user, pass) => {
-    setIdentifier(user);
-    setPassword(pass);
-    setErrorMessage('');
-  };
-
   return (
     <div style={{ maxWidth: '440px', margin: '60px auto', padding: '0 20px' }}>
       <div className="glass-card" style={{ padding: '36px 30px', border: '1px solid rgba(209, 165, 80, 0.4)', background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(3, 7, 18, 0.95) 100%)' }}>
@@ -57,43 +51,6 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
             <span>⚠️ {errorMessage}</span>
           </div>
         )}
-
-        {/* Quick Admin Credential Shortcuts */}
-        <div style={{ marginBottom: '18px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div style={{ fontSize: '11px', color: '#f7d070', fontWeight: '800', marginBottom: '6px', textTransform: 'uppercase' }}>
-            ⚡ 1-Click Fill Official Logins:
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => fillCredentials('adityarenake', 'Aditya@11')}
-              style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(178, 43, 47, 0.2)', border: '1px solid rgba(178, 43, 47, 0.4)', color: '#ffffff', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-            >
-              Aditya
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('sohamchitnis', 'Soham@11')}
-              style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(209, 165, 80, 0.2)', border: '1px solid rgba(209, 165, 80, 0.4)', color: '#f7d070', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-            >
-              Soham
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('haritirawal', 'Hariti@11')}
-              style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.4)', color: '#4ade80', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-            >
-              Hariti
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials('gate_scanner_1', 'Scanner@11')}
-              style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(6, 182, 212, 0.2)', border: '1px solid rgba(6, 182, 212, 0.4)', color: '#67e8f9', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-            >
-              Gate Scanner
-            </button>
-          </div>
-        </div>
 
         {/* Form */}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

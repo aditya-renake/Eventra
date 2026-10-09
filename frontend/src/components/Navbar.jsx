@@ -16,7 +16,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
         
         {/* Left: Emblem Logo */}
         <div 
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', paddingRight: '8px', borderRight: '1px solid #ecd9c6' }} 
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', paddingRight: '8px', borderRight: '1px solid rgba(255, 255, 255, 0.15)' }} 
           onClick={() => handleNavClick('landing')}
           title="Dr. D. Y. Patil Institute of Technology (DYPDPU) - ACES"
         >
@@ -177,14 +177,16 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
             top: '56px',
             left: '16px',
             right: '16px',
-            background: '#ffffff',
-            border: '1px solid #ecd9c6',
+            background: 'rgba(11, 15, 25, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '14px',
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
             zIndex: 1001,
           }}
         >
