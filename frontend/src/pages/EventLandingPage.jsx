@@ -27,6 +27,7 @@ import {
 import { DYPDPULogo, ACESLogo } from '../components/CollegeLogos';
 import { ConstellationBackground } from '../components/ConstellationBackground';
 import { GallerySection } from '../components/GallerySection';
+import { EventsDiscoverySection } from '../components/EventsDiscoverySection';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
@@ -550,6 +551,14 @@ export const EventLandingPage = ({ onNavigateToPass, onShowToast }) => {
           </a>
         </div>
       </section>
+
+      {/* CampusMeet Style Events Discovery Hub */}
+      <EventsDiscoverySection
+        onNavigateToLookup={() => {
+          const el = document.getElementById('lookup-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
 
       {/* Gallery Section from Hackseries-02 */}
       <GallerySection />
