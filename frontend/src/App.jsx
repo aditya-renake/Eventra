@@ -117,7 +117,8 @@ export function App() {
           <LoginPage
             onLoginSuccess={(loggedInUser) => {
               setUser(loggedInUser);
-              setCurrentView(loggedInUser.role === 'admin' ? 'dashboard' : 'scanner');
+              const isDashboardRole = ['admin', 'super_admin', 'event_head'].includes(loggedInUser?.role);
+              setCurrentView(isDashboardRole ? 'dashboard' : 'scanner');
             }}
             onShowToast={handleShowToast}
           />

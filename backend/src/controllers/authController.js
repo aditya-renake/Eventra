@@ -25,7 +25,7 @@ export const login = async (req, res) => {
           username: 'adityarenake',
           email: 'tigeradi1504@gmail.com',
           name: 'Aditya Renake',
-          role: 'admin',
+          role: 'super_admin',
           passwordHash: '',
         };
       } else if (rawIdentifier === 'sohamchitnis' || rawIdentifier === 'sohamchitnis@hackseries.org') {
@@ -33,7 +33,7 @@ export const login = async (req, res) => {
           username: 'sohamchitnis',
           email: 'sohamchitnis@hackseries.org',
           name: 'Soham Chitnis',
-          role: 'admin',
+          role: 'super_admin',
           passwordHash: '',
         };
       } else if (rawIdentifier === 'haritirawal' || rawIdentifier === 'haritirawal@hackseries.org') {
@@ -41,7 +41,15 @@ export const login = async (req, res) => {
           username: 'haritirawal',
           email: 'haritirawal@hackseries.org',
           name: 'Hariti Rawal',
-          role: 'admin',
+          role: 'super_admin',
+          passwordHash: '',
+        };
+      } else if (rawIdentifier === 'gate_scanner_1' || rawIdentifier === 'scanner@acesdit.org') {
+        user = {
+          username: 'gate_scanner_1',
+          email: 'scanner@acesdit.org',
+          name: 'Gate Scanner Volunteer 1',
+          role: 'scanner',
           passwordHash: '',
         };
       }
@@ -61,21 +69,26 @@ export const login = async (req, res) => {
       }
     }
 
-    // Fallback Master Password checks for official Admins
+    // Fallback Master Password checks for official Admins & Scanners
     if (!isMatch) {
       if (
         (user.username === 'adityarenake' || user.email === 'tigeradi1504@gmail.com' || user.email === 'aditya.renake@outlook.com') &&
-        (rawPassword === 'Aditya@11' || rawPassword === 'Admin@123')
+        (rawPassword === 'Aditya@11' || rawPassword === 'Aditya@123' || rawPassword === 'Admin@123')
       ) {
         isMatch = true;
       } else if (
         (user.username === 'sohamchitnis' || user.email === 'sohamchitnis@hackseries.org') &&
-        (rawPassword === 'Soham@11' || rawPassword === 'Admin@123')
+        (rawPassword === 'Soham@11' || rawPassword === 'Soham@123' || rawPassword === 'Admin@123')
       ) {
         isMatch = true;
       } else if (
         (user.username === 'haritirawal' || user.email === 'haritirawal@hackseries.org') &&
-        (rawPassword === 'Hariti@11' || rawPassword === 'Admin@123')
+        (rawPassword === 'Hariti@11' || rawPassword === 'Hariti@123' || rawPassword === 'Admin@123')
+      ) {
+        isMatch = true;
+      } else if (
+        (user.username === 'gate_scanner_1' || user.email === 'scanner@acesdit.org') &&
+        (rawPassword === 'Scanner@11' || rawPassword === 'Admin@123')
       ) {
         isMatch = true;
       }

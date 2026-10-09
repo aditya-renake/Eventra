@@ -94,7 +94,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
 
           {user && (
             <>
-              {user.role === 'admin' && (
+              {['admin', 'super_admin', 'event_head'].includes(user.role) && (
                 <button
                   className={`pill-nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
                   onClick={() => handleNavClick('dashboard')}
