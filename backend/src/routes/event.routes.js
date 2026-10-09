@@ -1,16 +1,32 @@
-import express from 'express';
-import { getEventConfig, updateEventConfig, getDatabaseTelemetry } from '../controllers/eventController.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { Router } from 'express';
+import { requireAuth } from '../middleware/auth.js';
+import {
+  getClubEvents,
+  getEventById,
+  createClubEvent,
+  updateClubEvent,
+  deleteClubEvent,
+  getStaffList,
+  createStaffMember,
+  updateStaffMember,
+  deleteStaffMember,
+} from '../controllers/eventController.js';
 
-const router = express.Router();
+const router = Router();
 
-// Public event info
-router.get('/', getEventConfig);
+// Public / Semi-Public Event Catalog
+router.get('/', getClubEvents);
+router.get('/:id', getEventById);
 
-// Admin update event settings
-router.put('/', requireAuth, requireAdmin, updateEventConfig);
+// Admin-only Event CRUD
+router.post('/', requireAuth, createClubEvent);
+router.put('/:id', requireAuth, updateClubEvent);
+router.delete('/:id', requireAuth, deleteClubEvent);
 
-// Admin Real-Time Database Telemetry & Storage Metrics
-router.get('/database-telemetry', requireAuth, requireAdmin, getDatabaseTelemetry);
+// Admin-only Team & Role Management
+router.get('/admin/staff', requireAuth, getStaffList);
+router.post('/admin/staff', requireAuth, createStaffMember);
+router.put('/admin/staff/:username', requireAuth, updateStaffMember);
+router.delete('/admin/staff/:username', requireAuth, deleteStaffMember);
 
 export default router;

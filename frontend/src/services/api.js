@@ -1,207 +1,204 @@
 const API_BASE = '/api';
 
-const getHeaders = (isJson = true) => {
-  const headers = {};
-  if (isJson) headers['Content-Type'] = 'application/json';
+/**
+ * Helper to make JSON fetch requests with auth token
+ */
+async function request(endpoint, options = {}) {
+  const token = localStorage.getItem('hs26_auth_token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
 
-  const token = localStorage.getItem('hs_auth_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-};
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
 
-const handleResponse = async (res) => {
-  if (res.status === 401) {
-    localStorage.removeItem('hs_auth_token');
-    localStorage.removeItem('hs_auth_user');
-  }
-
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    data = { success: false, message: `Server returned status ${res.status}: ${text.slice(0, 120) || res.statusText || 'Unknown error'}` };
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || `Request failed with status ${response.status}`);
   }
 
-  if (!res.ok) {
-    throw new Error(data.message || `Request failed with status ${res.status}`);
-  }
   return data;
-};
+}
 
 export const api = {
-  // Auth API
   auth: {
-    login: async (identifier, password) => {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+    async login(identifier, password) {
+      const data = await request('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, username: identifier, email: identifier, password }),
+        body: JSON.stringify({ identifier, password }),
       });
-      const data = await handleResponse(res);
       if (data.token) {
-        localStorage.setItem('hs_auth_token', data.token);
-        localStorage.setItem('hs_auth_user', JSON.stringify(data.user));
+        localStorage.setItem('hs26_auth_token', data.token);
+        localStorage.setItem('hs26_user', JSON.stringify(data.user));
       }
       return data;
     },
-    getMe: async () => {
-      const res = await fetch(`${API_BASE}/auth/me`, { headers: getHeaders() });
-      return handleResponse(res);
+    logout() {
+      localStorage.removeItem('hs26_auth_token');
+      localStorage.removeItem('hs26_user');
+      sessionStorage.removeItem('hs26_cached_dashboard_state');
     },
-    logout: () => {
-      localStorage.removeItem('hs_auth_token');
-      localStorage.removeItem('hs_auth_user');
-    },
-    getUser: () => {
+    getUser() {
       try {
-        return JSON.parse(localStorage.getItem('hs_auth_user')) || null;
-      } catch (e) {
+        const u = localStorage.getItem('hs26_user');
+        return u ? JSON.parse(u) : null;
+      } catch {
         return null;
       }
     },
-    isAuthenticated: () => !!localStorage.getItem('hs_auth_token'),
+    getToken() {
+      return localStorage.getItem('hs26_auth_token');
+    },
+    isAuthenticated() {
+      return !!localStorage.getItem('hs26_auth_token');
+    },
   },
 
-  // Registrants API
-  registrants: {
-    list: async (params = {}) => {
+  events: {
+    async getAll(params = {}) {
       const query = new URLSearchParams(params).toString();
-      const res = await fetch(`${API_BASE}/registrants?${query}`, { headers: getHeaders() });
-      return handleResponse(res);
+      return request(`/event${query ? `?${query}` : ''}`);
     },
-    get: async (id) => {
-      const res = await fetch(`${API_BASE}/registrants/${id}`, { headers: getHeaders() });
-      return handleResponse(res);
+    async getById(id) {
+      return request(`/event/${id}`);
     },
-    create: async (data) => {
-      const res = await fetch(`${API_BASE}/registrants`, {
+    async create(eventData) {
+      return request('/event', {
         method: 'POST',
-        headers: getHeaders(),
+        body: JSON.stringify(eventData),
+      });
+    },
+    async update(id, updates) {
+      return request(`/event/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+    },
+    async delete(id) {
+      return request(`/event/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    async getStaff() {
+      return request('/event/admin/staff');
+    },
+    async createStaff(staffData) {
+      return request('/event/admin/staff', {
+        method: 'POST',
+        body: JSON.stringify(staffData),
+      });
+    },
+    async updateStaff(username, updates) {
+      return request(`/event/admin/staff/${username}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+    },
+    async deleteStaff(username) {
+      return request(`/event/admin/staff/${username}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
+  registrants: {
+    async list(params = {}) {
+      const query = new URLSearchParams(params).toString();
+      return request(`/registrants${query ? `?${query}` : ''}`);
+    },
+    async getPublicPass(uniqueId) {
+      return request(`/registrants/pass/${uniqueId}`);
+    },
+    async create(data) {
+      return request('/registrants', {
+        method: 'POST',
         body: JSON.stringify(data),
       });
-      return handleResponse(res);
     },
-    regenerateQR: async (id) => {
-      const res = await fetch(`${API_BASE}/registrants/${id}/generate-qr`, {
-        method: 'POST',
-        headers: getHeaders(),
+    async update(id, data) {
+      return request(`/registrants/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
       });
-      return handleResponse(res);
     },
-    toggleVerification: async (id, verified) => {
-      const res = await fetch(`${API_BASE}/registrants/${id}/verify`, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify(verified !== undefined ? { verified } : {}),
+    async delete(id) {
+      return request(`/registrants/${id}`, {
+        method: 'DELETE',
       });
-      return handleResponse(res);
     },
-    bulkVerify: async (ids, verified = true) => {
-      const res = await fetch(`${API_BASE}/registrants/bulk-verify`, {
+    async toggleVerification(id, verified) {
+      return request(`/registrants/${id}/verify`, {
+        method: 'PUT',
+        body: JSON.stringify({ verified }),
+      });
+    },
+    async bulkVerify(ids, verified) {
+      return request('/registrants/bulk-verify', {
         method: 'POST',
-        headers: getHeaders(),
         body: JSON.stringify({ ids, verified }),
       });
-      return handleResponse(res);
     },
-    bulkImport: async (attendees, autoVerify = true, sendEmails = false) => {
-      const res = await fetch(`${API_BASE}/registrants/bulk-import`, {
+    async bulkImport(rows, autoVerify = false, sendAckEmail = true, eventId = 'hackseries-2026') {
+      return request('/registrants/bulk-import', {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ attendees, autoVerify, sendEmails }),
+        body: JSON.stringify({ rows, autoVerify, sendAckEmail, eventId }),
       });
-      return handleResponse(res);
     },
-    delete: async (id) => {
-      const res = await fetch(`${API_BASE}/registrants/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      });
-      return handleResponse(res);
-    },
-    getPublicPass: async (idOrEmail) => {
-      const res = await fetch(`${API_BASE}/registrants/pass/${encodeURIComponent(idOrEmail)}`);
-      return handleResponse(res);
-    },
-    simulateGoogleFormWebhook: async (payload) => {
-      const res = await fetch(`${API_BASE}/registrants/webhook`, {
+    async simulateGoogleFormWebhook(formData) {
+      return request('/registrants/webhook', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+    },
+  },
+
+  checkin: {
+    async scan(payload) {
+      return request('/checkin/scan', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
-      return handleResponse(res);
     },
-    exportCSVUrl: () => `${API_BASE}/registrants/export/csv`,
-  },
-
-  // Check-In API
-  checkin: {
-    scan: async ({ qrPayload, manualCode, scannedBy }) => {
-      const res = await fetch(`${API_BASE}/checkin/scan`, {
+    async undo(registrantId) {
+      return request(`/checkin/undo/${registrantId}`, {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ qrPayload, manualCode, scannedBy }),
       });
-      return handleResponse(res);
     },
-    getStatus: async (uniqueId) => {
-      const res = await fetch(`${API_BASE}/checkin/status/${uniqueId}`, { headers: getHeaders() });
-      return handleResponse(res);
-    },
-    undo: async (id) => {
-      const res = await fetch(`${API_BASE}/checkin/undo/${id}`, {
-        method: 'POST',
-        headers: getHeaders(),
-      });
-      return handleResponse(res);
-    },
-    getRecent: async () => {
-      const res = await fetch(`${API_BASE}/checkin/recent`, { headers: getHeaders() });
-      return handleResponse(res);
+    async getRecent() {
+      return request('/checkin/recent');
     },
   },
 
-  // Email API
   email: {
-    sendSingle: async (id) => {
-      const res = await fetch(`${API_BASE}/email/send/${id}`, {
+    async sendSingle(id) {
+      return request(`/email/send/${id}`, {
         method: 'POST',
-        headers: getHeaders(),
       });
-      return handleResponse(res);
     },
-    sendBulk: async (options = {}) => {
-      const res = await fetch(`${API_BASE}/email/bulk-send`, {
+    async sendBulk(payload) {
+      return request('/email/bulk-send', {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(options),
+        body: JSON.stringify(payload),
       });
-      return handleResponse(res);
     },
   },
 
-  // Event Config & Telemetry API
   event: {
-    getConfig: async () => {
-      const res = await fetch(`${API_BASE}/event`);
-      return handleResponse(res);
+    async getConfig() {
+      return request('/event/config');
     },
-    updateConfig: async (data) => {
-      const res = await fetch(`${API_BASE}/event`, {
+    async updateConfig(updates) {
+      return request('/event/config', {
         method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(updates),
       });
-      return handleResponse(res);
     },
-    getDatabaseTelemetry: async () => {
-      const res = await fetch(`${API_BASE}/event/database-telemetry`, {
-        headers: getHeaders(),
-      });
-      return handleResponse(res);
+    async getDatabaseTelemetry() {
+      return request('/event/telemetry');
     },
   },
 };

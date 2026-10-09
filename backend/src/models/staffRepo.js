@@ -101,31 +101,96 @@ export const staffRepo = {
   },
 
   /**
-   * Seed default admin and staff users (adityarenake, sohamchitnis, haritirawal)
+   * Get all registered staff users
+   */
+  async getAll() {
+    try {
+      const collection = this.getCollection();
+      const snapshot = await collection.get();
+      const staffList = [];
+      snapshot.docs.forEach((doc) => {
+        const { passwordHash, ...safeUser } = doc.data();
+        staffList.push({ id: doc.id, username: doc.id, ...safeUser });
+      });
+      return staffList;
+    } catch (e) {
+      console.warn('[staffRepo] getAll error:', e.message);
+      return [];
+    }
+  },
+
+  /**
+   * Update staff member (e.g. role or assigned events)
+   */
+  async updateStaff(username, updates) {
+    if (!username) return null;
+    const cleanUsername = username.toLowerCase().trim();
+    const collection = this.getCollection();
+
+    const existing = await this.findByUsername(cleanUsername);
+    if (!existing) return null;
+
+    let nextUpdates = { ...updates, updatedAt: new Date().toISOString() };
+    if (updates.password) {
+      const salt = await bcrypt.genSalt(10);
+      nextUpdates.passwordHash = await bcrypt.hash(updates.password, salt);
+      delete nextUpdates.password;
+    }
+
+    await collection.doc(cleanUsername).set(nextUpdates, { merge: true });
+    const updated = await this.findByUsername(cleanUsername);
+    const { passwordHash, ...safe } = updated;
+    return safe;
+  },
+
+  /**
+   * Delete a staff user
+   */
+  async deleteStaff(username) {
+    if (!username) return false;
+    const cleanUsername = username.toLowerCase().trim();
+    const collection = this.getCollection();
+    await collection.doc(cleanUsername).delete();
+    return true;
+  },
+
+  /**
+   * Seed default admin and staff users (adityarenake, sohamchitnis, haritirawal, gate_scanner)
    */
   async seedDefaultAdmin() {
     try {
       const staffList = [
         {
-          username: 'adityarenake',
-          email: 'tigeradi1504@gmail.com',
-          name: 'Aditya Renake',
-          password: 'Aditya@11',
-          role: 'admin',
-        },
-        {
           username: 'sohamchitnis',
           email: 'sohamchitnis@hackseries.org',
           name: 'Soham Chitnis',
           password: 'Soham@11',
-          role: 'admin',
+          role: 'super_admin',
+          assignedEventIds: ['*'],
+        },
+        {
+          username: 'adityarenake',
+          email: 'tigeradi1504@gmail.com',
+          name: 'Aditya Renake',
+          password: 'Aditya@11',
+          role: 'super_admin',
+          assignedEventIds: ['*'],
         },
         {
           username: 'haritirawal',
           email: 'haritirawal@hackseries.org',
           name: 'Hariti Rawal',
           password: 'Hariti@11',
-          role: 'admin',
+          role: 'super_admin',
+          assignedEventIds: ['*'],
+        },
+        {
+          username: 'gate_scanner_1',
+          email: 'scanner@acesdit.org',
+          name: 'Gate Scanner Volunteer 1',
+          password: 'Scanner@11',
+          role: 'scanner',
+          assignedEventIds: ['*'],
         },
       ];
 

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import confetti from 'canvas-confetti';
+const getHtml5Qrcode = () => window.Html5Qrcode;
 import { 
   Camera, 
   CameraOff, 
@@ -24,6 +23,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
+import { triggerCelebration } from '../utils/confettiBurst';
 
 export const QRScanner = ({ onScanComplete, onShowToast }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -39,22 +39,25 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
 
   // Fetch available cameras
   useEffect(() => {
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length) {
-          setCameras(devices);
-          // Prefer back camera on mobile devices
-          const backCam = devices.find((d) => 
-            d.label.toLowerCase().includes('back') || 
-            d.label.toLowerCase().includes('environment') ||
-            d.label.toLowerCase().includes('rear')
-          );
-          setSelectedCamera(backCam ? backCam.id : devices[0].id);
-        }
-      })
-      .catch((err) => {
-        console.warn('Could not enumerate cameras:', err);
-      });
+    const H5 = window.Html5Qrcode || getHtml5Qrcode();
+    if (H5 && H5.getCameras) {
+      H5.getCameras()
+        .then((devices) => {
+          if (devices && devices.length) {
+            setCameras(devices);
+            // Prefer back camera on mobile devices
+            const backCam = devices.find((d) => 
+              d.label.toLowerCase().includes('back') || 
+              d.label.toLowerCase().includes('environment') ||
+              d.label.toLowerCase().includes('rear')
+            );
+            setSelectedCamera(backCam ? backCam.id : devices[0].id);
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not enumerate cameras:', err);
+        });
+    }
 
     return () => {
       stopScanner();
@@ -82,8 +85,9 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
 
     try {
       sounds.playClick();
-      if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode(scannerContainerId);
+      const H5 = window.Html5Qrcode || getHtml5Qrcode();
+      if (!html5QrCodeRef.current && H5) {
+        html5QrCodeRef.current = new H5(scannerContainerId);
       }
 
       setIsScanning(true);
@@ -176,12 +180,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
 
       if (response.status === 'SUCCESS') {
         sounds.playSuccess();
-        confetti({
-          particleCount: 60,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#22c55e', '#06b6d4', '#4ade80', '#f7d070'],
-        });
+        triggerCelebration();
 
         setPopupModalResult({
           type: 'success',

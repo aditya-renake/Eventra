@@ -26,6 +26,8 @@ import { EmailTemplateModal } from '../components/EmailTemplateModal';
 import { BulkEmailModal } from '../components/BulkEmailModal';
 import { SuperAdminModal } from '../components/SuperAdminModal';
 import { ExcelImportModal } from '../components/ExcelImportModal';
+import { CreateEventModal } from '../components/CreateEventModal';
+import { TeamManagementModal } from '../components/TeamManagementModal';
 import { sounds } from '../utils/soundEffects';
 
 const CACHE_KEY_DASHBOARD = 'hs26_cached_dashboard_state';
@@ -40,6 +42,12 @@ const getInitialCachedData = () => {
 
 export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   const cachedInitial = getInitialCachedData();
+
+  // Multi-Event State
+  const [eventsList, setEventsList] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState('hackseries-2026');
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
 
   const [registrants, setRegistrants] = useState(cachedInitial?.registrants || []);
   const [stats, setStats] = useState(cachedInitial?.stats || {
@@ -80,6 +88,20 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   const [showSuperAdminModal, setShowSuperAdminModal] = useState(false);
   const [eventConfig, setEventConfig] = useState(cachedInitial?.eventConfig || null);
 
+  // Fetch Events Catalog
+  const fetchEvents = useCallback(async () => {
+    try {
+      const res = await api.events.getAll();
+      setEventsList(res.data || []);
+    } catch (e) {
+      console.warn('fetchEvents error:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
   // High-Speed Concurrent Fetch with SWR Caching
   const fetchData = useCallback(async (page = 1, silent = false) => {
     try {
@@ -98,6 +120,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         verified: verifiedFilter,
         track: trackFilter,
         ticketType: ticketFilter,
+        eventId: selectedEventId,
       };
 
       const [regRes, configRes] = await Promise.all([
@@ -142,16 +165,15 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       setLoading(false);
       setIsBackgroundSyncing(false);
     }
-  }, [pagination.limit, search, checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, eventConfig, registrants.length, onShowToast]);
+  }, [pagination.limit, search, checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId, eventConfig, registrants.length, onShowToast]);
 
-  // Initial and reactive fetch on filter change
+  // Initial and reactive fetch on filter change or event change
   useEffect(() => {
-    // If we have cached data, fetch silently in background for 0ms visual latency!
     fetchData(1, registrants.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter]);
+  }, [checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId]);
 
-  // Live Auto-Polling (Pulls new Google Form submissions into dashboard every 4 seconds)
+  // Live Auto-Polling (Pulls new submissions into dashboard every 4 seconds)
   useEffect(() => {
     const pollTimer = setInterval(() => {
       fetchData(pagination.page, true);
@@ -217,21 +239,81 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       {/* Header Title & Top Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Operations Control Room</h1>
-            <span className="badge badge-emerald">HACKSERIES 2026</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Club Operations Control Room</h1>
+            
+            {/* Multi-Event Selector Dropdown */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0b0f19', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '9999px', padding: '3px 10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#f7d070', textTransform: 'uppercase' }}>Active Event:</span>
+              <select
+                value={selectedEventId}
+                onChange={(e) => {
+                  sounds.playClick();
+                  setSelectedEventId(e.target.value);
+                  setSelectedIds([]);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {eventsList.map((ev) => (
+                  <option key={ev.id || ev.eventId} value={ev.id || ev.eventId} style={{ background: '#0b0f19', color: '#fff' }}>
+                    {ev.name} ({ev.category})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <span className="badge badge-dyp">ACES • DIT PUNE</span>
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            Live Google Forms Sync • Dr. D. Y. Patil Institute of Technology (DYPDPU) • Express Gate Check-In (2000+ Scale)
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            Multi-Event Campus Engine • Live Google Forms Sync • Express Gate Check-In • Role-Based Delegation
           </p>
         </div>
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          
+          {/* + Launch Event */}
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              sounds.playClick();
+              setShowCreateEvent(true);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)',
+              border: '1px solid rgba(247, 208, 112, 0.4)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Sparkles size={14} color="#f7d070" />
+            <span>+ Launch Event</span>
+          </button>
+
+          {/* Team & Roles */}
+          <button
+            className="btn btn-cyan btn-sm"
+            onClick={() => {
+              sounds.playClick();
+              setShowTeamModal(true);
+            }}
+          >
+            <Users size={14} /> Team & Roles
+          </button>
+
           {onNavigateToScanner && (
             <button className="btn btn-cyan btn-sm" onClick={onNavigateToScanner}>
-              <QrCode size={14} /> Open Gate Scanner
+              <QrCode size={14} /> Gate Scanner
             </button>
           )}
 
@@ -559,6 +641,27 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             fetchData(pagination.page);
             api.event.getConfig().then((res) => setEventConfig(res.data)).catch(() => {});
           }}
+        />
+      )}
+
+      {showCreateEvent && (
+        <CreateEventModal
+          onClose={() => setShowCreateEvent(false)}
+          onEventCreated={(newEvent) => {
+            fetchEvents();
+            if (newEvent?.id || newEvent?.eventId) {
+              setSelectedEventId(newEvent.id || newEvent.eventId);
+            }
+          }}
+          onShowToast={onShowToast}
+        />
+      )}
+
+      {showTeamModal && (
+        <TeamManagementModal
+          events={eventsList}
+          onClose={() => setShowTeamModal(false)}
+          onShowToast={onShowToast}
         />
       )}
 

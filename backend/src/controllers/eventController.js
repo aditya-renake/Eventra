@@ -1,99 +1,165 @@
-import { configRepo } from '../models/configRepo.js';
-import { getFirestore } from '../config/firebase.js';
+import { eventRepo } from '../models/eventRepo.js';
+import { staffRepo } from '../models/staffRepo.js';
+import { registrantRepo } from '../models/registrantRepo.js';
 
-export const getEventConfig = async (req, res) => {
+/**
+ * Public & Staff: Get all club events
+ */
+export const getClubEvents = async (req, res) => {
   try {
-    const config = await configRepo.getConfig();
-    res.json({ success: true, data: config });
+    const { category, status, search } = req.query;
+    const events = await eventRepo.getAll({ category, status, search });
+    return res.json({ success: true, data: events });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch event configuration', error: error.message });
-  }
-};
-
-export const updateEventConfig = async (req, res) => {
-  try {
-    const updated = await configRepo.updateConfig(req.body);
-    res.json({ success: true, message: 'Event configuration updated', data: updated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update event configuration', error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch events', error: error.message });
   }
 };
 
 /**
- * Real-Time Database Telemetry & Capacity Diagnostics
+ * Public: Get single event details by eventId
  */
-export const getDatabaseTelemetry = async (req, res) => {
-  const startTime = Date.now();
+export const getEventById = async (req, res) => {
   try {
-    const db = getFirestore();
-
-    // 1. Registrants stats & byte calculation
-    const regSnapshot = await db.collection('registrants').get();
-    const totalRegistrants = regSnapshot.size;
-    let checkedInCount = 0;
-    let emailSentCount = 0;
-    let withPhotoCount = 0;
-    let totalBytes = 0;
-
-    regSnapshot.forEach((doc) => {
-      const data = doc.data();
-      const docBytes = Buffer.byteLength(JSON.stringify(data), 'utf8');
-      totalBytes += docBytes;
-      if (data.checkedIn) checkedInCount++;
-      if (data.emailSent) emailSentCount++;
-      if (data.checkedInPhoto) withPhotoCount++;
-    });
-
-    // 2. Staff stats
-    const staffSnapshot = await db.collection('staff_users').get();
-    const staffMembers = [];
-    staffSnapshot.forEach((doc) => {
-      const d = doc.data();
-      staffMembers.push({ username: d.username, name: d.name, role: d.role, email: d.email || '' });
-    });
-
-    // 3. Mailer Detection
-    let activeMailer = 'Gmail SMTP (tigeradi1504@gmail.com)';
-    const pass = process.env.SMTP_PASS || '';
-    if (process.env.RESEND_API_KEY || pass.startsWith('re_')) {
-      activeMailer = 'Resend High-Speed SMTP';
-    } else if (process.env.SENDGRID_API_KEY || pass.startsWith('SG.')) {
-      activeMailer = 'SendGrid SMTP Engine';
+    const { id } = req.params;
+    const eventItem = await eventRepo.findById(id);
+    if (!eventItem) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
     }
-
-    const pingMs = Date.now() - startTime;
-    const freeCapacityPercent = (100 - (totalBytes / (1024 * 1024 * 1024)) * 100).toFixed(4);
-
-    res.json({
-      success: true,
-      data: {
-        status: 'ONLINE & HEALTHY',
-        projectId: process.env.FIREBASE_PROJECT_ID || 'hackseries-2026',
-        pingMs,
-        totalRegistrants,
-        checkedInCount,
-        pendingCheckin: totalRegistrants - checkedInCount,
-        emailSentCount,
-        pendingEmailDispatch: totalRegistrants - emailSentCount,
-        withPhotoCount,
-        totalBytes,
-        totalKB: (totalBytes / 1024).toFixed(2),
-        totalMB: (totalBytes / (1024 * 1024)).toFixed(4),
-        freeCapacityPercent,
-        freeQuotaLimit: '1.00 GB (1,024 MB)',
-        approxRemainingAttendeesCapacity: Math.floor((1024 * 1024 * 1024) / (totalBytes > 0 ? (totalBytes / Math.max(totalRegistrants, 1)) : 5000)),
-        staffCount: staffSnapshot.size,
-        staffMembers,
-        activeMailer,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    return res.json({ success: true, data: eventItem });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to query database telemetry',
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: 'Failed to fetch event', error: error.message });
   }
 };
 
+/**
+ * Admin: Create a new club event
+ */
+export const createClubEvent = async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.name || !data.name.trim()) {
+      return res.status(400).json({ success: false, message: 'Event name is required' });
+    }
+
+    const newEvent = await eventRepo.create(data);
+    return res.status(201).json({
+      success: true,
+      message: `Event "${newEvent.name}" created successfully!`,
+      data: newEvent,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to create event', error: error.message });
+  }
+};
+
+/**
+ * Admin: Update club event
+ */
+export const updateClubEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const updated = await eventRepo.update(id, updates);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    return res.json({
+      success: true,
+      message: `Event "${updated.name}" updated successfully!`,
+      data: updated,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update event', error: error.message });
+  }
+};
+
+/**
+ * Admin: Delete club event
+ */
+export const deleteClubEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await eventRepo.delete(id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    return res.json({ success: true, message: 'Event deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to delete event', error: error.message });
+  }
+};
+
+/**
+ * Admin: Team & Staff Management (list, create, update, delete roles)
+ */
+export const getStaffList = async (req, res) => {
+  try {
+    const staff = await staffRepo.getAll();
+    return res.json({ success: true, data: staff });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch staff members', error: error.message });
+  }
+};
+
+export const createStaffMember = async (req, res) => {
+  try {
+    const { username, email, name, password, role = 'event_head', assignedEventIds = [] } = req.body;
+    if (!username || !email || !name || !password) {
+      return res.status(400).json({ success: false, message: 'Username, email, name, and password are required' });
+    }
+
+    const existing = await staffRepo.findByIdentifier(username);
+    if (existing) {
+      return res.status(400).json({ success: false, message: `User with username "${username}" already exists` });
+    }
+
+    const created = await staffRepo.createStaff({
+      username,
+      email,
+      name,
+      password,
+      role,
+      assignedEventIds,
+    });
+
+    const { passwordHash, ...safe } = created;
+    return res.status(201).json({
+      success: true,
+      message: `Staff account for "${name}" (${role}) created successfully!`,
+      data: safe,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to create staff account', error: error.message });
+  }
+};
+
+export const updateStaffMember = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const updates = req.body;
+    const updated = await staffRepo.updateStaff(username, updates);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Staff member not found' });
+    }
+    return res.json({
+      success: true,
+      message: `Staff member "${username}" updated successfully!`,
+      data: updated,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update staff member', error: error.message });
+  }
+};
+
+export const deleteStaffMember = async (req, res) => {
+  try {
+    const { username } = req.params;
+    if (['adityarenake', 'sohamchitnis', 'haritirawal'].includes(username.toLowerCase())) {
+      return res.status(403).json({ success: false, message: 'Cannot delete Lead Operations Administrators' });
+    }
+    const deleted = await staffRepo.deleteStaff(username);
+    return res.json({ success: true, message: `Staff member "${username}" deleted successfully` });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to delete staff member', error: error.message });
+  }
+};
