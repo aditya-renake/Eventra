@@ -12,46 +12,57 @@ import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'l
 export function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [activePassId, setActivePassId] = useState(null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => api.auth.getUser());
   const [toasts, setToasts] = useState([]);
 
-  // Check URL pathname & hash on initial load
+  // Check URL pathname & hash on initial load and on hashchange
   useEffect(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const existingUser = api.auth.getUser();
-    const isAuth = api.auth.isAuthenticated();
+    const syncRoute = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const existingUser = api.auth.getUser();
+      const isAuth = api.auth.isAuthenticated();
 
-    if (existingUser && isAuth) {
-      setUser(existingUser);
-    }
+      if (existingUser && isAuth) {
+        setUser(existingUser);
+      }
 
-    if (path.startsWith('/pass/')) {
-      const id = window.location.pathname.split('/pass/')[1];
-      if (id) {
-        setActivePassId(id);
-        setCurrentView('pass');
+      if (path.startsWith('/pass/')) {
+        const id = window.location.pathname.split('/pass/')[1];
+        if (id) {
+          setActivePassId(id);
+          setCurrentView('pass');
+          return;
+        }
       }
-    } else if (path === '/dashboard' || hash === '#dashboard' || hash === '#/dashboard') {
-      if (existingUser && isAuth) {
-        setCurrentView('dashboard');
-      } else {
+
+      if (path === '/dashboard' || hash === '#dashboard' || hash === '#/dashboard') {
+        if (existingUser && isAuth) {
+          setCurrentView('dashboard');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/scanner' || hash === '#scanner' || hash === '#/scanner') {
+        if (existingUser && isAuth) {
+          setCurrentView('scanner');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/login' || hash === '#login' || hash === '#/login') {
         setCurrentView('login');
+      } else if (path === '/' && (!hash || hash === '#' || hash === '#/')) {
+        setCurrentView('landing');
       }
-    } else if (path === '/scanner' || hash === '#scanner' || hash === '#/scanner') {
-      if (existingUser && isAuth) {
-        setCurrentView('scanner');
-      } else {
-        setCurrentView('login');
-      }
-    } else if (path === '/login' || hash === '#login' || hash === '#/login') {
-      if (existingUser && isAuth) {
-        const isDashboard = ['admin', 'super_admin', 'event_head'].includes(existingUser.role);
-        setCurrentView(isDashboard ? 'dashboard' : 'scanner');
-      } else {
-        setCurrentView('login');
-      }
-    }
+    };
+
+    syncRoute();
+    window.addEventListener('hashchange', syncRoute);
+    window.addEventListener('popstate', syncRoute);
+
+    return () => {
+      window.removeEventListener('hashchange', syncRoute);
+      window.removeEventListener('popstate', syncRoute);
+    };
   }, []);
 
   const handleShowToast = ({ type = 'info', title, message }) => {
@@ -66,6 +77,7 @@ export function App() {
   const handleLogout = () => {
     api.auth.logout();
     setUser(null);
+    window.location.hash = '';
     setCurrentView('landing');
     handleShowToast({
       type: 'info',
@@ -82,8 +94,17 @@ export function App() {
 
   const handleBackToLanding = () => {
     window.history.pushState({}, '', '/');
+    window.location.hash = '';
     setActivePassId(null);
     setCurrentView('landing');
+  };
+
+  const handleLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser);
+    const isDashboardRole = ['admin', 'super_admin', 'event_head'].includes(loggedInUser?.role);
+    const target = isDashboardRole ? 'dashboard' : 'scanner';
+    window.location.hash = `#${target}`;
+    setCurrentView(target);
   };
 
   return (
@@ -97,6 +118,9 @@ export function App() {
         setCurrentView={(view) => {
           if (view === 'landing') {
             window.history.pushState({}, '', '/');
+            window.location.hash = '';
+          } else {
+            window.location.hash = `#${view}`;
           }
           setCurrentView(view);
         }}
@@ -121,24 +145,37 @@ export function App() {
           />
         )}
 
-        {currentView === 'dashboard' && user && (
-          <DashboardPage
-            onShowToast={handleShowToast}
-            onNavigateToScanner={() => setCurrentView('scanner')}
-          />
+        {currentView === 'dashboard' && (
+          user ? (
+            <DashboardPage
+              onShowToast={handleShowToast}
+              onNavigateToScanner={() => {
+                window.location.hash = '#scanner';
+                setCurrentView('scanner');
+              }}
+            />
+          ) : (
+            <LoginPage
+              onLoginSuccess={handleLoginSuccess}
+              onShowToast={handleShowToast}
+            />
+          )
         )}
 
-        {currentView === 'scanner' && user && (
-          <ScannerPage onShowToast={handleShowToast} />
+        {currentView === 'scanner' && (
+          user ? (
+            <ScannerPage onShowToast={handleShowToast} />
+          ) : (
+            <LoginPage
+              onLoginSuccess={handleLoginSuccess}
+              onShowToast={handleShowToast}
+            />
+          )
         )}
 
         {currentView === 'login' && (
           <LoginPage
-            onLoginSuccess={(loggedInUser) => {
-              setUser(loggedInUser);
-              const isDashboardRole = ['admin', 'super_admin', 'event_head'].includes(loggedInUser?.role);
-              setCurrentView(isDashboardRole ? 'dashboard' : 'scanner');
-            }}
+            onLoginSuccess={handleLoginSuccess}
             onShowToast={handleShowToast}
           />
         )}
