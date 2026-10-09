@@ -15,23 +15,42 @@ export function App() {
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
 
-  // Check URL pathname for /pass/:uniqueId
+  // Check URL pathname & hash on initial load
   useEffect(() => {
-    const path = window.location.pathname;
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    const existingUser = api.auth.getUser();
+    const isAuth = api.auth.isAuthenticated();
+
+    if (existingUser && isAuth) {
+      setUser(existingUser);
+    }
+
     if (path.startsWith('/pass/')) {
-      const id = path.split('/pass/')[1];
+      const id = window.location.pathname.split('/pass/')[1];
       if (id) {
         setActivePassId(id);
         setCurrentView('pass');
       }
-    }
-  }, []);
-
-  // Check existing session
-  useEffect(() => {
-    const existingUser = api.auth.getUser();
-    if (existingUser && api.auth.isAuthenticated()) {
-      setUser(existingUser);
+    } else if (path === '/dashboard' || hash === '#dashboard' || hash === '#/dashboard') {
+      if (existingUser && isAuth) {
+        setCurrentView('dashboard');
+      } else {
+        setCurrentView('login');
+      }
+    } else if (path === '/scanner' || hash === '#scanner' || hash === '#/scanner') {
+      if (existingUser && isAuth) {
+        setCurrentView('scanner');
+      } else {
+        setCurrentView('login');
+      }
+    } else if (path === '/login' || hash === '#login' || hash === '#/login') {
+      if (existingUser && isAuth) {
+        const isDashboard = ['admin', 'super_admin', 'event_head'].includes(existingUser.role);
+        setCurrentView(isDashboard ? 'dashboard' : 'scanner');
+      } else {
+        setCurrentView('login');
+      }
     }
   }, []);
 
