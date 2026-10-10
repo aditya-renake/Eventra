@@ -114,8 +114,6 @@ export const staffRepo = {
         let role = safeUser.role || 'scanner';
         if (u === 'adityarenake') {
           role = 'root_owner';
-        } else if (u === 'sohamchitnis' || u === 'haritirawal') {
-          if (role === 'scanner') role = 'event_head';
         }
         staffList.push({ id: doc.id, username: doc.id, ...safeUser, role });
       });
@@ -165,10 +163,14 @@ export const staffRepo = {
   },
 
   /**
-   * Seed default admin and staff users (adityarenake as root_owner, soham and hariti as event_heads)
+   * Seed default admin and staff users (adityarenake as exclusive root_owner)
    */
   async seedDefaultAdmin() {
     try {
+      // Ensure Soham and Hariti access is permanently revoked and deleted
+      await this.getCollection().doc('sohamchitnis').delete().catch(() => {});
+      await this.getCollection().doc('haritirawal').delete().catch(() => {});
+
       const staffList = [
         {
           username: 'adityarenake',
@@ -176,22 +178,6 @@ export const staffRepo = {
           name: 'Aditya Renake',
           password: 'Aditya@11',
           role: 'root_owner',
-          assignedEventIds: ['*'],
-        },
-        {
-          username: 'sohamchitnis',
-          email: 'sohamchitnis@hackseries.org',
-          name: 'Soham Chitnis',
-          password: 'Soham@11',
-          role: 'event_head',
-          assignedEventIds: ['*'],
-        },
-        {
-          username: 'haritirawal',
-          email: 'haritirawal@hackseries.org',
-          name: 'Hariti Rawal',
-          password: 'Hariti@11',
-          role: 'event_head',
           assignedEventIds: ['*'],
         },
         {

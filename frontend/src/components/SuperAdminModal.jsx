@@ -373,7 +373,7 @@ export const SuperAdminModal = ({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#9ca3af' }}>Active Staff Operators:</span>
-                  <span style={{ color: '#fff' }}>Soham Chitnis • Aditya Renake • Hariti Rawal</span>
+                  <span style={{ color: '#fff' }}>Aditya Renake (Lead Operations)</span>
                 </div>
               </div>
 

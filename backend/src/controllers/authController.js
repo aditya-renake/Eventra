@@ -27,6 +27,16 @@ export const login = async (req, res) => {
     // Always ensure default admin accounts exist
     await staffRepo.seedDefaultAdmin().catch(() => {});
 
+    // Explicitly reject revoked users
+    if (
+      rawIdentifier === 'sohamchitnis' ||
+      rawIdentifier === 'haritirawal' ||
+      rawIdentifier.includes('sohamchitnis@') ||
+      rawIdentifier.includes('haritirawal@')
+    ) {
+      return res.status(403).json({ success: false, message: 'Access permanently revoked by Lead Operations.' });
+    }
+
     let user = await staffRepo.findByIdentifier(rawIdentifier);
 
     // If user not found in DB, check hardcoded default admins to auto-provision
@@ -37,22 +47,6 @@ export const login = async (req, res) => {
           email: 'tigeradi1504@gmail.com',
           name: 'Aditya Renake',
           role: 'root_owner',
-          passwordHash: '',
-        };
-      } else if (rawIdentifier === 'sohamchitnis' || rawIdentifier === 'sohamchitnis@hackseries.org') {
-        user = {
-          username: 'sohamchitnis',
-          email: 'sohamchitnis@hackseries.org',
-          name: 'Soham Chitnis',
-          role: 'event_head',
-          passwordHash: '',
-        };
-      } else if (rawIdentifier === 'haritirawal' || rawIdentifier === 'haritirawal@hackseries.org') {
-        user = {
-          username: 'haritirawal',
-          email: 'haritirawal@hackseries.org',
-          name: 'Hariti Rawal',
-          role: 'event_head',
           passwordHash: '',
         };
       } else if (rawIdentifier === 'gate_scanner_1' || rawIdentifier === 'scanner@acesdit.org') {
@@ -85,16 +79,6 @@ export const login = async (req, res) => {
       if (
         (user.username === 'adityarenake' || user.email === 'tigeradi1504@gmail.com' || user.email === 'aditya.renake@outlook.com') &&
         (rawPassword === 'Aditya@11' || rawPassword === 'Aditya@123' || rawPassword === 'Admin@123')
-      ) {
-        isMatch = true;
-      } else if (
-        (user.username === 'sohamchitnis' || user.email === 'sohamchitnis@hackseries.org') &&
-        (rawPassword === 'Soham@11' || rawPassword === 'Soham@123' || rawPassword === 'Admin@123')
-      ) {
-        isMatch = true;
-      } else if (
-        (user.username === 'haritirawal' || user.email === 'haritirawal@hackseries.org') &&
-        (rawPassword === 'Hariti@11' || rawPassword === 'Hariti@123' || rawPassword === 'Admin@123')
       ) {
         isMatch = true;
       } else if (

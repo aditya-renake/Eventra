@@ -385,7 +385,7 @@ export const buildPassEmailHtml = ({
 
     <div class="footer">
       <p style="margin: 0 0 6px 0;">Organised by <strong>ACES</strong> • Department of Computer Engineering, DIT Pune (DYPDPU)</p>
-      <p style="margin: 0;">Lead Operations: <strong>Soham Chitnis</strong>, <strong>Aditya Renake</strong>, <strong>Hariti Rawal</strong></p>
+      <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong></p>
     </div>
   </div>
 </body>
@@ -637,7 +637,7 @@ export const buildCheckinConfirmationEmailHtml = ({
     <div class="footer">
       <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">HackSeries 2026 • Association of Computer Engineering Students (ACES)</p>
       <p style="margin: 0 0 6px 0;">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)</p>
-      <p style="margin: 0;">Lead Operations: <strong>Soham Chitnis</strong>, <strong>Aditya Renake</strong>, <strong>Hariti Rawal</strong> (<a href="mailto:tigeradi1504@gmail.com" style="color: #f7d070; text-decoration: none;">tigeradi1504@gmail.com</a>)</p>
+      <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong> (<a href="mailto:tigeradi1504@gmail.com" style="color: #f7d070; text-decoration: none;">tigeradi1504@gmail.com</a>)</p>
     </div>
 
   </div>
@@ -840,7 +840,7 @@ export const buildRegistrationReceivedEmailHtml = ({
       <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">HackSeries 2026 • Association of Computer Engineering Students (ACES)</p>
       <p style="margin: 0 0 6px 0;">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)</p>
       <p style="margin: 0;">
-        Lead Operations: <strong>Soham Chitnis</strong>, <strong>Aditya Renake</strong>, <strong>Hariti Rawal</strong> • 
+        Lead Operations: <strong>Aditya Renake</strong> • 
         <a href="https://instagram.com/where.aditya" style="color: #f7d070; text-decoration: none;">Instagram</a> • 
         <a href="https://github.com/aditya-renake" style="color: #22d3ee; text-decoration: none;">GitHub</a>
       </p>

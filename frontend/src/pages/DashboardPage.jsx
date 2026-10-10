@@ -228,10 +228,6 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   let adminDisplayName = name;
   if (isMainBoss) {
     adminDisplayName = 'Aditya Renake (Main Boss 👑)';
-  } else if (username === 'sohamchitnis' || name.toLowerCase().includes('soham')) {
-    adminDisplayName = 'Soham Chitnis';
-  } else if (username === 'haritirawal' || name.toLowerCase().includes('hariti')) {
-    adminDisplayName = 'Hariti Rawal';
   } else if (!adminDisplayName) {
     adminDisplayName = 'Operations Admin';
   }
