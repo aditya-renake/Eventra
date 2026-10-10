@@ -18,7 +18,34 @@ import { api } from '../services/api';
 
 export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }) => {
   const [isSending, setIsSending] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isVerified, setIsVerified] = useState(Boolean(registrant?.verified));
+
   if (!registrant) return null;
+
+  const handleToggleVerification = async () => {
+    try {
+      setIsUpdatingStatus(true);
+      const nextStatus = !isVerified;
+      const regId = registrant.uniqueId || registrant._id;
+      await api.registrants.toggleVerification(regId, nextStatus);
+      setIsVerified(nextStatus);
+      onShowToast({
+        type: 'success',
+        title: nextStatus ? 'Status Updated: Verified ✅' : 'Status Updated: Pending ⏳',
+        message: `${registrant.name} is now marked as ${nextStatus ? 'Verified' : 'Pending'}.`,
+      });
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      onShowToast({
+        type: 'error',
+        title: 'Failed to update status',
+        message: err.message,
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const handleSendEmail = async () => {
     try {
@@ -129,6 +156,34 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
                     <Users size={12} /> Team: {registrant.teamName}
                   </div>
                 )}
+
+                {/* Instant Verification Status Switcher */}
+                <div style={{ marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={handleToggleVerification}
+                    disabled={isUpdatingStatus}
+                    style={{
+                      background: isVerified ? 'rgba(34, 197, 94, 0.18)' : 'rgba(245, 158, 11, 0.18)',
+                      border: isVerified ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(245, 158, 11, 0.5)',
+                      color: isVerified ? '#4ade80' : '#fbbf24',
+                      padding: '5px 14px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: isVerified ? '0 0 10px rgba(34, 197, 94, 0.2)' : 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                    title="Click to toggle status between Verified and Pending"
+                  >
+                    <span>{isVerified ? '✅ Status: Verified' : '⏳ Status: Pending'}</span>
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>(Click to {isVerified ? 'Set Pending' : 'Verify'})</span>
+                  </button>
+                </div>
               </div>
 
               {/* QR Code Container */}

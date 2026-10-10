@@ -375,22 +375,36 @@ export const deleteRegistrant = async (req, res) => {
 export const toggleVerification = async (req, res) => {
   try {
     const { id } = req.params;
-    const { verified } = req.body || {};
+    const { verified, status } = req.body || {};
     const registrant = await registrantRepo.findByIdOrEmail(id);
     if (!registrant) {
       return res.status(404).json({ success: false, message: 'Registrant not found' });
     }
 
-    const nextVerified = verified !== undefined ? Boolean(verified) : !registrant.verified;
+    let nextVerified;
+    if (status !== undefined) {
+      const s = String(status).toLowerCase().trim();
+      nextVerified = s === 'verified' || s === 'true';
+    } else if (verified !== undefined) {
+      if (typeof verified === 'string') {
+        const v = verified.toLowerCase().trim();
+        nextVerified = v === 'verified' || v === 'true';
+      } else {
+        nextVerified = Boolean(verified);
+      }
+    } else {
+      nextVerified = !registrant.verified;
+    }
+
     const updated = await registrantRepo.update(registrant.uniqueId, {
       verified: nextVerified,
-      verificationStatus: nextVerified ? 'Verified' : 'Not Verified',
+      verificationStatus: nextVerified ? 'Verified' : 'Pending',
       verifiedAt: nextVerified ? new Date().toISOString() : null,
     });
 
     return res.json({
       success: true,
-      message: `Registrant ${updated.name} marked as ${nextVerified ? 'Verified ✅' : 'Not Verified ⏳'}`,
+      message: `Registrant ${updated.name} marked as ${nextVerified ? 'Verified ✅' : 'Pending ⏳'}`,
       data: updated,
     });
   } catch (error) {

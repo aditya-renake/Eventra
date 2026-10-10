@@ -30,6 +30,7 @@ router.post('/bulk-import', requireAuth, bulkImportRegistrants);
 router.get('/:id', requireAuth, getRegistrantById);
 router.post('/', requireAuth, createRegistrant);
 router.post('/:id/generate-qr', requireAuth, regenerateQR);
+router.put('/:id/verify', requireAuth, toggleVerification);
 router.patch('/:id/verify', requireAuth, toggleVerification);
 router.delete('/:id', requireAuth, requireAdmin, deleteRegistrant);
 
