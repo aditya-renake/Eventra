@@ -49,7 +49,12 @@ export function App() {
           setCurrentView('login');
         }
       } else if (path === '/login' || hash === '#login' || hash === '#/login') {
-        setCurrentView('login');
+        if (existingUser && isAuth) {
+          const isDashboardRole = ['admin', 'super_admin', 'event_head', 'root_owner'].includes(existingUser?.role);
+          setCurrentView(isDashboardRole ? 'dashboard' : 'scanner');
+        } else {
+          setCurrentView('login');
+        }
       } else if (path === '/' && (!hash || hash === '#' || hash === '#/')) {
         setCurrentView('landing');
       }
@@ -101,7 +106,7 @@ export function App() {
 
   const handleLoginSuccess = (loggedInUser) => {
     setUser(loggedInUser);
-    const isDashboardRole = ['admin', 'super_admin', 'event_head'].includes(loggedInUser?.role);
+    const isDashboardRole = ['admin', 'super_admin', 'event_head', 'root_owner'].includes(loggedInUser?.role);
     const target = isDashboardRole ? 'dashboard' : 'scanner';
     window.location.hash = `#${target}`;
     setCurrentView(target);

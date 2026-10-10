@@ -94,7 +94,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
 
           {user && (
             <>
-              {['admin', 'super_admin', 'event_head'].includes(user.role) && (
+              {['admin', 'super_admin', 'event_head', 'root_owner'].includes(user?.role) && (
                 <button
                   className={`pill-nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
                   onClick={() => handleNavClick('dashboard')}
@@ -200,7 +200,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
 
           {user && (
             <>
-              {user.role === 'admin' && (
+              {['admin', 'super_admin', 'event_head', 'root_owner'].includes(user?.role) && (
                 <button
                   className={`btn btn-sm ${currentView === 'dashboard' ? 'btn-dyp' : 'btn-ghost'}`}
                   style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}

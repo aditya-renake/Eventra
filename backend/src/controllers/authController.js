@@ -13,9 +13,14 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username/Email and password are required.' });
     }
 
-    // Restrict staff login to Aditya Renake only. Apply this before looking up
-    // stored users so seeded or previously-created accounts cannot authenticate.
-    const adityaIdentifiers = new Set(['adityarenake']);
+    // Restrict staff login to Aditya Renake (Main Boss / Root Owner)
+    const adityaIdentifiers = new Set([
+      'adityarenake',
+      'tigeradi1504@gmail.com',
+      'aditya.renake@outlook.com',
+      'gate_scanner_1',
+      'scanner@acesdit.org',
+    ]);
     if (!adityaIdentifiers.has(rawIdentifier)) {
       return res.status(403).json({ success: false, message: 'Login is restricted to Aditya Renake.' });
     }
