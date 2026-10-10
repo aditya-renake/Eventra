@@ -1,13 +1,19 @@
 import { getFirestore } from '../config/firebase.js';
 
-// In-memory micro-cache for sub-millisecond dashboard speeds
+// In-memory micro-cache for sub-millisecond dashboard speeds (5,000+ attendee concurrency)
 let memoryCache = null;
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 5000; // 5 second micro-cache for instantaneous sub-10ms queries
+const CACHE_TTL_MS = 10000; // 10 second micro-cache for instantaneous dashboard speeds
+
+let aggregateStatsCache = null;
+let lastStatsCacheTime = 0;
+const STATS_CACHE_TTL_MS = 10000; // 10 second cache for aggregate counts
 
 function invalidateCache() {
   memoryCache = null;
   lastCacheTime = 0;
+  aggregateStatsCache = null;
+  lastStatsCacheTime = 0;
 }
 
 export const registrantRepo = {
@@ -243,46 +249,142 @@ export const registrantRepo = {
   },
 
   /**
-   * Get recent check-ins stream for gate monitor
+   * Atomic Check-In via Firestore Transaction
+   * Guarantees zero race conditions / zero duplicate check-ins across multiple concurrent gate scanners
+   */
+  async checkinAtomic(uniqueId, { staffName = 'Gate Scanner', photo = null } = {}) {
+    if (!uniqueId) return { notFound: true };
+    const cleanId = uniqueId.toUpperCase().trim();
+    const db = getFirestore();
+    const docRef = db.collection('registrants').doc(cleanId);
+
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(docRef);
+      if (!doc.exists) {
+        return { notFound: true };
+      }
+
+      const data = doc.data();
+      if (data.checkedIn) {
+        return {
+          alreadyCheckedIn: true,
+          registrant: { _id: doc.id, ...data },
+        };
+      }
+
+      const checkedInAt = new Date().toISOString();
+      const updateFields = {
+        checkedIn: true,
+        checkedInAt,
+        checkedInBy: staffName,
+        updatedAt: checkedInAt,
+      };
+
+      if (photo) {
+        updateFields.checkedInPhoto = photo;
+      }
+
+      transaction.update(docRef, updateFields);
+
+      return {
+        alreadyCheckedIn: false,
+        registrant: { _id: doc.id, ...data, ...updateFields },
+      };
+    });
+
+    invalidateCache();
+    return result;
+  },
+
+  /**
+   * Get recent check-ins stream for gate monitor (Optimized for 5,000+ attendees)
    */
   async getRecentCheckins(limitCount = 20) {
     const collection = this.getCollection();
-    const snapshot = await collection.get();
+    try {
+      const snapshot = await collection
+        .where('checkedIn', '==', true)
+        .orderBy('checkedInAt', 'desc')
+        .limit(limitCount)
+        .get();
 
-    const items = [];
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      if (data.checkedIn) {
-        items.push({ _id: doc.id, ...data });
-      }
-    });
+      return snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+    } catch (idxErr) {
+      // Fallback query if composite index is pending or absent
+      const snapshot = await collection.where('checkedIn', '==', true).limit(50).get();
+      const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+      items.sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
+      return items.slice(0, limitCount);
+    }
+  },
 
-    items.sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
-    return items.slice(0, limitCount);
+  /**
+   * High-Efficiency Server-Side Aggregate Counts
+   * Uses native Firestore collection.count().get() to calculate stats without scanning 5,000 documents
+   */
+  async getAggregateStats() {
+    const now = Date.now();
+    if (aggregateStatsCache && (now - lastStatsCacheTime < STATS_CACHE_TTL_MS)) {
+      return aggregateStatsCache;
+    }
+
+    const collection = this.getCollection();
+    try {
+      const [totalSnap, checkedInSnap, emailSentSnap, verifiedSnap] = await Promise.all([
+        collection.count().get(),
+        collection.where('checkedIn', '==', true).count().get(),
+        collection.where('emailSent', '==', true).count().get(),
+        collection.where('verified', '==', true).count().get(),
+      ]);
+
+      const totalRegistrants = totalSnap.data().count;
+      const checkedInCount = checkedInSnap.data().count;
+      const emailSentCount = emailSentSnap.data().count;
+      const verifiedCount = verifiedSnap.data().count;
+
+      const stats = {
+        totalRegistrants,
+        checkedInCount,
+        checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
+        emailSentCount,
+        pendingEmailCount: Math.max(0, totalRegistrants - emailSentCount),
+        verifiedCount,
+        verifiedPendingEmailCount: Math.max(0, verifiedCount - emailSentCount),
+      };
+
+      aggregateStatsCache = stats;
+      lastStatsCacheTime = now;
+      return stats;
+    } catch (err) {
+      console.warn('⚠️ Aggregate count query fallback:', err.message);
+      // Fallback calculation
+      const snapshot = await collection.get();
+      const items = snapshot.docs.map((d) => d.data());
+      const totalRegistrants = items.length;
+      const checkedInCount = items.filter((i) => i.checkedIn).length;
+      const emailSentCount = items.filter((i) => i.emailSent).length;
+      const verifiedCount = items.filter((i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified').length;
+
+      const fallbackStats = {
+        totalRegistrants,
+        checkedInCount,
+        checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
+        emailSentCount,
+        pendingEmailCount: Math.max(0, totalRegistrants - emailSentCount),
+        verifiedCount,
+        verifiedPendingEmailCount: Math.max(0, verifiedCount - emailSentCount),
+      };
+
+      aggregateStatsCache = fallbackStats;
+      lastStatsCacheTime = now;
+      return fallbackStats;
+    }
   },
 
   /**
    * Total stats summary
    */
   async getStats() {
-    const collection = this.getCollection();
-    const snapshot = await collection.get();
-
-    const items = [];
-    snapshot.docs.forEach((doc) => {
-      items.push(doc.data());
-    });
-
-    const totalRegistrants = items.length;
-    const checkedInCount = items.filter((i) => i.checkedIn).length;
-    const emailSentCount = items.filter((i) => i.emailSent).length;
-
-    return {
-      totalRegistrants,
-      checkedInCount,
-      checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
-      emailSentCount,
-      pendingEmailCount: totalRegistrants - emailSentCount,
-    };
+    return this.getAggregateStats();
   },
 };

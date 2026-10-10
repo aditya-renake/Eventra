@@ -3,11 +3,12 @@ import { staffRepo } from '../models/staffRepo.js';
 import { registrantRepo } from '../models/registrantRepo.js';
 
 /**
- * Public & Staff: Get all club events
+ * Public & Staff: Get all club events (Edge CDN cached for concurrent viewers)
  */
 export const getClubEvents = async (req, res) => {
   try {
     const { category, status, search } = req.query;
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     const events = await eventRepo.getAll({ category, status, search });
     return res.json({ success: true, data: events });
   } catch (error) {
@@ -16,11 +17,12 @@ export const getClubEvents = async (req, res) => {
 };
 
 /**
- * Public: Get single event details by eventId
+ * Public: Get single event details by eventId (Edge CDN cached)
  */
 export const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     const eventItem = await eventRepo.findById(id);
     if (!eventItem) {
       return res.status(404).json({ success: false, message: 'Event not found' });

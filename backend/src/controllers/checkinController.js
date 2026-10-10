@@ -83,20 +83,39 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
-    // Perform Check-in in DynamoDB
+    // Perform Check-in atomically with Firestore Transaction (Prevents concurrent race conditions)
     const staffName = req.user ? req.user.name : (req.body.scannedBy || 'Gate Scanner');
-    const checkedInAt = new Date().toISOString();
+    const atomicResult = await registrantRepo.checkinAtomic(registrant.uniqueId, {
+      staffName,
+      photo: livePhoto,
+    });
 
-    const updateFields = {
-      checkedIn: true,
-      checkedInAt,
-      checkedInBy: staffName,
-    };
-    if (livePhoto) {
-      updateFields.checkedInPhoto = livePhoto;
+    if (atomicResult.alreadyCheckedIn) {
+      const existing = atomicResult.registrant;
+      return res.status(200).json({
+        success: false,
+        status: 'ALREADY_CHECKED_IN',
+        alreadyCheckedIn: true,
+        message: `⚠️ Already Checked In at ${new Date(existing.checkedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} by ${existing.checkedInBy || 'Gate Staff'}`,
+        checkedInAt: existing.checkedInAt,
+        checkedInBy: existing.checkedInBy,
+        registrant: {
+          _id: existing.uniqueId,
+          uniqueId: existing.uniqueId,
+          name: existing.name,
+          email: existing.email,
+          phone: existing.phone,
+          ticketType: existing.ticketType,
+          teamName: existing.teamName,
+          track: existing.track,
+          checkedIn: true,
+          checkedInAt: existing.checkedInAt,
+          checkedInBy: existing.checkedInBy,
+        },
+      });
     }
 
-    const updated = await registrantRepo.update(registrant.uniqueId, updateFields);
+    const updated = atomicResult.registrant;
 
     console.log(`✅ [CHECK-IN APPROVED] ${updated.name} (${updated.uniqueId}) checked in by ${staffName} (Live Photo: ${Boolean(livePhoto)})`);
 

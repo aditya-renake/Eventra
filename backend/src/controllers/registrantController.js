@@ -277,6 +277,8 @@ export const createRegistrant = async (req, res) => {
 export const getPublicPass = async (req, res) => {
   try {
     const { idOrEmail } = req.params;
+    // Edge CDN caching: absorbs thousands of concurrent attendee pass reloads
+    res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
     const registrant = await registrantRepo.findByIdOrEmail(idOrEmail);
 
     if (!registrant) {
