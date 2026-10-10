@@ -155,7 +155,7 @@ export const staffRepo = {
     if (!username) return false;
     const cleanUsername = username.toLowerCase().trim();
     if (cleanUsername === 'adityarenake') {
-      throw new Error('Cannot delete the Main Boss (Aditya Renake)');
+      throw new Error('Cannot delete the Main Event Organizer (Aditya Renake)');
     }
     const collection = this.getCollection();
     await collection.doc(cleanUsername).delete();

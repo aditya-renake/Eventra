@@ -227,7 +227,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
   let adminDisplayName = name;
   if (isMainBoss) {
-    adminDisplayName = 'Aditya Renake (Main Boss 👑)';
+    adminDisplayName = 'Aditya Renake (Main Event Organizer 👑)';
   } else if (!adminDisplayName) {
     adminDisplayName = 'Operations Admin';
   }
@@ -271,7 +271,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
             {isMainBoss ? (
               <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 0 10px rgba(247, 208, 112, 0.3)' }}>
-                <Crown size={12} color="#f7d070" /> MAIN BOSS (ROOT)
+                <Crown size={12} color="#f7d070" /> MAIN EVENT ORGANIZER (ROOT)
               </span>
             ) : (
               <span className="badge badge-cyan">SUB-EVENT HEAD</span>
@@ -308,7 +308,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             </button>
           )}
 
-          {/* Team & Roles (EXCLUSIVE TO MAIN BOSS / ADITYA RENAKE) */}
+          {/* Team & Roles (EXCLUSIVE TO MAIN EVENT ORGANIZER / ADITYA RENAKE) */}
           {isMainBoss && (
             <button
               className="btn btn-cyan btn-sm"

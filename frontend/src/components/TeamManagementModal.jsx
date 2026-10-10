@@ -56,7 +56,7 @@ export const TeamManagementModal = ({ onClose, onShowToast, events = [] }) => {
   };
 
   const handlePurgeAllExceptOwner = async () => {
-    if (!window.confirm("⚠️ DANGER: Are you sure you want to revoke and delete ALL other staff accounts? Only Aditya Renake (Main Boss) will retain access.")) {
+    if (!window.confirm("⚠️ DANGER: Are you sure you want to revoke and delete ALL other staff accounts? Only Aditya Renake (Main Event Organizer) will retain access.")) {
       return;
     }
     try {
@@ -357,7 +357,7 @@ export const TeamManagementModal = ({ onClose, onShowToast, events = [] }) => {
                                 boxShadow: '0 0 12px rgba(209, 165, 80, 0.35)',
                               }}
                             >
-                              <Crown size={12} color="#f7d070" /> ROOT OWNER / MAIN BOSS
+                              <Crown size={12} color="#f7d070" /> ROOT OWNER / MAIN EVENT ORGANIZER
                             </span>
                           ) : (
                             <span

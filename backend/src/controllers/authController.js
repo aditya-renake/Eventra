@@ -13,7 +13,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username/Email and password are required.' });
     }
 
-    // Restrict staff login to Aditya Renake (Main Boss / Root Owner)
+    // Restrict staff login to Aditya Renake (Main Event Organizer / Root Owner)
     const adityaIdentifiers = new Set([
       'adityarenake',
       'tigeradi1504@gmail.com',

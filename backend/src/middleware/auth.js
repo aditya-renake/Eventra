@@ -54,7 +54,7 @@ export const requireRootOwner = (req, res, next) => {
   if (!isOwner) {
     return res.status(403).json({
       success: false,
-      message: 'Access Denied: Main Boss / Root Owner privileges (Aditya Renake) required.',
+      message: 'Access Denied: Main Event Organizer / Root Owner privileges (Aditya Renake) required.',
     });
   }
   next();

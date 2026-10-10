@@ -158,7 +158,7 @@ export const deleteStaffMember = async (req, res) => {
     const { username } = req.params;
     const cleanUser = String(username || '').toLowerCase().trim();
     if (cleanUser === 'adityarenake') {
-      return res.status(403).json({ success: false, message: 'The Main Boss / Root Founder (Aditya Renake) cannot be deleted.' });
+      return res.status(403).json({ success: false, message: 'The Main Event Organizer / Root Founder (Aditya Renake) cannot be deleted.' });
     }
     await staffRepo.deleteStaff(cleanUser);
     return res.json({ success: true, message: `Access revoked and staff member "${cleanUser}" removed successfully!` });
