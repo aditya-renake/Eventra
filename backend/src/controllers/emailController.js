@@ -1,9 +1,10 @@
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
 import { sendPassEmail, sendBulkPassEmails, buildPassEmailHtml } from '../services/emailService.js';
+import { sendAutoPassWhatsApp } from '../services/messagingService.js';
 
 /**
- * 1-Click Send Pass Email to a single registrant (STRICTLY VERIFIED ONLY)
+ * 1-Click Send Pass Email & WhatsApp to a single registrant (STRICTLY VERIFIED ONLY)
  */
 export const sendSinglePassEmail = async (req, res) => {
   try {
@@ -23,28 +24,45 @@ export const sendSinglePassEmail = async (req, res) => {
     }
 
     const config = await configRepo.getConfig();
-    const emailResult = await sendPassEmail(registrant, config);
+
+    // Dual Parallel Dispatch: Simultaneously send Email and WhatsApp pass
+    const [emailRes, whatsappRes] = await Promise.allSettled([
+      sendPassEmail(registrant, config),
+      sendAutoPassWhatsApp(registrant),
+    ]);
+
+    if (emailRes.status === 'rejected') {
+      throw emailRes.reason;
+    }
+
+    const emailResult = emailRes.value;
+    const whatsappResult = whatsappRes.status === 'fulfilled' ? whatsappRes.value : null;
 
     const updated = await registrantRepo.update(registrant.uniqueId, {
       emailSent: true,
       emailSentAt: new Date().toISOString(),
       emailSendCount: (registrant.emailSendCount || 0) + 1,
+      whatsappSent: whatsappResult?.success || false,
+      whatsappSentAt: new Date().toISOString(),
     });
 
     res.json({
       success: true,
-      message: `Pass email successfully sent to ${updated.email}`,
+      message: `Pass dispatched on Email and WhatsApp for ${updated.name} (${updated.email})!`,
       result: emailResult,
+      whatsapp: whatsappResult,
       registrant: {
         _id: updated.uniqueId,
         email: updated.email,
+        phone: updated.phone,
         emailSent: updated.emailSent,
         emailSentAt: updated.emailSentAt,
         emailSendCount: updated.emailSendCount,
+        whatsappSent: updated.whatsappSent,
       },
     });
   } catch (error) {
-    console.error('❌ Send email error:', error);
+    console.error('❌ Send email/whatsapp error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to send pass email',
@@ -54,7 +72,7 @@ export const sendSinglePassEmail = async (req, res) => {
 };
 
 /**
- * Bulk send pass emails (STRICTLY VERIFIED ONLY)
+ * Bulk send pass emails & WhatsApp (STRICTLY VERIFIED ONLY)
  */
 export const sendBulkEmails = async (req, res) => {
   try {
@@ -92,13 +110,18 @@ export const sendBulkEmails = async (req, res) => {
     const config = await configRepo.getConfig();
     const results = await sendBulkPassEmails(registrants, config);
 
-    // Update sent flags in DynamoDB
+    // Update sent flags & dispatch WhatsApp simultaneously
     for (const r of registrants) {
       await registrantRepo.update(r.uniqueId, {
         emailSent: true,
         emailSentAt: new Date().toISOString(),
         emailSendCount: (r.emailSendCount || 0) + 1,
       });
+
+      // Parallel WhatsApp dispatch
+      sendAutoPassWhatsApp(r).catch((err) =>
+        console.warn(`⚠️ [BULK WHATSAPP NOTICE] Failed for ${r.uniqueId}:`, err.message)
+      );
     }
 
     res.json({

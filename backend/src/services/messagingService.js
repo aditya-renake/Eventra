@@ -132,3 +132,100 @@ export const sendAutoCheckinMessage = async (registrant) => {
     directWhatsAppUrl,
   };
 };
+
+/**
+ * Builds the WhatsApp Digital Entry Pass & QR message string
+ */
+export const buildPassWhatsAppMessage = ({
+  name,
+  uniqueId,
+  ticketType,
+  teamName,
+  track,
+  clientUrl = 'https://hackseries-2026.vercel.app',
+}) => {
+  const passUrl = `${clientUrl}/pass/${uniqueId}`;
+  return `🎫 *Official Entry Pass • HackSeries 2026* ✅\n\nHey *${name}*, your registration has been VERIFIED! Here is your official entry pass for HackSeries 2026 at Dr. D. Y. Patil Institute of Technology (DIT), Pune.\n\n🎟️ *Pass ID:* ${uniqueId}\n🏷️ *Ticket Tier:* ${ticketType || 'Hacker Pass'}\n${teamName ? `👥 *Team:* ${teamName}\n` : ''}${track ? `🎯 *Track:* ${track}\n` : ''}\n📱 *Your Live Digital Pass & Dynamic QR:* \n👉 ${passUrl}\n\n⚠️ *Gate Entry Instructions:*\n• Present the QR code on your phone at Gate 1 for express check-in.\n• Carry a valid College Photo ID.\n\nLead Operations: *Aditya Renake* (+91 9890829874)\n_ACES • Dept. of Computer Engineering, DIT Pune_`;
+};
+
+/**
+ * Automatically dispatches WhatsApp pass with QR link to attendee simultaneously with email
+ */
+export const sendAutoPassWhatsApp = async (registrant) => {
+  const phone = formatPhoneNumber(registrant.phone);
+  if (!phone) {
+    console.log(`ℹ️ [MESSAGING] No phone number recorded for ${registrant.name} (${registrant.uniqueId}). Skipping WhatsApp pass.`);
+    return { success: false, reason: 'NO_PHONE' };
+  }
+
+  const clientUrl = process.env.CLIENT_URL || 'https://hackseries-2026.vercel.app';
+  const textMessage = buildPassWhatsAppMessage({
+    name: registrant.name,
+    uniqueId: registrant.uniqueId,
+    ticketType: registrant.ticketType,
+    teamName: registrant.teamName,
+    track: registrant.track,
+    clientUrl,
+  });
+
+  const whatsappApiUrl = process.env.WHATSAPP_API_URL;
+  const whatsappToken = process.env.WHATSAPP_TOKEN;
+  const fast2SmsKey = process.env.FAST2SMS_API_KEY;
+
+  // 1. Automated WhatsApp Gateway (UltraMsg, GreenAPI, Meta Cloud API, etc.)
+  if (whatsappApiUrl && whatsappToken) {
+    try {
+      const response = await fetch(whatsappApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: whatsappToken,
+          to: phone,
+          body: textMessage,
+        }),
+      });
+      const data = await response.json();
+      console.log(`✅ [WHATSAPP PASS DISPATCHED] Sent to +${phone}:`, data);
+      return { success: true, provider: 'whatsapp_gateway', result: data };
+    } catch (err) {
+      console.warn(`⚠️ [WHATSAPP PASS GATEWAY ERROR] Failed sending to +${phone}:`, err.message);
+    }
+  }
+
+  // 2. Fast2SMS Indian SMS Fallback
+  if (fast2SmsKey) {
+    try {
+      const smsPhone = phone.startsWith('91') && phone.length === 12 ? phone.slice(2) : phone;
+      const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          authorization: fast2SmsKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          route: 'q',
+          message: `HackSeries 2026: Hey ${registrant.name}, your verified pass (${registrant.uniqueId}) is ready! View your QR pass: ${clientUrl}/pass/${registrant.uniqueId}`,
+          language: 'english',
+          flash: 0,
+          numbers: smsPhone,
+        }),
+      });
+      const data = await response.json();
+      console.log(`✅ [FAST2SMS PASS DISPATCHED] Sent SMS to ${smsPhone}:`, data);
+      return { success: true, provider: 'fast2sms', result: data };
+    } catch (err) {
+      console.warn(`⚠️ [FAST2SMS PASS ERROR] Failed sending SMS to +${phone}:`, err.message);
+    }
+  }
+
+  // 3. Fallback: Pre-generate wa.me link
+  const encodedText = encodeURIComponent(textMessage);
+  const directWhatsAppUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`;
+  console.log(`📱 [WHATSAPP PASS LINK READY] Generated wa.me link for +${phone}`);
+  return {
+    success: true,
+    provider: 'direct_link',
+    phone,
+    directWhatsAppUrl,
+  };
+};
