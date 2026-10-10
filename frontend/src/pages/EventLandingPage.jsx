@@ -22,7 +22,8 @@ import {
   QrCode,
   Download,
   Instagram,
-  Github
+  Github,
+  Users
 } from 'lucide-react';
 import { DYPDPULogo, ACESLogo } from '../components/CollegeLogos';
 import { ConstellationBackground } from '../components/ConstellationBackground';

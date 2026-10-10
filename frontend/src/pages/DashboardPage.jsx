@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   QrCode,
   CheckSquare,
-  Crown
+  Crown,
+  Sparkles
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StatCard } from '../components/StatCard';
