@@ -110,7 +110,14 @@ export const staffRepo = {
       const staffList = [];
       snapshot.docs.forEach((doc) => {
         const { passwordHash, ...safeUser } = doc.data();
-        staffList.push({ id: doc.id, username: doc.id, ...safeUser });
+        const u = doc.id.toLowerCase().trim();
+        let role = safeUser.role || 'scanner';
+        if (u === 'adityarenake') {
+          role = 'root_owner';
+        } else if (u === 'sohamchitnis' || u === 'haritirawal') {
+          if (role === 'scanner') role = 'event_head';
+        }
+        staffList.push({ id: doc.id, username: doc.id, ...safeUser, role });
       });
       return staffList;
     } catch (e) {
@@ -149,31 +156,34 @@ export const staffRepo = {
   async deleteStaff(username) {
     if (!username) return false;
     const cleanUsername = username.toLowerCase().trim();
+    if (cleanUsername === 'adityarenake') {
+      throw new Error('Cannot delete the Main Boss (Aditya Renake)');
+    }
     const collection = this.getCollection();
     await collection.doc(cleanUsername).delete();
     return true;
   },
 
   /**
-   * Seed default admin and staff users (adityarenake, sohamchitnis, haritirawal, gate_scanner)
+   * Seed default admin and staff users (adityarenake as root_owner, soham and hariti as event_heads)
    */
   async seedDefaultAdmin() {
     try {
       const staffList = [
         {
-          username: 'sohamchitnis',
-          email: 'sohamchitnis@hackseries.org',
-          name: 'Soham Chitnis',
-          password: 'Soham@11',
-          role: 'super_admin',
-          assignedEventIds: ['*'],
-        },
-        {
           username: 'adityarenake',
           email: 'tigeradi1504@gmail.com',
           name: 'Aditya Renake',
           password: 'Aditya@11',
-          role: 'super_admin',
+          role: 'root_owner',
+          assignedEventIds: ['*'],
+        },
+        {
+          username: 'sohamchitnis',
+          email: 'sohamchitnis@hackseries.org',
+          name: 'Soham Chitnis',
+          password: 'Soham@11',
+          role: 'event_head',
           assignedEventIds: ['*'],
         },
         {
@@ -181,7 +191,7 @@ export const staffRepo = {
           email: 'haritirawal@hackseries.org',
           name: 'Hariti Rawal',
           password: 'Hariti@11',
-          role: 'super_admin',
+          role: 'event_head',
           assignedEventIds: ['*'],
         },
         {
@@ -200,6 +210,8 @@ export const staffRepo = {
           console.log(`👑 [Firestore] Seeding staff user (${staff.username})...`);
           await this.createStaff(staff);
           console.log(`✅ [Firestore] User ${staff.username} created successfully.`);
+        } else if (staff.username === 'adityarenake' && existing.role !== 'root_owner') {
+          await this.getCollection().doc('adityarenake').set({ role: 'root_owner' }, { merge: true });
         }
       }
     } catch (e) {

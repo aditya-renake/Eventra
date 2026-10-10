@@ -37,9 +37,25 @@ export const requireAuth = async (req, res, next) => {
 };
 
 export const requireAdmin = (req, res, next) => {
-  const allowedRoles = ['admin', 'super_admin', 'event_head'];
+  const allowedRoles = ['admin', 'super_admin', 'root_owner', 'event_head'];
   if (!req.user || !allowedRoles.includes(req.user.role)) {
     return res.status(403).json({ success: false, message: 'Administrator privileges required.' });
+  }
+  next();
+};
+
+export const requireRootOwner = (req, res, next) => {
+  const isOwner = req.user && (
+    req.user.role === 'root_owner' ||
+    req.user.username?.toLowerCase() === 'adityarenake' ||
+    req.user.email?.toLowerCase() === 'tigeradi1504@gmail.com' ||
+    req.user.email?.toLowerCase() === 'aditya.renake@outlook.com'
+  );
+  if (!isOwner) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access Denied: Main Boss / Root Owner privileges (Aditya Renake) required.',
+    });
   }
   next();
 };

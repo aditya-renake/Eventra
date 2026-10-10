@@ -103,6 +103,11 @@ export const api = {
         method: 'DELETE',
       });
     },
+    async purgeStaffExceptOwner() {
+      return request('/event/admin/staff-purge/all-except-owner', {
+        method: 'DELETE',
+      });
+    },
   },
 
   registrants: {

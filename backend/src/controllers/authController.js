@@ -25,7 +25,7 @@ export const login = async (req, res) => {
           username: 'adityarenake',
           email: 'tigeradi1504@gmail.com',
           name: 'Aditya Renake',
-          role: 'super_admin',
+          role: 'root_owner',
           passwordHash: '',
         };
       } else if (rawIdentifier === 'sohamchitnis' || rawIdentifier === 'sohamchitnis@hackseries.org') {
@@ -33,7 +33,7 @@ export const login = async (req, res) => {
           username: 'sohamchitnis',
           email: 'sohamchitnis@hackseries.org',
           name: 'Soham Chitnis',
-          role: 'super_admin',
+          role: 'event_head',
           passwordHash: '',
         };
       } else if (rawIdentifier === 'haritirawal' || rawIdentifier === 'haritirawal@hackseries.org') {
@@ -41,7 +41,7 @@ export const login = async (req, res) => {
           username: 'haritirawal',
           email: 'haritirawal@hackseries.org',
           name: 'Hariti Rawal',
-          role: 'super_admin',
+          role: 'event_head',
           passwordHash: '',
         };
       } else if (rawIdentifier === 'gate_scanner_1' || rawIdentifier === 'scanner@acesdit.org') {
@@ -100,13 +100,15 @@ export const login = async (req, res) => {
 
     await staffRepo.updateLastLogin(user.username).catch(() => {});
 
+    const assignedRole = user.username.toLowerCase() === 'adityarenake' ? 'root_owner' : (user.role || 'event_head');
+
     const token = jwt.sign(
       {
         userId: user.username,
         username: user.username,
         email: user.email,
         name: user.name,
-        role: user.role || 'admin',
+        role: assignedRole,
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -121,7 +123,7 @@ export const login = async (req, res) => {
         username: user.username,
         email: user.email,
         name: user.name,
-        role: user.role || 'admin',
+        role: assignedRole,
       },
     });
   } catch (error) {

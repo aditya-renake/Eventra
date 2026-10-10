@@ -223,9 +223,11 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   const email = currentUser?.email?.toLowerCase() || '';
   const name = currentUser?.name || '';
   
+  const isMainBoss = username === 'adityarenake' || email === 'tigeradi1504@gmail.com' || email === 'aditya.renake@outlook.com' || currentUser?.role === 'root_owner';
+
   let adminDisplayName = name;
-  if (username === 'adityarenake' || email === 'tigeradi1504@gmail.com' || name.toLowerCase().includes('aditya')) {
-    adminDisplayName = 'Aditya Renake';
+  if (isMainBoss) {
+    adminDisplayName = 'Aditya Renake (Main Boss 👑)';
   } else if (username === 'sohamchitnis' || name.toLowerCase().includes('soham')) {
     adminDisplayName = 'Soham Chitnis';
   } else if (username === 'haritirawal' || name.toLowerCase().includes('hariti')) {
@@ -271,6 +273,13 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
               </select>
             </div>
 
+            {isMainBoss ? (
+              <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 0 10px rgba(247, 208, 112, 0.3)' }}>
+                <Crown size={12} color="#f7d070" /> MAIN BOSS (ROOT)
+              </span>
+            ) : (
+              <span className="badge badge-cyan">SUB-EVENT HEAD</span>
+            )}
             <span className="badge badge-dyp">ACES • DIT PUNE</span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -282,35 +291,45 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           
           {/* + Launch Event */}
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => {
-              sounds.playClick();
-              setShowCreateEvent(true);
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)',
-              border: '1px solid rgba(247, 208, 112, 0.4)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Sparkles size={14} color="#f7d070" />
-            <span>+ Launch Event</span>
-          </button>
+          {isMainBoss && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                sounds.playClick();
+                setShowCreateEvent(true);
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)',
+                border: '1px solid rgba(247, 208, 112, 0.4)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Sparkles size={14} color="#f7d070" />
+              <span>+ Launch Event</span>
+            </button>
+          )}
 
-          {/* Team & Roles */}
-          <button
-            className="btn btn-cyan btn-sm"
-            onClick={() => {
-              sounds.playClick();
-              setShowTeamModal(true);
-            }}
-          >
-            <Users size={14} /> Team & Roles
-          </button>
+          {/* Team & Roles (EXCLUSIVE TO MAIN BOSS / ADITYA RENAKE) */}
+          {isMainBoss && (
+            <button
+              className="btn btn-cyan btn-sm"
+              onClick={() => {
+                sounds.playClick();
+                setShowTeamModal(true);
+              }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.25) 0%, rgba(209, 165, 80, 0.25) 100%)',
+                border: '1px solid rgba(209, 165, 80, 0.5)',
+                color: '#f7d070',
+                fontWeight: '800',
+              }}
+            >
+              <Crown size={14} color="#f7d070" /> Team & Roles (Boss)
+            </button>
+          )}
 
           {onNavigateToScanner && (
             <button className="btn btn-cyan btn-sm" onClick={onNavigateToScanner}>
@@ -333,9 +352,11 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             <FileSpreadsheet size={15} /> Import Excel / CSV
           </button>
 
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowWebhookGuide(true)}>
-            <FileSpreadsheet size={15} color="#22c55e" /> Google Sheet Webhook Script
-          </button>
+          {isMainBoss && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowWebhookGuide(true)}>
+              <FileSpreadsheet size={15} color="#22c55e" /> Google Sheet Webhook Script
+            </button>
+          )}
 
           {/* Bulk Email button with selected counter badge */}
           <button 

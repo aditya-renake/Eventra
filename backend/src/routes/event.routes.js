@@ -10,6 +10,7 @@ import {
   createStaffMember,
   updateStaffMember,
   deleteStaffMember,
+  purgeAllStaffExceptOwner,
 } from '../controllers/eventController.js';
 
 const router = Router();
@@ -28,5 +29,6 @@ router.get('/admin/staff', requireAuth, getStaffList);
 router.post('/admin/staff', requireAuth, createStaffMember);
 router.put('/admin/staff/:username', requireAuth, updateStaffMember);
 router.delete('/admin/staff/:username', requireAuth, deleteStaffMember);
+router.delete('/admin/staff-purge/all-except-owner', requireAuth, purgeAllStaffExceptOwner);
 
 export default router;

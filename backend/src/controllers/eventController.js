@@ -154,12 +154,34 @@ export const updateStaffMember = async (req, res) => {
 export const deleteStaffMember = async (req, res) => {
   try {
     const { username } = req.params;
-    if (['adityarenake', 'sohamchitnis', 'haritirawal'].includes(username.toLowerCase())) {
-      return res.status(403).json({ success: false, message: 'Cannot delete Lead Operations Administrators' });
+    const cleanUser = String(username || '').toLowerCase().trim();
+    if (cleanUser === 'adityarenake') {
+      return res.status(403).json({ success: false, message: 'The Main Boss / Root Founder (Aditya Renake) cannot be deleted.' });
     }
-    const deleted = await staffRepo.deleteStaff(username);
-    return res.json({ success: true, message: `Staff member "${username}" deleted successfully` });
+    await staffRepo.deleteStaff(cleanUser);
+    return res.json({ success: true, message: `Access revoked and staff member "${cleanUser}" removed successfully!` });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to delete staff member', error: error.message });
+  }
+};
+
+export const purgeAllStaffExceptOwner = async (req, res) => {
+  try {
+    const allStaff = await staffRepo.getAll();
+    let count = 0;
+    for (const st of allStaff) {
+      const u = String(st.username || '').toLowerCase().trim();
+      if (u !== 'adityarenake') {
+        await staffRepo.deleteStaff(u);
+        count++;
+      }
+    }
+    return res.json({
+      success: true,
+      message: `Access revoked for all other accounts (${count} staff members removed). Only Aditya Renake retains access.`,
+      count,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to purge staff accounts', error: error.message });
   }
 };
