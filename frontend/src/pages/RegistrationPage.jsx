@@ -35,9 +35,9 @@ const DEFAULT_CONFIG = {
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune',
   enablePaymentGateway: false,
   ticketPrices: {
-    'Hacker Pass': 199,
-    'Student Pass': 149,
-    'VIP Delegate': 499,
+    'Hacker Pass': 5,
+    'Student Pass': 5,
+    'VIP Delegate': 5,
     'Judge / Mentor': 0,
   },
 };

@@ -14,9 +14,9 @@ const DEFAULT_CONFIG = {
   registrationMode: 'google_form', // 'google_form' (classic) or 'native_payment' (direct in-app registration + payment)
   enablePaymentGateway: false, // Feature flag: Set true for Razorpay, false for 100% Free / Google Form
   ticketPrices: {
-    'Hacker Pass': 199,
-    'Student Pass': 149,
-    'VIP Delegate': 499,
+    'Hacker Pass': 5,
+    'Student Pass': 5,
+    'VIP Delegate': 5,
     'Judge / Mentor': 0,
   },
   currency: 'INR',
