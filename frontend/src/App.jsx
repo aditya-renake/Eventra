@@ -116,7 +116,7 @@ export function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className={currentView === 'register' ? 'app-registration-light' : ''} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* High-Impact Interactive Ambient Floating Background Everywhere */}
       <InteractiveBackground />
       
