@@ -22,6 +22,8 @@ const DEFAULT_CONFIG = {
   currency: 'INR',
   upiId: 'tigeradi1504-1@okicici',
   upiPayeeName: 'HackSeries 2026',
+  smtpUser: 'tigeradi1504@gmail.com',
+  smtpPass: '',
   emailSubjectTemplate: '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}',
   emailBodyNotice: 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.',
   createdAt: new Date().toISOString(),
@@ -106,8 +108,8 @@ export const configRepo = {
         organizerName: merged.organizerName,
         organizerEmail: merged.organizerEmail,
         googleFormUrl: merged.googleFormUrl,
-        entryFee: merged.ticketPrices?.['Hacker Pass'] ?? 5,
-        feeDisplay: `₹${merged.ticketPrices?.['Hacker Pass'] ?? 5} Entry Pass`,
+        entryFee: merged.ticketPrices?.['Hacker Pass'] ?? 1,
+        feeDisplay: `₹${merged.ticketPrices?.['Hacker Pass'] ?? 1} Entry Pass`,
       });
     } catch (e) {
       // quiet fallback

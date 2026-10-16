@@ -74,10 +74,22 @@ export const initiateRegistrationOrder = async (req, res) => {
         checkedIn: false,
       });
 
-      // Dispatch confirmation email & WhatsApp asynchronously for verified free pass
-      configRepo.getConfig()
-        .then((cfg) => Promise.allSettled([sendPassEmail(newRegistrant, cfg), sendAutoPassWhatsApp(newRegistrant)]))
-        .catch((e) => console.warn('Auto dispatch notice:', e.message));
+      // Dispatch confirmation email & WhatsApp for verified free pass
+      try {
+        const cfg = await configRepo.getConfig().catch(() => ({}));
+        const [emailResult] = await Promise.allSettled([
+          sendPassEmail(newRegistrant, cfg),
+          sendAutoPassWhatsApp(newRegistrant),
+        ]);
+        if (emailResult.status === 'fulfilled') {
+          await registrantRepo.update(newRegistrant.uniqueId, {
+            emailSent: true,
+            emailSentAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.warn('Auto dispatch notice:', e.message);
+      }
 
       return res.status(201).json({
         success: true,
@@ -280,11 +292,26 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     console.log(`✅ [PAYMENT VERIFIED & PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via ${razorpay_payment_id}`);
 
-    // Asynchronously dispatch pass email & WhatsApp notification
-    configRepo.getConfig()
-      .then((cfg) => Promise.allSettled([sendPassEmail(newRegistrant, cfg), sendAutoPassWhatsApp(newRegistrant)]))
-      .then(() => console.log(`📧 Pass dual-dispatched for ${newRegistrant.email}`))
-      .catch((e) => console.warn('Dispatch notice:', e.message));
+    // Dispatch pass email & WhatsApp notification and ensure it completes before returning response
+    try {
+      const cfg = await configRepo.getConfig().catch(() => ({}));
+      const [emailResult, waResult] = await Promise.allSettled([
+        sendPassEmail(newRegistrant, cfg),
+        sendAutoPassWhatsApp(newRegistrant),
+      ]);
+
+      if (emailResult.status === 'fulfilled') {
+        await registrantRepo.update(newRegistrant.uniqueId, {
+          emailSent: true,
+          emailSentAt: new Date().toISOString(),
+        });
+        console.log(`📧 Pass email successfully delivered to ${newRegistrant.email}`);
+      } else {
+        console.warn(`⚠️ Pass email delivery failed for ${newRegistrant.email}:`, emailResult.reason?.message);
+      }
+    } catch (dispatchErr) {
+      console.warn('⚠️ Dispatch warning:', dispatchErr.message);
+    }
 
     return res.status(201).json({
       success: true,
