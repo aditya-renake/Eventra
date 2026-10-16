@@ -29,15 +29,7 @@ export const initiateRegistrationOrder = async (req, res) => {
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
-    const existing = await registrantRepo.findByEmail(cleanEmail);
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: 'A participant is already registered with this email address.',
-        existingPassId: existing.uniqueId,
-      });
-    }
+    // Duplicate registrations are allowed for now
 
     const config = await configRepo.getConfig();
     const isPaymentEnabled = config.enablePaymentGateway !== false;
@@ -250,15 +242,7 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     const effectiveOrderId = razorpay_order_id;
     const cleanEmail = String(participantData.email || '').toLowerCase().trim();
-    let existing = await registrantRepo.findByEmail(cleanEmail);
-
-    if (existing) {
-      return res.json({
-        success: true,
-        message: 'Payment verified! Existing pass retrieved.',
-        data: existing,
-      });
-    }
+    // Duplicate entries allowed: Always mint a new official pass for every successful payment
 
     // Generate Official Cryptographic Pass
     const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
