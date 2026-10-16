@@ -16,6 +16,7 @@ import {
   Ticket,
   UserRound,
   UsersRound,
+  Lock,
   X,
 } from 'lucide-react';
 import { api } from '../services/api';
