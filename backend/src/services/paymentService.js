@@ -55,12 +55,12 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
   const keyId = clientData?.keyId || process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_mode';
   const amountInPaise = Math.round(Number(amount) * 100);
 
-  // If Razorpay credentials are not set (e.g. Test / Demo mode), return mock order for seamless local testing
+  // If Razorpay credentials are not set (e.g. Test / Demo mode)
   if (!client) {
-    const mockOrderId = `order_mock_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    console.log(`ℹ️ [PAYMENT MOCK] Created test order: ${mockOrderId} (₹${amount})`);
+    console.log(`ℹ️ [PAYMENT] Initializing Razorpay direct checkout (₹${amount})`);
     return {
-      id: mockOrderId,
+      id: null,
+      orderId: null,
       amount: amountInPaise,
       currency,
       receipt,
@@ -79,14 +79,15 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
 
     return {
       ...order,
+      orderId: order.id,
       isMock: false,
       keyId,
     };
   } catch (err) {
-    console.warn('⚠️ [Razorpay] orders.create failed, falling back to direct UPI order:', err.message);
-    const fallbackOrderId = `order_upi_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    console.warn('⚠️ [Razorpay] orders.create failed:', err.message);
     return {
-      id: fallbackOrderId,
+      id: null,
+      orderId: null,
       amount: amountInPaise,
       currency,
       receipt,

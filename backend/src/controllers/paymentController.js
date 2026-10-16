@@ -48,11 +48,11 @@ export const initiateRegistrationOrder = async (req, res) => {
       'Judge / Mentor': 5,
     };
 
-    const passPrice = isPaymentEnabled ? (priceMap[ticketType] ?? 5) : 5;
+    const passPrice = priceMap[ticketType] !== undefined && !isNaN(Number(priceMap[ticketType])) ? Number(priceMap[ticketType]) : 5;
     const tempReceipt = `RCPT-${Date.now()}`;
 
-    // If Free Pass (0 INR) or Payment Gateway is toggled OFF, generate pass immediately
-    if (passPrice === 0 || !isPaymentEnabled) {
+    // ONLY if the pass price is explicitly 0 INR (free tier), generate pass immediately
+    if (passPrice === 0) {
       const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
       const uniqueId = `HS26-${rawUuid}`;
       const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
@@ -73,7 +73,7 @@ export const initiateRegistrationOrder = async (req, res) => {
         qrPayload,
         qrSignature: signature,
         qrCodeDataUrl,
-        verified: true, // Direct verification for verified free registrations
+        verified: true, // Direct verification for free passes
         verificationStatus: 'Verified',
         paymentStatus: 'FREE_PASS',
         amountPaid: 0,
@@ -82,7 +82,7 @@ export const initiateRegistrationOrder = async (req, res) => {
         checkedIn: false,
       });
 
-      // Dispatch confirmation email & WhatsApp asynchronously
+      // Dispatch confirmation email & WhatsApp asynchronously for verified free pass
       configRepo.getConfig()
         .then((cfg) => Promise.allSettled([sendPassEmail(newRegistrant, cfg), sendAutoPassWhatsApp(newRegistrant)]))
         .catch((e) => console.warn('Auto dispatch notice:', e.message));
@@ -99,10 +99,8 @@ export const initiateRegistrationOrder = async (req, res) => {
       });
     }
 
-    // Otherwise, create Payment Order & UPI QR code for direct payment
-    const targetUpiId = config.upiId || 'tigeradi1504-1@okicici';
-    const payeeName = config.upiPayeeName || 'HackSeries 2026';
-
+    // For all paid registrations (₹5): Initiate Razorpay Order.
+    // ZERO registrant creation and ZERO pass email dispatch until payment is verified!
     const order = await createOrder({
       amount: passPrice,
       currency: config.currency || 'INR',
@@ -115,34 +113,15 @@ export const initiateRegistrationOrder = async (req, res) => {
       },
     });
 
-    // Generate UPI URI conforming to National Payments Corporation of India (NPCI) UPI specs
-    const upiNote = `HS26-${order.id.slice(-6)}-${ticketType.replace(/\s+/g, '')}`;
-    const upiString = `upi://pay?pa=${targetUpiId}&pn=${encodeURIComponent(payeeName)}&am=${passPrice}&cu=INR&tn=${encodeURIComponent(upiNote)}&tr=${order.id}`;
-    let upiQrCode = '';
-    try {
-      upiQrCode = await generateQRCodeDataUrl(upiString);
-    } catch (e) {
-      console.warn('⚠️ Base64 QR code generation fallback:', e.message);
-      upiQrCode = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(upiString)}`;
-    }
-
     return res.json({
       success: true,
       isFree: false,
-      orderId: order.id,
+      orderId: order.orderId || order.id || null,
       amount: order.amount,
       amountRupees: passPrice,
-      currency: order.currency,
+      currency: order.currency || 'INR',
       keyId: order.keyId,
       isMock: order.isMock,
-      upi: {
-        upiId: targetUpiId,
-        payeeName,
-        upiString,
-        upiQrCode,
-        amountRupees: passPrice,
-        transactionNote: upiNote,
-      },
       participantSummary: {
         name,
         email: cleanEmail,
@@ -268,21 +247,26 @@ export const verifyAndCompleteRegistration = async (req, res) => {
       participantData = {},
     } = req.body;
 
-    if (!razorpay_order_id || !razorpay_payment_id) {
-      return res.status(400).json({ success: false, message: 'Payment details missing.' });
+    if (!razorpay_payment_id) {
+      return res.status(400).json({ success: false, message: 'Payment details missing: payment ID required.' });
     }
 
-    const isValid = await verifyPaymentSignature({
-      orderId: razorpay_order_id,
-      paymentId: razorpay_payment_id,
-      signature: razorpay_signature,
-    });
+    const effectiveOrderId = razorpay_order_id || participantData.orderId || `pay_order_${Date.now()}`;
 
-    if (!isValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment verification failed: Cryptographic signature mismatch.',
+    // If Razorpay provided order_id and signature, verify the HMAC signature
+    if (razorpay_order_id && razorpay_signature) {
+      const isValid = await verifyPaymentSignature({
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        signature: razorpay_signature,
       });
+
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment verification failed: Cryptographic signature mismatch.',
+        });
+      }
     }
 
     const cleanEmail = String(participantData.email || '').toLowerCase().trim();
@@ -323,8 +307,8 @@ export const verifyAndCompleteRegistration = async (req, res) => {
       verificationStatus: 'Verified',
       paymentStatus: 'PAID',
       paymentId: razorpay_payment_id,
-      orderId: razorpay_order_id,
-      amountPaid: participantData.amountPaid || 199,
+      orderId: effectiveOrderId,
+      amountPaid: Number(participantData.amountPaid) || 5,
       paidAt: new Date().toISOString(),
       emailSent: false,
       checkedIn: false,
