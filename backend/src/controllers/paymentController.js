@@ -211,103 +211,15 @@ export const createRazorpayOrder = async (req, res) => {
  * POST /api/payment/verify-upi
  */
 export const verifyUpiPayment = async (req, res) => {
-  try {
-    const {
-      orderId,
-      utrNumber,
-      participantData = {},
-    } = req.body;
-
-    if (!utrNumber || String(utrNumber).trim().length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'A valid 12-digit UPI Reference Number / UTR is required to confirm payment.',
-      });
-    }
-
-    const cleanUtr = String(utrNumber).trim().toUpperCase();
-
-    // Prevent duplicate UTR usage across participants
-    const existingWithUtr = await registrantRepo.findByUtr(cleanUtr);
-    if (existingWithUtr) {
-      return res.status(400).json({
-        success: false,
-        message: `This UPI Reference Number (${cleanUtr}) has already been used for pass ${existingWithUtr.uniqueId}. Each pass requires a unique payment.`,
-      });
-    }
-
-    const cleanEmail = String(participantData.email || '').toLowerCase().trim();
-    let existing = await registrantRepo.findByEmail(cleanEmail);
-
-    if (existing) {
-      return res.json({
-        success: true,
-        message: 'Attendee already registered! Existing pass retrieved.',
-        data: existing,
-      });
-    }
-
-    const config = await configRepo.getConfig();
-    const targetUpiId = config.upiId || 'tigeradi1504-1@okicici';
-
-    // Generate Official Cryptographic Pass
-    const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
-    const uniqueId = `HS26-${rawUuid}`;
-    const ticketType = participantData.ticketType || 'Hacker Pass';
-
-    const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
-    const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
-
-    const newRegistrant = await registrantRepo.create({
-      uniqueId,
-      name: (participantData.name || 'Participant').trim(),
-      email: cleanEmail,
-      phone: participantData.phone ? String(participantData.phone).trim() : '',
-      ticketType,
-      teamName: participantData.teamName ? String(participantData.teamName).trim() : '',
-      track: participantData.track || 'AI & Agentic Systems',
-      githubUrl: participantData.githubUrl || '',
-      institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
-      formResponses: participantData.formResponses || {},
-      qrPayload,
-      qrSignature: signature,
-      qrCodeDataUrl,
-      verified: true, // Automatically verified upon confirmed payment submission
-      verificationStatus: 'Verified',
-      paymentStatus: 'PAID',
-      paymentMethod: 'UPI_DIRECT',
-      payeeUpi: targetUpiId,
-      utrNumber: cleanUtr,
-      orderId: orderId || `UPI-${Date.now()}`,
-      amountPaid: participantData.amountPaid || 199,
-      paidAt: new Date().toISOString(),
-      emailSent: false,
-      checkedIn: false,
-    });
-
-    console.log(`✅ [UPI PAYMENT CONFIRMED & PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via UTR ${cleanUtr} to ${targetUpiId}`);
-
-    // Asynchronously dispatch pass email & WhatsApp notification
-    configRepo.getConfig()
-      .then((cfg) => Promise.allSettled([sendPassEmail(newRegistrant, cfg), sendAutoPassWhatsApp(newRegistrant)]))
-      .then(() => console.log(`📧 Pass dual-dispatched for ${newRegistrant.email}`))
-      .catch((e) => console.warn('Dispatch notice:', e.message));
-
-    return res.status(201).json({
-      success: true,
-      message: `Payment Verified! Pass ${uniqueId} issued successfully.`,
-      data: newRegistrant,
-    });
-  } catch (error) {
-    console.error('❌ UPI verification error:', error);
-    return res.status(500).json({ success: false, message: 'UPI payment verification failed', error: error.message });
-  }
+  return res.status(400).json({
+    success: false,
+    message: 'Manual UPI self-verification is disabled. Please complete payment through the automated Razorpay Standard Checkout gateway.',
+  });
 };
 
 /**
  * 2. Verify Payment & Mint Verified Entry Pass
- * POST /api/payment/verify
+ * POST /api/payment/verify or POST /api/verify-payment
  */
 export const verifyAndCompleteRegistration = async (req, res) => {
   try {
@@ -316,28 +228,27 @@ export const verifyAndCompleteRegistration = async (req, res) => {
     const razorpay_signature = req.body.razorpay_signature || req.body.signature;
     const participantData = req.body.participantData || {};
 
-    if (!razorpay_payment_id) {
-      return res.status(400).json({ success: false, message: 'Payment details missing: payment ID required.' });
-    }
-
-    const effectiveOrderId = razorpay_order_id || participantData.orderId || `pay_order_${Date.now()}`;
-
-    // If Razorpay provided order_id and signature, verify the HMAC signature
-    if (razorpay_order_id && razorpay_signature) {
-      const isValid = await verifyPaymentSignature({
-        orderId: razorpay_order_id,
-        paymentId: razorpay_payment_id,
-        signature: razorpay_signature,
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed: razorpay_order_id, razorpay_payment_id, and razorpay_signature are strictly required.',
       });
-
-      if (!isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Payment verification failed: Cryptographic signature mismatch.',
-        });
-      }
     }
 
+    const isValid = await verifyPaymentSignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed: Cryptographic signature mismatch. Payment was not confirmed.',
+      });
+    }
+
+    const effectiveOrderId = razorpay_order_id;
     const cleanEmail = String(participantData.email || '').toLowerCase().trim();
     let existing = await registrantRepo.findByEmail(cleanEmail);
 

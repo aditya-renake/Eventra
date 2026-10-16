@@ -108,13 +108,13 @@ export const verifyPaymentSignature = async ({ orderId, paymentId, signature }) 
     if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
   } catch (e) {}
 
-  // In test mock mode without secret, accept if signature contains mock prefix
+  if (!orderId || !paymentId || !signature) {
+    return false;
+  }
+
   if (!keySecret) {
-    if (String(signature || '').startsWith('mock_sig_') || String(orderId || '').startsWith('order_mock_')) {
-      return true;
-    }
-    // If testing without Razorpay keys, allow sandbox test verification
-    return true;
+    console.error('❌ [Razorpay] Verification failed: RAZORPAY_KEY_SECRET is not configured.');
+    return false;
   }
 
   const expectedSignature = crypto

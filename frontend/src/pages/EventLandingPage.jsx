@@ -20,7 +20,9 @@ import {
   Download,
   Instagram,
   Github,
-  Users
+  Users,
+  Ticket,
+  Trophy
 } from 'lucide-react';
 import { DYPDPULogo } from '../components/CollegeLogos';
 import { ConstellationBackground } from '../components/ConstellationBackground';
