@@ -179,8 +179,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         throw new Error('Payment gateway failed to load. Please check your internet connection and try again.');
       }
 
+      const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TodUSFIV3XfTWA';
+      const effectiveOrderId = orderRes?.order_id || orderRes?.orderId;
+
       const options = {
-        key: orderRes?.keyId || 'rzp_test_mock_mode',
+        key: razorpayKey,
         amount: orderRes?.amount || (amountDue * 100),
         currency: orderRes?.currency || 'INR',
         name: eventConfig.eventName || 'HackSeries 2026',
@@ -200,8 +203,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
             setIsLoading(true);
             const verifyRes = await api.payment.verifyPayment({
+              order_id: response.razorpay_order_id,
               razorpay_order_id: response.razorpay_order_id,
+              payment_id: response.razorpay_payment_id,
               razorpay_payment_id: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
               razorpay_signature: response.razorpay_signature,
               participantData: { ...formData, amountPaid: amountDue },
             });
@@ -231,8 +237,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         },
       };
 
-      if (orderRes?.orderId && String(orderRes.orderId).startsWith('order_') && !orderRes.isMock) {
-        options.order_id = orderRes.orderId;
+      if (effectiveOrderId && String(effectiveOrderId).startsWith('order_')) {
+        options.order_id = effectiveOrderId;
       }
 
       const checkout = new window.Razorpay(options);

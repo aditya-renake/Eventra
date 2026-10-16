@@ -1,21 +1,26 @@
 import { Router } from 'express';
 import {
   initiateRegistrationOrder,
+  createRazorpayOrder,
   verifyAndCompleteRegistration,
+  verifyRazorpayPayment,
   verifyUpiPayment,
   handlePaymentWebhook,
 } from '../controllers/paymentController.js';
 
 const router = Router();
 
-// Public: Create order for in-app registration (generates UPI QR code + Razorpay order)
-router.post('/create-order', initiateRegistrationOrder);
+// Public: Standard Razorpay Web Checkout Order Creation
+router.post('/create-order', createRazorpayOrder);
+
+// Public: Standard Razorpay Signature Verification
+router.post('/verify-payment', verifyRazorpayPayment);
+
+// Public: Registration Verification & Pass Minting
+router.post('/verify', verifyAndCompleteRegistration);
 
 // Public: Verify direct UPI payment (UTR submission) and mint verified pass
 router.post('/verify-upi', verifyUpiPayment);
-
-// Public: Verify Razorpay payment signature and mint verified pass
-router.post('/verify', verifyAndCompleteRegistration);
 
 // Public: Razorpay webhook fallback
 router.post('/webhook', handlePaymentWebhook);

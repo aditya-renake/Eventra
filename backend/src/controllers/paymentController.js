@@ -116,10 +116,12 @@ export const initiateRegistrationOrder = async (req, res) => {
     return res.json({
       success: true,
       isFree: false,
+      order_id: order.orderId || order.id || null,
       orderId: order.orderId || order.id || null,
       amount: order.amount,
       amountRupees: passPrice,
       currency: order.currency || 'INR',
+      key_id: order.keyId,
       keyId: order.keyId,
       isMock: order.isMock,
       participantSummary: {
@@ -132,6 +134,75 @@ export const initiateRegistrationOrder = async (req, res) => {
   } catch (error) {
     console.error('❌ Create registration order error:', error);
     return res.status(500).json({ success: false, message: 'Failed to initiate order', error: error.message });
+  }
+};
+
+/**
+ * Standard Razorpay Order Creation Endpoint
+ * POST /api/create-order or POST /api/payment/create-order
+ * Request: { amount, currency, receipt, notes }
+ * Return: { order_id, amount, currency }
+ * Minimum amount: 100 paise
+ */
+export const createRazorpayOrder = async (req, res) => {
+  try {
+    const {
+      amount,
+      currency = 'INR',
+      receipt,
+      notes = {},
+      name,
+      email,
+    } = req.body || {};
+
+    // If attendee registration payload is passed, route to registration handler
+    if (name && email) {
+      return initiateRegistrationOrder(req, res);
+    }
+
+    if (!amount || isNaN(Number(amount))) {
+      return res.status(400).json({ success: false, message: 'Valid amount is required.' });
+    }
+
+    const numericAmount = Number(amount);
+    const amountInPaise = Math.round(numericAmount);
+
+    if (amountInPaise < 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum order amount is 100 paise (₹1).',
+      });
+    }
+
+    const orderReceipt = receipt || `rcpt_${Date.now()}`;
+    const order = await createOrder({
+      amount: amountInPaise / 100, // createOrder multiplies by 100 to get paise
+      currency,
+      receipt: orderReceipt,
+      notes,
+    });
+
+    if (!order || !order.orderId) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create order with Razorpay API.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      order_id: order.orderId,
+      amount: order.amount,
+      currency: order.currency || currency,
+      key_id: order.keyId || process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (error) {
+    console.error('❌ createRazorpayOrder error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create order',
+      error: error.message,
+    });
   }
 };
 
@@ -240,12 +311,10 @@ export const verifyUpiPayment = async (req, res) => {
  */
 export const verifyAndCompleteRegistration = async (req, res) => {
   try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      participantData = {},
-    } = req.body;
+    const razorpay_order_id = req.body.razorpay_order_id || req.body.order_id || req.body.orderId;
+    const razorpay_payment_id = req.body.razorpay_payment_id || req.body.payment_id || req.body.paymentId;
+    const razorpay_signature = req.body.razorpay_signature || req.body.signature;
+    const participantData = req.body.participantData || {};
 
     if (!razorpay_payment_id) {
       return res.status(400).json({ success: false, message: 'Payment details missing: payment ID required.' });
@@ -330,6 +399,60 @@ export const verifyAndCompleteRegistration = async (req, res) => {
   } catch (error) {
     console.error('❌ Payment verification error:', error);
     return res.status(500).json({ success: false, message: 'Payment verification failed', error: error.message });
+  }
+};
+
+/**
+ * Standard Razorpay Signature Verification Endpoint
+ * POST /api/verify-payment or POST /api/payment/verify-payment
+ * Algorithm: HMAC-SHA256(order_id + "|" + payment_id, KEY_SECRET)
+ * Compare generated signature with razorpay_signature
+ * Return success only if signatures match
+ */
+export const verifyRazorpayPayment = async (req, res) => {
+  try {
+    const order_id = req.body.razorpay_order_id || req.body.order_id || req.body.orderId;
+    const payment_id = req.body.razorpay_payment_id || req.body.payment_id || req.body.paymentId;
+    const signature = req.body.razorpay_signature || req.body.signature;
+
+    if (!order_id || !payment_id || !signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required payment verification fields (order_id, payment_id, signature).',
+      });
+    }
+
+    const isValid = await verifyPaymentSignature({
+      orderId: order_id,
+      paymentId: payment_id,
+      signature,
+    });
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed: Signature mismatch.',
+      });
+    }
+
+    // If participant registration data was passed, complete pass minting
+    if (req.body.participantData && (req.body.participantData.email || req.body.participantData.name)) {
+      return verifyAndCompleteRegistration(req, res);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment verified successfully.',
+      order_id,
+      payment_id,
+    });
+  } catch (error) {
+    console.error('❌ verifyRazorpayPayment error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Payment verification error',
+      error: error.message,
+    });
   }
 };
 

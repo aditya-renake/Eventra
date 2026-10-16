@@ -47,6 +47,10 @@ app.use('/event', eventRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/payment', paymentRoutes);
 
+// Direct standard Razorpay API aliases
+app.use('/api', paymentRoutes);
+app.use('/', paymentRoutes);
+
 // Health check
 app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({
