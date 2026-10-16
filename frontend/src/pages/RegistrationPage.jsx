@@ -180,7 +180,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         throw new Error('Payment gateway failed to load. Please check your internet connection and try again.');
       }
 
-      const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TodUSFIV3XfTWA';
+      const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Toe8X3rzRfnIsm';
       const effectiveOrderId = orderRes?.order_id || orderRes?.orderId;
 
       const options = {
