@@ -18,6 +18,7 @@ import {
   UsersRound,
   Lock,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
@@ -452,6 +453,13 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   <Sparkles size={16} />
                   <span>{amountDue > 0 ? 'You’ll continue to secure checkout to complete your registration.' : 'Your digital QR pass will be created as soon as you confirm.'}</span>
                 </div>
+
+                {amountDue > 0 && String(import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_').startsWith('rzp_test_') && (
+                  <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(247, 208, 112, 0.08)', border: '1px solid rgba(247, 208, 112, 0.25)', fontSize: '12px', color: '#fef08a', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1.5 }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0, color: '#facc15' }} />
+                    <span><strong>Razorpay Test Sandbox:</strong> Real UPI apps (GPay / PhonePe) will say <em>"Invalid QR"</em> on test codes. To test without real money: inside the popup, select <strong>UPI ID</strong> and enter <code>success@razorpay</code>, or select <strong>Card / NetBanking</strong> & click <strong>Success</strong>. (To accept real mobile UPI payments, switch to Razorpay Live keys in Admin).</span>
+                  </div>
+                )}
               </section>
             )}
 
