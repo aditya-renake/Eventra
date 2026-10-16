@@ -124,6 +124,34 @@ export const registrantRepo = {
   },
 
   /**
+   * Find registrant by Razorpay Order ID or Payment ID
+   */
+  async findByOrderId(orderId) {
+    if (!orderId) return null;
+    const cleanOrder = String(orderId).trim();
+
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      const cached = memoryCache.find(
+        (r) => (r.orderId && r.orderId === cleanOrder) || (r.paymentId && r.paymentId === cleanOrder)
+      );
+      if (cached) return cached;
+    }
+
+    const collection = this.getCollection();
+    const snap1 = await collection.where('orderId', '==', cleanOrder).limit(1).get();
+    if (!snap1.empty) {
+      const doc = snap1.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    const snap2 = await collection.where('paymentId', '==', cleanOrder).limit(1).get();
+    if (!snap2.empty) {
+      const doc = snap2.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    return null;
+  },
+
+  /**
    * Get all registrants with search, filter, and pagination (optimized with micro-cache)
    */
   async getAll({

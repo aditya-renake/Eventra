@@ -215,6 +215,17 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
             completeRegistration(verifyRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
           } catch (error) {
+            // Auto-recovery: Check directly with Razorpay before declaring failure
+            try {
+              if (response?.razorpay_order_id) {
+                const checkRes = await api.payment.checkOrderStatus(response.razorpay_order_id, formData);
+                if (checkRes.isPaid && checkRes.data) {
+                  completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
+                  return;
+                }
+              }
+            } catch (recoveryErr) {}
+
             sounds.playError();
             setErrorMsg(error.message || 'Payment verification failed.');
             onShowToast?.({
@@ -227,12 +238,25 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
+            // If modal was dismissed, check if payment succeeded in background via UPI app
+            if (effectiveOrderId) {
+              try {
+                setIsLoading(true);
+                const checkRes = await api.payment.checkOrderStatus(effectiveOrderId, formData);
+                if (checkRes.isPaid && checkRes.data) {
+                  completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
+                  return;
+                }
+              } catch (e) {} finally {
+                setIsLoading(false);
+              }
+            }
             setIsLoading(false);
             onShowToast?.({
               type: 'info',
               title: 'Checkout Closed',
-              message: 'Payment was cancelled. You can retry whenever you are ready.',
+              message: 'Checkout window closed. You can retry whenever you are ready.',
             });
           },
         },
@@ -244,7 +268,20 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
       const checkout = new window.Razorpay(options);
 
-      checkout.on('payment.failed', (response) => {
+      checkout.on('payment.failed', async (response) => {
+        // In case bank already captured payment before failure event
+        if (effectiveOrderId) {
+          try {
+            setIsLoading(true);
+            const checkRes = await api.payment.checkOrderStatus(effectiveOrderId, formData);
+            if (checkRes.isPaid && checkRes.data) {
+              completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
+              return;
+            }
+          } catch (e) {} finally {
+            setIsLoading(false);
+          }
+        }
         setIsLoading(false);
         const reason = response?.error?.description || 'Payment was declined or cancelled.';
         setErrorMsg(`Payment Failed: ${reason}`);

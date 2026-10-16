@@ -292,23 +292,21 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     console.log(`✅ [PAYMENT VERIFIED & PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via ${razorpay_payment_id}`);
 
-    // Dispatch pass email & WhatsApp notification and ensure it completes before returning response
+    // Dispatch pass email & WhatsApp notification with a 3.5s race timeout so response is never timed out by Vercel
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
     try {
       const cfg = await configRepo.getConfig().catch(() => ({}));
-      const [emailResult, waResult] = await Promise.allSettled([
-        sendPassEmail(newRegistrant, cfg),
+      const dispatchPromise = Promise.allSettled([
+        sendPassEmail(newRegistrant, cfg).then(() => {
+          return registrantRepo.update(newRegistrant.uniqueId, {
+            emailSent: true,
+            emailSentAt: new Date().toISOString(),
+          });
+        }),
         sendAutoPassWhatsApp(newRegistrant),
       ]);
 
-      if (emailResult.status === 'fulfilled') {
-        await registrantRepo.update(newRegistrant.uniqueId, {
-          emailSent: true,
-          emailSentAt: new Date().toISOString(),
-        });
-        console.log(`📧 Pass email successfully delivered to ${newRegistrant.email}`);
-      } else {
-        console.warn(`⚠️ Pass email delivery failed for ${newRegistrant.email}:`, emailResult.reason?.message);
-      }
+      await Promise.race([dispatchPromise, timeoutPromise]);
     } catch (dispatchErr) {
       console.warn('⚠️ Dispatch warning:', dispatchErr.message);
     }
@@ -379,7 +377,112 @@ export const verifyRazorpayPayment = async (req, res) => {
 };
 
 /**
- * 3. Razorpay Server Webhook Catch-All (For resilience against dropped user tabs)
+ * 3. Check Order Status directly with Razorpay
+ * POST /api/payment/check-order or GET /api/payment/check-order/:orderId
+ * Recovers pass if user closed or switched away from the browser on mobile
+ */
+export const checkOrderStatus = async (req, res) => {
+  try {
+    const orderId = req.params.orderId || req.body.order_id || req.body.orderId;
+    const participantData = req.body.participantData || {};
+
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: 'order_id is required' });
+    }
+
+    // 1. Check if pass was already minted in Firestore
+    const existing = await registrantRepo.findByOrderId(orderId);
+    if (existing) {
+      return res.json({
+        success: true,
+        isPaid: true,
+        message: 'Pass already issued.',
+        data: existing,
+      });
+    }
+
+    // 2. Query Razorpay API directly
+    const clientData = await getRazorpayClient();
+    const client = clientData?.client;
+    if (!client) {
+      return res.status(500).json({ success: false, message: 'Razorpay client unavailable' });
+    }
+
+    const order = await client.orders.fetch(orderId);
+    if (!order || order.status !== 'paid') {
+      return res.json({
+        success: true,
+        isPaid: false,
+        status: order?.status || 'unpaid',
+        message: 'Payment has not been completed yet.',
+      });
+    }
+
+    // Order is confirmed paid on Razorpay!
+    const payments = await client.orders.fetchPayments(orderId);
+    const successfulPayment = (payments?.items || []).find(
+      (p) => p.status === 'captured' || p.status === 'authorized'
+    ) || payments?.items?.[0];
+
+    const paymentId = successfulPayment?.id || `pay_${Date.now()}`;
+    const cleanEmail = String(participantData.email || successfulPayment?.email || '').toLowerCase().trim();
+    const attendeeName = (participantData.name || successfulPayment?.notes?.name || 'Participant').trim();
+    const ticketType = participantData.ticketType || 'Hacker Pass';
+
+    // Mint official pass
+    const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
+    const uniqueId = `HS26-${rawUuid}`;
+    const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
+    const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
+    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+
+    const newRegistrant = await registrantRepo.create({
+      uniqueId,
+      name: attendeeName,
+      email: cleanEmail,
+      phone: participantData.phone ? String(participantData.phone).trim() : (successfulPayment?.contact || ''),
+      ticketType,
+      teamName: participantData.teamName ? String(participantData.teamName).trim() : '',
+      track: participantData.track || 'AI & Agentic Systems',
+      githubUrl: participantData.githubUrl || '',
+      institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+      formResponses: participantData.formResponses || {},
+      qrPayload,
+      qrSignature: signature,
+      qrCodeDataUrl,
+      verified: true,
+      verificationStatus: 'Verified',
+      paymentStatus: 'PAID',
+      paymentId,
+      orderId,
+      amountPaid: (order.amount_paid || 500) / 100,
+      paidAt: new Date().toISOString(),
+      emailSent: false,
+      checkedIn: false,
+    });
+
+    console.log(`✅ [ORDER CHECK RECOVERY] Minted pass ${newRegistrant.uniqueId} for ${newRegistrant.email} via Razorpay ${paymentId}`);
+
+    // Asynchronously dispatch pass email
+    configRepo.getConfig()
+      .then((cfg) => sendPassEmail(newRegistrant, cfg))
+      .then(() => registrantRepo.update(newRegistrant.uniqueId, { emailSent: true, emailSentAt: new Date().toISOString() }))
+      .catch((e) => console.warn('Email dispatch notice:', e.message));
+
+    return res.status(201).json({
+      success: true,
+      isPaid: true,
+      message: `Payment Verified! Pass ${uniqueId} issued successfully.`,
+      data: newRegistrant,
+    });
+  } catch (error) {
+    console.error('checkOrderStatus error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 4. Razorpay Server Webhook Catch-All (For resilience against dropped user tabs)
  * POST /api/payment/webhook
  */
 export const handlePaymentWebhook = async (req, res) => {
@@ -387,7 +490,60 @@ export const handlePaymentWebhook = async (req, res) => {
     const event = req.body.event;
     console.log(`📥 [RAZORPAY WEBHOOK RECEIVED] Event: ${event}`);
 
-    // Respond immediately to acknowledge receipt
+    if (event === 'payment.captured' || event === 'order.paid') {
+      const payloadPayment = req.body.payload?.payment?.entity;
+      const orderId = payloadPayment?.order_id || req.body.payload?.order?.entity?.id;
+      const paymentId = payloadPayment?.id;
+
+      if (orderId) {
+        const existing = await registrantRepo.findByOrderId(orderId);
+        if (!existing && payloadPayment) {
+          const cleanEmail = String(payloadPayment.email || payloadPayment.notes?.email || '').toLowerCase().trim();
+          const attendeeName = (payloadPayment.notes?.name || 'Participant').trim();
+          const ticketType = payloadPayment.notes?.ticketType || 'Hacker Pass';
+
+          if (cleanEmail) {
+            const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
+            const uniqueId = `HS26-${rawUuid}`;
+            const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
+            const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
+            const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+
+            const newRegistrant = await registrantRepo.create({
+              uniqueId,
+              name: attendeeName,
+              email: cleanEmail,
+              phone: payloadPayment.contact || '',
+              ticketType,
+              teamName: payloadPayment.notes?.teamName || '',
+              track: payloadPayment.notes?.track || 'AI & Agentic Systems',
+              institution: 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+              formResponses: {},
+              qrPayload,
+              qrSignature: signature,
+              qrCodeDataUrl,
+              verified: true,
+              verificationStatus: 'Verified',
+              paymentStatus: 'PAID',
+              paymentId: paymentId || `pay_${Date.now()}`,
+              orderId,
+              amountPaid: (payloadPayment.amount || 500) / 100,
+              paidAt: new Date().toISOString(),
+              emailSent: false,
+              checkedIn: false,
+            });
+
+            console.log(`✅ [WEBHOOK PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via ${paymentId}`);
+
+            configRepo.getConfig()
+              .then((cfg) => sendPassEmail(newRegistrant, cfg))
+              .then(() => registrantRepo.update(newRegistrant.uniqueId, { emailSent: true, emailSentAt: new Date().toISOString() }))
+              .catch((e) => console.warn('Webhook email error:', e.message));
+          }
+        }
+      }
+    }
+
     res.json({ status: 'ok' });
   } catch (error) {
     console.error('Webhook error:', error);
