@@ -83,6 +83,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
           {categories.map((cat) => (
             <button
               key={cat.id}
+              className={`event-category-chip ${activeCategory === cat.id ? 'is-active' : ''}`}
               onClick={() => {
                 sounds.playClick();
                 setActiveCategory(cat.id);
@@ -110,6 +111,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
           <Search size={15} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
+            className="event-search-input"
             placeholder="Search events, bootcamps..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

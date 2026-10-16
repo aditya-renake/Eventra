@@ -25,6 +25,7 @@ export const InteractiveBackground = () => {
 
   return (
     <div
+      className="interactive-ambient"
       style={{
         position: 'fixed',
         inset: 0,

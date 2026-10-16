@@ -116,7 +116,7 @@ export function App() {
   };
 
   return (
-    <div className={currentView === 'register' ? 'app-registration-light' : ''} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className={`app-theme-light ${currentView === 'register' ? 'app-registration-light' : ''}`} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* High-Impact Interactive Ambient Floating Background Everywhere */}
       <InteractiveBackground />
       
@@ -137,7 +137,7 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1 }}>
+      <main className={`app-view app-view-${currentView}`} style={{ flex: 1 }}>
         {currentView === 'landing' && (
           <EventLandingPage
             onNavigateToPass={handleNavigateToPass}

@@ -233,16 +233,16 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   }
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+    <div className="dashboard-page" style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
       
       {/* Header Title & Top Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Club Operations Control Room</h1>
+            <h1 className="dashboard-title" style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Club Operations Control Room</h1>
             
             {/* Multi-Event Selector Dropdown */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0b0f19', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '9999px', padding: '3px 10px' }}>
+            <div className="dashboard-event-picker" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0b0f19', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '9999px', padding: '3px 10px' }}>
               <span style={{ fontSize: '11px', fontWeight: '800', color: '#f7d070', textTransform: 'uppercase' }}>Active Event:</span>
               <select
                 value={selectedEventId}
@@ -387,7 +387,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       </div>
 
       {/* Personalized Admin Greeting Banner (Uniform for All Admins) */}
-      <div style={{
+      <div className="dashboard-welcome" style={{
         background: 'linear-gradient(90deg, rgba(34, 211, 238, 0.12) 0%, rgba(34, 197, 94, 0.08) 50%, rgba(6, 8, 14, 0.85) 100%)',
         border: '1px solid rgba(34, 211, 238, 0.3)',
         borderRadius: '14px',
