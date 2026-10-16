@@ -202,9 +202,23 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
     fetchData(1);
   };
 
-  const handleExportCSV = () => {
-    sounds.playClick();
-    window.location.href = api.registrants.exportCSVUrl();
+  const handleExportCSV = async () => {
+    try {
+      sounds.playClick();
+      await api.registrants.downloadCSV();
+      onShowToast?.({
+        type: 'success',
+        title: 'Export Complete 📊',
+        message: 'Attendee list exported to CSV successfully.',
+      });
+    } catch (err) {
+      sounds.playError();
+      onShowToast?.({
+        type: 'error',
+        title: 'Export Failed',
+        message: err.message || 'Could not export attendees.',
+      });
+    }
   };
 
   // Selection Handlers
