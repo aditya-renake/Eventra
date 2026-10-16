@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  Power, 
   ExternalLink, 
   Search, 
   Cpu, 
@@ -15,8 +14,6 @@ import {
   CheckCircle2, 
   Sparkles,
   Calendar,
-  Layers,
-  Terminal,
   Activity,
   Smartphone,
   QrCode,
@@ -25,7 +22,7 @@ import {
   Github,
   Users
 } from 'lucide-react';
-import { DYPDPULogo, ACESLogo } from '../components/CollegeLogos';
+import { DYPDPULogo } from '../components/CollegeLogos';
 import { ConstellationBackground } from '../components/ConstellationBackground';
 import { GallerySection } from '../components/GallerySection';
 import { EventsDiscoverySection } from '../components/EventsDiscoverySection';
@@ -37,6 +34,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [retrievedPass, setRetrievedPass] = useState(null);
   const [eventConfig, setEventConfig] = useState(null);
+  const [heroTilt, setHeroTilt] = useState({ x: 0, y: 0 });
 
   React.useEffect(() => {
     api.event.getConfig()
@@ -48,6 +46,15 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
 
   const googleFormUrl = eventConfig?.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6';
   const isNativePaymentMode = eventConfig?.registrationMode === 'native_payment';
+  const eventName = eventConfig?.eventName || 'HackSeries 2026';
+
+  const handleHeroPointerMove = (event) => {
+    if (event.pointerType === 'touch') return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    setHeroTilt({ x: -y * 4, y: x * 5 });
+  };
 
   const tracks = [
     {
@@ -205,114 +212,64 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       {/* Background Matrix Constellation Nodes */}
       <ConstellationBackground />
 
-      {/* Hero Section */}
-      <section style={{ textAlign: 'center', padding: '30px 0 50px 0', position: 'relative', zIndex: 1 }}>
-        
-        {/* Cyber Node Init Badge */}
-        <div style={{ marginBottom: '18px' }}>
-          <div className="cyber-node-badge">
-            <span style={{ color: '#22c55e' }}>●</span> SYS.INIT // HACKSERIES_2026 // DIT_PUNE
-          </div>
-        </div>
+      {/* Event hero */}
+      <section className="event-hero" aria-labelledby="event-hero-title">
+        <div className="event-hero-copy">
+          <div className="event-hero-kicker"><span className="event-hero-kicker-dot" /> {eventName} <span className="event-hero-kicker-divider">/</span> DIT Pune</div>
+          <h1 id="event-hero-title">Make your next big idea <span>real in 48 hours.</span></h1>
+          <p className="event-hero-description">A hands-on hackathon for curious minds, bold prototypes, and the people who make them happen. Find your track and build something worth sharing.</p>
 
-        {/* Official College Logo Card */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <div style={{ background: '#ffffff', padding: '8px 22px', borderRadius: '12px', boxShadow: '0 4px 25px rgba(0, 0, 0, 0.4)', border: '1px solid rgba(209, 165, 80, 0.4)' }}>
-            <img
-              src="/dypdpu-logo.png"
-              alt="Dr. D. Y. Patil Vidyapeeth (DYP DPU)"
-              style={{ height: '48px', width: 'auto', display: 'block' }}
-            />
+          <div className="event-hero-meta">
+            <span><Calendar size={16} /> {eventConfig?.eventDate || 'October 16–18, 2026'}</span>
+            <span><MapPin size={16} /> {eventConfig?.eventVenue || 'DIT Pune, India'}</span>
           </div>
-        </div>
 
-        {/* Hero Huge Bold Typography */}
-        <div style={{ margin: '14px 0 20px 0' }}>
-          <h1 className="hero-aces-title">
-            {eventConfig?.eventName ? (
-              eventConfig.eventName.toUpperCase().includes('2026') ? (
-                <>
-                  {eventConfig.eventName.replace(/2026/i, '').trim()}{' '}
-                  <span style={{ color: '#f7d070', textShadow: '0 0 35px rgba(247, 208, 112, 0.6)' }}>2026</span>
-                </>
-              ) : (
-                eventConfig.eventName
-              )
+          <div className="event-hero-actions">
+            {isNativePaymentMode ? (
+              <button type="button" onClick={onNavigateToRegister} className="event-hero-cta">
+                <Ticket size={17} /> Get your pass <ArrowUpRight size={16} />
+              </button>
             ) : (
-              <>
-                HACKSERIES <span style={{ color: '#f7d070', textShadow: '0 0 35px rgba(247, 208, 112, 0.6)' }}>2026</span>
-              </>
+              <a href={googleFormUrl} target="_blank" rel="noreferrer" className="event-hero-cta">
+                <Ticket size={17} /> Register for the event <ExternalLink size={14} />
+              </a>
             )}
-          </h1>
-        </div>
+            <a href="#tracks-section" className="event-hero-secondary">Explore the tracks <ArrowUpRight size={15} /></a>
+          </div>
 
-        {/* Subtitle Bar */}
-        <div style={{ margin: '0 auto 26px auto', maxWidth: '840px' }}>
-          <div className="black-subtitle-bar">
-            {eventConfig?.eventTagline || 'DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY • PIMPRI, PUNE (DYPDPU)'}
+          <div className="event-hero-host">
+            <img src="/dypdpu-logo.png" alt="Dr. D. Y. Patil Vidyapeeth" />
+            <span className="event-hero-host-divider" />
+            <span><small>Hosted by</small><strong>ACES · DIT Pune</strong></span>
           </div>
         </div>
 
-        {/* Action Buttons & Cyber Coords Box */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '44px' }}>
-          {isNativePaymentMode ? (
-            <button
-              type="button"
-              onClick={onNavigateToRegister}
-              className="btn-initialize"
-              style={{ cursor: 'pointer', border: 'none' }}
-            >
-              <Power size={16} /> Register Now (Online Pass) <Sparkles size={14} color="#f7d070" />
-            </button>
-          ) : (
-            <a
-              href={googleFormUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-initialize"
-            >
-              <Power size={16} /> Register via Google Form <ExternalLink size={13} />
-            </a>
-          )}
-
-          <a
-            href="#lookup-section"
-            className="btn btn-secondary"
-            style={{ padding: '12px 24px', border: '1px solid rgba(209, 165, 80, 0.4)' }}
-          >
-            <Search size={15} color="var(--dyp-gold)" /> Retrieve My Digital Pass
+        <div className="event-hero-art" onPointerMove={handleHeroPointerMove} onPointerLeave={() => setHeroTilt({ x: 0, y: 0 })}>
+          <div className="event-hero-image" style={{ transform: `perspective(1200px) rotateX(${heroTilt.x}deg) rotateY(${heroTilt.y}deg)` }}>
+            <img src="/gallery/futuristic_hackathon_1775424262777.png" alt="A packed hackathon floor with teams building together" />
+            <div className="event-hero-image-shade" />
+            <div className="event-hero-image-topline"><span><Activity size={14} /> THE BUILD STARTS HERE</span><span>01 / 03</span></div>
+            <div className="event-hero-image-caption"><span>Ideas move faster together.</span><small>48 hours · 5 tracks · one big finish</small></div>
+          </div>
+          <div className="event-float-card event-prize-card">
+            <span className="event-float-icon"><Trophy size={18} /></span>
+            <span><small>Prize pool</small><strong>₹15 lakh+</strong></span>
+            <ArrowUpRight size={15} className="event-float-arrow" />
+          </div>
+          <a href="#tracks-section" className="event-float-card event-tracks-card">
+            <span className="event-track-orbit"><Sparkles size={16} /></span>
+            <span><small>Find your challenge</small><strong>5 focused tracks</strong></span>
+            <ArrowUpRight size={15} className="event-float-arrow" />
           </a>
-
-          <div className="cyber-coords-box">
-            <div>COORD: <strong style={{ color: '#f7d070' }}>18.6256° N, 73.8122° E</strong></div>
-            <div>STATUS: <span style={{ color: '#22c55e', fontWeight: '800' }}>ONLINE // 48H SPRINT</span></div>
-          </div>
         </div>
-
-        {/* Bold Minimal Metrics Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', maxWidth: '980px', margin: '0 auto' }}>
-          <div className="glass-card" style={{ padding: '18px 14px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: '#fca5a5' }}>48 Hours</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px', fontWeight: '700' }}>Continuous Hack</div>
-          </div>
-
-          <div className="glass-card" style={{ padding: '18px 14px', textAlign: 'center', border: '1px solid rgba(209, 165, 80, 0.4)' }}>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: '#f7d070' }}>₹15,00,000+</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px', fontWeight: '700' }}>Prize Pool</div>
-          </div>
-
-          <div className="glass-card" style={{ padding: '18px 14px', textAlign: 'center', border: '1px solid rgba(178, 43, 47, 0.4)' }}>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: '#f87171' }}>2,000+</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px', fontWeight: '700' }}>Builders & Hackers</div>
-          </div>
-
-          <div className="glass-card" style={{ padding: '18px 14px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>Oct 16–18</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px', fontWeight: '700' }}>DIT Pune Campus</div>
-          </div>
-        </div>
-
       </section>
+
+      <div className="event-proof-strip" aria-label="HackSeries at a glance">
+        <div><strong>48<span>h</span></strong><small>to bring an idea to life</small></div>
+        <div><strong>₹15L<span>+</span></strong><small>in prizes to chase</small></div>
+        <div><strong>5</strong><small>tracks to explore</small></div>
+        <div><strong>2,000<span>+</span></strong><small>builders in the room</small></div>
+      </div>
 
       {/* Instant Digital Pass Retrieval Search & Generated Pass Portal */}
       <section id="lookup-section" style={{ maxWidth: '820px', margin: '0 auto 60px auto', position: 'relative', zIndex: 1 }}>

@@ -118,7 +118,13 @@ export const initiateRegistrationOrder = async (req, res) => {
     // Generate UPI URI conforming to National Payments Corporation of India (NPCI) UPI specs
     const upiNote = `HS26-${order.id.slice(-6)}-${ticketType.replace(/\s+/g, '')}`;
     const upiString = `upi://pay?pa=${targetUpiId}&pn=${encodeURIComponent(payeeName)}&am=${passPrice}&cu=INR&tn=${encodeURIComponent(upiNote)}&tr=${order.id}`;
-    const upiQrCode = await generateQRCodeDataUrl(upiString);
+    let upiQrCode = '';
+    try {
+      upiQrCode = await generateQRCodeDataUrl(upiString);
+    } catch (e) {
+      console.warn('⚠️ Base64 QR code generation fallback:', e.message);
+      upiQrCode = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(upiString)}`;
+    }
 
     return res.json({
       success: true,

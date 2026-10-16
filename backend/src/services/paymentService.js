@@ -69,18 +69,31 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
     };
   }
 
-  const order = await client.orders.create({
-    amount: amountInPaise,
-    currency,
-    receipt,
-    notes,
-  });
+  try {
+    const order = await client.orders.create({
+      amount: amountInPaise,
+      currency,
+      receipt,
+      notes,
+    });
 
-  return {
-    ...order,
-    isMock: false,
-    keyId,
-  };
+    return {
+      ...order,
+      isMock: false,
+      keyId,
+    };
+  } catch (err) {
+    console.warn('⚠️ [Razorpay] orders.create failed, falling back to direct UPI order:', err.message);
+    const fallbackOrderId = `order_upi_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    return {
+      id: fallbackOrderId,
+      amount: amountInPaise,
+      currency,
+      receipt,
+      isMock: true,
+      keyId,
+    };
+  }
 };
 
 /**

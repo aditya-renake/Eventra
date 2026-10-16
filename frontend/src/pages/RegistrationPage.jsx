@@ -190,6 +190,15 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     });
   };
 
+  const qrImageSrc = useMemo(() => {
+    if (paymentOrder?.upi?.upiQrCode) return paymentOrder.upi.upiQrCode;
+    const upi = paymentOrder?.upi?.upiId || eventConfig?.upiId || 'tigeradi1504-1@okicici';
+    const payee = paymentOrder?.upi?.payeeName || eventConfig?.upiPayeeName || 'HackSeries 2026';
+    const note = paymentOrder?.upi?.transactionNote || 'HackSeries-Pass';
+    const upiUri = `upi://pay?pa=${upi}&pn=${encodeURIComponent(payee)}&am=${amountDue}&cu=INR&tn=${encodeURIComponent(note)}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(upiUri)}`;
+  }, [paymentOrder, eventConfig, amountDue]);
+
   const handleVerifyUpi = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     const cleanUtr = utrInput.trim();
@@ -681,9 +690,14 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                       border: '2px solid #22d3ee'
                     }}>
                       <img
-                        src={paymentOrder.upi?.upiQrCode}
-                        alt="UPI Payment QR Code"
-                        style={{ width: '180px', height: '180px', display: 'block' }}
+                        src={qrImageSrc}
+                        onError={(e) => {
+                          const upi = paymentOrder?.upi?.upiId || eventConfig?.upiId || 'tigeradi1504-1@okicici';
+                          const fallbackUri = `upi://pay?pa=${upi}&pn=HackSeries2026&am=${amountDue}&cu=INR`;
+                          e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(fallbackUri)}`;
+                        }}
+                        alt={`₹${amountDue} UPI Payment QR Code`}
+                        style={{ width: '180px', height: '180px', display: 'block', borderRadius: '8px', objectFit: 'contain' }}
                       />
                     </div>
 
