@@ -214,6 +214,12 @@ export const api = {
         body: JSON.stringify(participantData),
       });
     },
+    async verifyUpiPayment(payload) {
+      return request('/payment/verify-upi', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
     async verifyPayment(verificationData) {
       return request('/payment/verify', {
         method: 'POST',

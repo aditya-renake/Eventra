@@ -228,7 +228,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                   {/* Action Buttons */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                     <a
-                      href={ev.googleFormUrl || 'https://forms.gle/U24ip7E6NqtbZkiT9'}
+                      href={ev.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6'}
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => sounds.playClick()}

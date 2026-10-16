@@ -41,10 +41,11 @@ export const SuperAdminModal = ({
   // Registration Mode & Payment Gateway Toggle State
   const [regMode, setRegMode] = useState(eventConfig?.registrationMode || 'google_form');
   const [enablePayments, setEnablePayments] = useState(eventConfig?.enablePaymentGateway || false);
-  const [googleFormLink, setGoogleFormLink] = useState(eventConfig?.googleFormUrl || 'https://forms.gle/U24ip7E6NqtbZkiT9');
+  const [googleFormLink, setGoogleFormLink] = useState(eventConfig?.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6');
   const [hackerPrice, setHackerPrice] = useState(eventConfig?.ticketPrices?.['Hacker Pass'] ?? 199);
   const [studentPrice, setStudentPrice] = useState(eventConfig?.ticketPrices?.['Student Pass'] ?? 149);
   const [vipPrice, setVipPrice] = useState(eventConfig?.ticketPrices?.['VIP Delegate'] ?? 499);
+  const [upiId, setUpiId] = useState(eventConfig?.upiId || 'tigeradi1504-1@okicici');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   // Database Telemetry State
@@ -117,6 +118,7 @@ export const SuperAdminModal = ({
       await api.event.updateConfig({
         registrationMode: regMode,
         enablePaymentGateway: enablePayments,
+        upiId: upiId ? upiId.trim() : 'tigeradi1504-1@okicici',
         googleFormUrl: googleFormLink,
         ticketPrices: {
           'Hacker Pass': Number(hackerPrice) || 199,
@@ -603,6 +605,26 @@ export const SuperAdminModal = ({
                         />
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Target UPI ID for Direct QR Payments */}
+                {enablePayments && (
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '14px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#22d3ee', marginBottom: '4px' }}>
+                      Primary Receiving UPI ID (Instant QR Payments)
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                      All generated QR codes and 1-tap mobile buttons (GPay, PhonePe, Paytm) will direct payments to this UPI address.
+                    </div>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      value={upiId} 
+                      onChange={(e) => setUpiId(e.target.value)} 
+                      placeholder="tigeradi1504-1@okicici"
+                      style={{ width: '100%', fontFamily: 'monospace', color: '#22d3ee' }}
+                    />
                   </div>
                 )}
               </div>

@@ -7,7 +7,7 @@ A complete full-stack web application designed for **HackSeries 2026**. Features
 ## 🌟 Key Capabilities
 
 1. **Intake Bridge (Google Forms & Sheets)**
-   - Official Form: [https://forms.gle/U24ip7E6NqtbZkiT9](https://forms.gle/U24ip7E6NqtbZkiT9)
+   - Official Form: [https://forms.gle/TmoSjzxUt7yAKz1o6](https://forms.gle/TmoSjzxUt7yAKz1o6)
    - Real-time `onFormSubmit` Google Apps Script webhook trigger (`POST /api/registrants/webhook`).
    - Generates unique ID (`HS26-XXXXXX`) and anti-forgery cryptographic signature for each submission.
 
@@ -111,7 +111,7 @@ npx vercel
 ## 📋 Google Apps Script Webhook Setup
 
 To connect your Google Form to this system:
-1. Open the Google Sheet linked to your Google Form [https://forms.gle/U24ip7E6NqtbZkiT9](https://forms.gle/U24ip7E6NqtbZkiT9).
+1. Open the Google Sheet linked to your Google Form [https://forms.gle/TmoSjzxUt7yAKz1o6](https://forms.gle/TmoSjzxUt7yAKz1o6).
 2. Click **Extensions** → **Apps Script**.
 3. Replace the code with the following snippet:
 

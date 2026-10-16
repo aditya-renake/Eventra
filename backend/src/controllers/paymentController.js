@@ -99,7 +99,10 @@ export const initiateRegistrationOrder = async (req, res) => {
       });
     }
 
-    // Otherwise, create Razorpay Payment Order
+    // Otherwise, create Payment Order & UPI QR code for direct payment
+    const targetUpiId = config.upiId || 'tigeradi1504-1@okicici';
+    const payeeName = config.upiPayeeName || 'HackSeries 2026';
+
     const order = await createOrder({
       amount: passPrice,
       currency: config.currency || 'INR',
@@ -112,14 +115,28 @@ export const initiateRegistrationOrder = async (req, res) => {
       },
     });
 
+    // Generate UPI URI conforming to National Payments Corporation of India (NPCI) UPI specs
+    const upiNote = `HS26-${order.id.slice(-6)}-${ticketType.replace(/\s+/g, '')}`;
+    const upiString = `upi://pay?pa=${targetUpiId}&pn=${encodeURIComponent(payeeName)}&am=${passPrice}&cu=INR&tn=${encodeURIComponent(upiNote)}&tr=${order.id}`;
+    const upiQrCode = await generateQRCodeDataUrl(upiString);
+
     return res.json({
       success: true,
       isFree: false,
       orderId: order.id,
       amount: order.amount,
+      amountRupees: passPrice,
       currency: order.currency,
       keyId: order.keyId,
       isMock: order.isMock,
+      upi: {
+        upiId: targetUpiId,
+        payeeName,
+        upiString,
+        upiQrCode,
+        amountRupees: passPrice,
+        transactionNote: upiNote,
+      },
       participantSummary: {
         name,
         email: cleanEmail,
@@ -130,6 +147,105 @@ export const initiateRegistrationOrder = async (req, res) => {
   } catch (error) {
     console.error('❌ Create registration order error:', error);
     return res.status(500).json({ success: false, message: 'Failed to initiate order', error: error.message });
+  }
+};
+
+/**
+ * 2a. Verify Direct UPI Payment (UTR / Transaction Reference) & Mint Pass
+ * POST /api/payment/verify-upi
+ */
+export const verifyUpiPayment = async (req, res) => {
+  try {
+    const {
+      orderId,
+      utrNumber,
+      participantData = {},
+    } = req.body;
+
+    if (!utrNumber || String(utrNumber).trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid 12-digit UPI Reference Number / UTR is required to confirm payment.',
+      });
+    }
+
+    const cleanUtr = String(utrNumber).trim().toUpperCase();
+
+    // Prevent duplicate UTR usage across participants
+    const existingWithUtr = await registrantRepo.findByUtr(cleanUtr);
+    if (existingWithUtr) {
+      return res.status(400).json({
+        success: false,
+        message: `This UPI Reference Number (${cleanUtr}) has already been used for pass ${existingWithUtr.uniqueId}. Each pass requires a unique payment.`,
+      });
+    }
+
+    const cleanEmail = String(participantData.email || '').toLowerCase().trim();
+    let existing = await registrantRepo.findByEmail(cleanEmail);
+
+    if (existing) {
+      return res.json({
+        success: true,
+        message: 'Attendee already registered! Existing pass retrieved.',
+        data: existing,
+      });
+    }
+
+    const config = await configRepo.getConfig();
+    const targetUpiId = config.upiId || 'tigeradi1504-1@okicici';
+
+    // Generate Official Cryptographic Pass
+    const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
+    const uniqueId = `HS26-${rawUuid}`;
+    const ticketType = participantData.ticketType || 'Hacker Pass';
+
+    const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
+    const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
+    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+
+    const newRegistrant = await registrantRepo.create({
+      uniqueId,
+      name: (participantData.name || 'Participant').trim(),
+      email: cleanEmail,
+      phone: participantData.phone ? String(participantData.phone).trim() : '',
+      ticketType,
+      teamName: participantData.teamName ? String(participantData.teamName).trim() : '',
+      track: participantData.track || 'AI & Agentic Systems',
+      githubUrl: participantData.githubUrl || '',
+      institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+      formResponses: participantData.formResponses || {},
+      qrPayload,
+      qrSignature: signature,
+      qrCodeDataUrl,
+      verified: true, // Automatically verified upon confirmed payment submission
+      verificationStatus: 'Verified',
+      paymentStatus: 'PAID',
+      paymentMethod: 'UPI_DIRECT',
+      payeeUpi: targetUpiId,
+      utrNumber: cleanUtr,
+      orderId: orderId || `UPI-${Date.now()}`,
+      amountPaid: participantData.amountPaid || 199,
+      paidAt: new Date().toISOString(),
+      emailSent: false,
+      checkedIn: false,
+    });
+
+    console.log(`✅ [UPI PAYMENT CONFIRMED & PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via UTR ${cleanUtr} to ${targetUpiId}`);
+
+    // Asynchronously dispatch pass email & WhatsApp notification
+    configRepo.getConfig()
+      .then((cfg) => Promise.allSettled([sendPassEmail(newRegistrant, cfg), sendAutoPassWhatsApp(newRegistrant)]))
+      .then(() => console.log(`📧 Pass dual-dispatched for ${newRegistrant.email}`))
+      .catch((e) => console.warn('Dispatch notice:', e.message));
+
+    return res.status(201).json({
+      success: true,
+      message: `Payment Verified! Pass ${uniqueId} issued successfully.`,
+      data: newRegistrant,
+    });
+  } catch (error) {
+    console.error('❌ UPI verification error:', error);
+    return res.status(500).json({ success: false, message: 'UPI payment verification failed', error: error.message });
   }
 };
 

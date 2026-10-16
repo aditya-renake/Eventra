@@ -10,7 +10,7 @@ const DEFAULT_CONFIG = {
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune - 411018',
   organizerEmail: 'tigeradi1504@gmail.com',
   organizerName: 'ACES (Association of Computer Engineering Students), DIT Pune',
-  googleFormUrl: 'https://forms.gle/U24ip7E6NqtbZkiT9',
+  googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
   registrationMode: 'google_form', // 'google_form' (classic) or 'native_payment' (direct in-app registration + payment)
   enablePaymentGateway: false, // Feature flag: Set true for Razorpay, false for 100% Free / Google Form
   ticketPrices: {
@@ -20,6 +20,8 @@ const DEFAULT_CONFIG = {
     'Judge / Mentor': 0,
   },
   currency: 'INR',
+  upiId: 'tigeradi1504-1@okicici',
+  upiPayeeName: 'HackSeries 2026',
   emailSubjectTemplate: '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}',
   emailBodyNotice: 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.',
   createdAt: new Date().toISOString(),

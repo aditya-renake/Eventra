@@ -99,6 +99,27 @@ export const registrantRepo = {
   },
 
   /**
+   * Find registrant by UPI UTR / Transaction Reference Number
+   */
+  async findByUtr(utrNumber) {
+    if (!utrNumber) return null;
+    const cleanUtr = String(utrNumber).trim();
+
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      const cached = memoryCache.find((r) => r.utrNumber && String(r.utrNumber).trim().toUpperCase() === cleanUtr.toUpperCase());
+      if (cached) return cached;
+    }
+
+    const collection = this.getCollection();
+    const snapshot = await collection.where('utrNumber', '==', cleanUtr).limit(1).get();
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    return null;
+  },
+
+  /**
    * Get all registrants with search, filter, and pagination (optimized with micro-cache)
    */
   async getAll({

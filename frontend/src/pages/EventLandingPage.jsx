@@ -46,7 +46,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       .catch(() => {});
   }, []);
 
-  const googleFormUrl = eventConfig?.googleFormUrl || 'https://forms.gle/U24ip7E6NqtbZkiT9';
+  const googleFormUrl = eventConfig?.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6';
   const isNativePaymentMode = eventConfig?.registrationMode === 'native_payment';
 
   const tracks = [
