@@ -11,6 +11,15 @@ const DEFAULT_CONFIG = {
   organizerEmail: 'tigeradi1504@gmail.com',
   organizerName: 'ACES (Association of Computer Engineering Students), DIT Pune',
   googleFormUrl: 'https://forms.gle/U24ip7E6NqtbZkiT9',
+  registrationMode: 'google_form', // 'google_form' (classic) or 'native_payment' (direct in-app registration + payment)
+  enablePaymentGateway: false, // Feature flag: Set true for Razorpay, false for 100% Free / Google Form
+  ticketPrices: {
+    'Hacker Pass': 199,
+    'Student Pass': 149,
+    'VIP Delegate': 499,
+    'Judge / Mentor': 0,
+  },
+  currency: 'INR',
   emailSubjectTemplate: '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}',
   emailBodyNotice: 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.',
   createdAt: new Date().toISOString(),

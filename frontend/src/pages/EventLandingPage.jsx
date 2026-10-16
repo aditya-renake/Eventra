@@ -32,12 +32,22 @@ import { EventsDiscoverySection } from '../components/EventsDiscoverySection';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
-export const EventLandingPage = ({ onNavigateToPass, onShowToast }) => {
+export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onShowToast }) => {
   const [lookupInput, setLookupInput] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [retrievedPass, setRetrievedPass] = useState(null);
+  const [eventConfig, setEventConfig] = useState(null);
 
-  const googleFormUrl = 'https://forms.gle/U24ip7E6NqtbZkiT9';
+  React.useEffect(() => {
+    api.event.getConfig()
+      .then((res) => {
+        if (res?.data) setEventConfig(res.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const googleFormUrl = eventConfig?.googleFormUrl || 'https://forms.gle/U24ip7E6NqtbZkiT9';
+  const isNativePaymentMode = eventConfig?.registrationMode === 'native_payment';
 
   const tracks = [
     {
@@ -232,14 +242,25 @@ export const EventLandingPage = ({ onNavigateToPass, onShowToast }) => {
 
         {/* Action Buttons & Cyber Coords Box */}
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '44px' }}>
-          <a
-            href={googleFormUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-initialize"
-          >
-            <Power size={16} /> Register via Google Form <ExternalLink size={13} />
-          </a>
+          {isNativePaymentMode ? (
+            <button
+              type="button"
+              onClick={onNavigateToRegister}
+              className="btn-initialize"
+              style={{ cursor: 'pointer', border: 'none' }}
+            >
+              <Power size={16} /> Register Now (Online Pass) <Sparkles size={14} color="#f7d070" />
+            </button>
+          ) : (
+            <a
+              href={googleFormUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-initialize"
+            >
+              <Power size={16} /> Register via Google Form <ExternalLink size={13} />
+            </a>
+          )}
 
           <a
             href="#lookup-section"

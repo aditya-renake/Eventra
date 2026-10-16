@@ -187,3 +187,34 @@ export const purgeAllStaffExceptOwner = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to purge staff accounts', error: error.message });
   }
 };
+
+/**
+ * Public: Get dynamic event configuration (Registration Mode, Ticket Prices, Google Form URL)
+ */
+export const getEventConfig = async (req, res) => {
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const config = await configRepo.getConfig();
+    return res.json({ success: true, data: config });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch event configuration', error: error.message });
+  }
+};
+
+/**
+ * Admin: Update event configuration (Toggle Google Form vs In-App + Razorpay)
+ */
+export const updateEventConfig = async (req, res) => {
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const updates = req.body;
+    const updated = await configRepo.updateConfig(updates);
+    return res.json({
+      success: true,
+      message: 'Event configuration updated successfully!',
+      data: updated,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update event configuration', error: error.message });
+  }
+};

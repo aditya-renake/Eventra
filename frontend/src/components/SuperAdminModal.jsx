@@ -18,7 +18,9 @@ import {
   Database,
   Activity,
   HardDrive,
-  Users
+  Users,
+  CreditCard,
+  RotateCcw
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
@@ -35,6 +37,15 @@ export const SuperAdminModal = ({
   const [broadcastText, setBroadcastText] = useState(eventConfig?.broadcastNotice || '');
   const [broadcastActive, setBroadcastActive] = useState(eventConfig?.broadcastActive || false);
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
+
+  // Registration Mode & Payment Gateway Toggle State
+  const [regMode, setRegMode] = useState(eventConfig?.registrationMode || 'google_form');
+  const [enablePayments, setEnablePayments] = useState(eventConfig?.enablePaymentGateway || false);
+  const [googleFormLink, setGoogleFormLink] = useState(eventConfig?.googleFormUrl || 'https://forms.gle/U24ip7E6NqtbZkiT9');
+  const [hackerPrice, setHackerPrice] = useState(eventConfig?.ticketPrices?.['Hacker Pass'] ?? 199);
+  const [studentPrice, setStudentPrice] = useState(eventConfig?.ticketPrices?.['Student Pass'] ?? 149);
+  const [vipPrice, setVipPrice] = useState(eventConfig?.ticketPrices?.['VIP Delegate'] ?? 499);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   // Database Telemetry State
   const [telemetry, setTelemetry] = useState(null);
@@ -95,6 +106,43 @@ export const SuperAdminModal = ({
       });
     } finally {
       setIsSavingBroadcast(false);
+    }
+  };
+
+  // 1b. Save Registration Mode & Payment Gateway Configuration
+  const handleSaveRegistrationSettings = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSavingConfig(true);
+      await api.event.updateConfig({
+        registrationMode: regMode,
+        enablePaymentGateway: enablePayments,
+        googleFormUrl: googleFormLink,
+        ticketPrices: {
+          'Hacker Pass': Number(hackerPrice) || 199,
+          'Student Pass': Number(studentPrice) || 149,
+          'VIP Delegate': Number(vipPrice) || 499,
+          'Judge / Mentor': 0,
+        },
+      });
+      sounds.playSuccess();
+      onShowToast({
+        type: 'success',
+        title: 'Settings Synchronized ⚙️',
+        message: regMode === 'native_payment'
+          ? 'Native In-App Registration & Razorpay Portal is now ACTIVE!'
+          : 'Classic Google Form Intake is now ACTIVE!',
+      });
+      if (onRefreshData) onRefreshData();
+    } catch (err) {
+      sounds.playError();
+      onShowToast({
+        type: 'error',
+        title: 'Settings Update Failed',
+        message: err.message,
+      });
+    } finally {
+      setIsSavingConfig(false);
     }
   };
 
@@ -219,6 +267,16 @@ export const SuperAdminModal = ({
           >
             <Activity size={14} color={activeTab === 'telemetry' ? '#030712' : '#22d3ee'} /> 
             <span>Live Database Telemetry</span>
+          </button>
+          <button
+            className={`btn btn-sm ${activeTab === 'intake' ? 'btn-gold' : 'btn-ghost'}`}
+            onClick={() => {
+              sounds.playClick();
+              setActiveTab('intake');
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+          >
+            <Sparkles size={14} color={activeTab === 'intake' ? '#030712' : '#f7d070'} /> Intake & Payments (Option 1)
           </button>
           <button
             className={`btn btn-sm ${activeTab === 'broadcast' ? 'btn-gold' : 'btn-ghost'}`}
@@ -385,6 +443,209 @@ export const SuperAdminModal = ({
               </div>
 
             </div>
+          )}
+
+          {/* TAB: Intake & Payments (Option 1) */}
+          {activeTab === 'intake' && (
+            <form onSubmit={handleSaveRegistrationSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Info Banner */}
+              <div style={{ background: 'rgba(34, 211, 238, 0.08)', border: '1px solid rgba(34, 211, 238, 0.25)', borderRadius: '12px', padding: '16px', fontSize: '13px', color: '#67e8f9' }}>
+                <div style={{ fontWeight: '800', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}>
+                  <Sparkles size={16} color="#22d3ee" /> 
+                  Participant Intake Mode & 1-Click Revert System
+                </div>
+                Toggle dynamically between the <strong>Classic Google Form intake</strong> and the new <strong>Native In-App Registration + Razorpay Payment Portal</strong>. You can revert back at any moment without losing any attendee data!
+              </div>
+
+              {/* Mode Selection Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                
+                {/* Option: Classic Google Form */}
+                <div 
+                  onClick={() => { sounds.playClick(); setRegMode('google_form'); }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: `2px solid ${regMode === 'google_form' ? '#22d3ee' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: regMode === 'google_form' ? 'rgba(34, 211, 238, 0.08)' : '#070a13',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <RotateCcw size={16} color={regMode === 'google_form' ? '#22d3ee' : '#9ca3af'} />
+                      <strong style={{ color: regMode === 'google_form' ? '#fff' : '#9ca3af', fontSize: '14px' }}>
+                        Classic Google Form (Original)
+                      </strong>
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="registrationMode" 
+                      checked={regMode === 'google_form'} 
+                      onChange={() => setRegMode('google_form')} 
+                    />
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                    Landing page CTA redirects participants directly to your Google Form. Existing AppSheet / Webhook synchronization remains active. Zero payment collection.
+                  </p>
+                  {regMode === 'google_form' && (
+                    <div style={{ marginTop: '10px', display: 'inline-block' }}>
+                      <span className="badge badge-cyan" style={{ fontSize: '10px' }}>ACTIVE MODE</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option: Native In-App + Razorpay */}
+                <div 
+                  onClick={() => { sounds.playClick(); setRegMode('native_payment'); }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: `2px solid ${regMode === 'native_payment' ? '#f7d070' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: regMode === 'native_payment' ? 'rgba(247, 208, 112, 0.08)' : '#070a13',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CreditCard size={16} color={regMode === 'native_payment' ? '#f7d070' : '#9ca3af'} />
+                      <strong style={{ color: regMode === 'native_payment' ? '#fff' : '#9ca3af', fontSize: '14px' }}>
+                        Native In-App + Razorpay (New)
+                      </strong>
+                    </div>
+                    <input 
+                      type="radio" 
+                      name="registrationMode" 
+                      checked={regMode === 'native_payment'} 
+                      onChange={() => setRegMode('native_payment')} 
+                    />
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                    Direct on-site registration modal at <code>/register</code>. Supports UPI, NetBanking, Cards with Razorpay. Instantly issues cryptographically signed passes via email & WhatsApp.
+                  </p>
+                  {regMode === 'native_payment' && (
+                    <div style={{ marginTop: '10px', display: 'inline-block' }}>
+                      <span className="badge badge-gold" style={{ fontSize: '10px' }}>ACTIVE MODE</span>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Native Mode Sub-Settings */}
+              <div style={{ background: '#070a13', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <div style={{ fontWeight: '700', color: '#fff', fontSize: '13px' }}>Enable Payment Gateway Fee Collection</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      If disabled, in-app registration will be 100% free with 1-click zero-fee checkout.
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={enablePayments} 
+                      onChange={(e) => setEnablePayments(e.target.checked)}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }} 
+                    />
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: enablePayments ? '#22c55e' : '#9ca3af' }}>
+                      {enablePayments ? 'Payments Required (Paid)' : 'Free Registration'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Ticket Tier Pricing */}
+                {enablePayments && (
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '14px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#f7d070', marginBottom: '10px' }}>
+                      Ticket Tier Pricing (INR ₹)
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                          Hacker Pass (₹)
+                        </label>
+                        <input 
+                          type="number" 
+                          className="input" 
+                          value={hackerPrice} 
+                          onChange={(e) => setHackerPrice(e.target.value)} 
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                          Student Pass (₹)
+                        </label>
+                        <input 
+                          type="number" 
+                          className="input" 
+                          value={studentPrice} 
+                          onChange={(e) => setStudentPrice(e.target.value)} 
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                          VIP Delegate (₹)
+                        </label>
+                        <input 
+                          type="number" 
+                          className="input" 
+                          value={vipPrice} 
+                          onChange={(e) => setVipPrice(e.target.value)} 
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Google Form Link (Fallback URL) */}
+              <div style={{ background: '#070a13', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#fff', display: 'block', marginBottom: '6px' }}>
+                  Google Form URL (Classic Mode Link)
+                </label>
+                <input 
+                  type="url" 
+                  className="input" 
+                  value={googleFormLink} 
+                  onChange={(e) => setGoogleFormLink(e.target.value)} 
+                  placeholder="https://forms.gle/..."
+                  style={{ width: '100%' }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  When 'Classic Google Form' mode is active, the hero 'Register Now' button sends users here.
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={isSavingConfig}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px', justifyContent: 'center' }}
+                >
+                  {isSavingConfig ? (
+                    <>
+                      <RefreshCw size={15} className="spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={15} /> Save & Apply Configuration
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </form>
           )}
 
           {/* TAB 1: Live Broadcast Notice to All Digital Passes */}

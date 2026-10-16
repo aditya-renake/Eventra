@@ -11,12 +11,16 @@ import {
   updateStaffMember,
   deleteStaffMember,
   purgeAllStaffExceptOwner,
+  getEventConfig,
+  updateEventConfig,
 } from '../controllers/eventController.js';
 
 const router = Router();
 
 // Public / Semi-Public Event Catalog
 router.get('/', getClubEvents);
+router.get('/config', getEventConfig);
+router.put('/config', requireAuth, updateEventConfig);
 router.get('/:id', getEventById);
 
 // Admin-only Event CRUD

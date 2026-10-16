@@ -206,4 +206,19 @@ export const api = {
       return request('/event/telemetry');
     },
   },
+
+  payment: {
+    async createOrder(participantData) {
+      return request('/payment/create-order', {
+        method: 'POST',
+        body: JSON.stringify(participantData),
+      });
+    },
+    async verifyPayment(verificationData) {
+      return request('/payment/verify', {
+        method: 'POST',
+        body: JSON.stringify(verificationData),
+      });
+    },
+  },
 };

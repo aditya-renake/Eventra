@@ -34,15 +34,15 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
 
   return (
     <div style={{ maxWidth: '440px', margin: '60px auto', padding: '0 20px' }}>
-      <div className="glass-card" style={{ padding: '36px 30px', border: '1px solid rgba(209, 165, 80, 0.4)', background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(3, 7, 18, 0.95) 100%)' }}>
+      <div className="glass-card login-card" style={{ padding: '36px 30px' }}>
         
         {/* Header Icon */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', margin: '0 auto 12px auto', border: '1px solid rgba(247, 208, 112, 0.4)', boxShadow: '0 0 20px rgba(178, 43, 47, 0.4)' }}>
+          <div className="login-icon" style={{ width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', margin: '0 auto 12px auto' }}>
             <Lock size={22} strokeWidth={2.5} />
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Admin & Scanner Portal</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ACES • Dr. D. Y. Patil Institute of Technology (DYPDPU)</p>
+          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Operations portal</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ACES · Dr. D. Y. Patil Institute of Technology</p>
         </div>
 
         {/* Inline Error Alert */}
@@ -56,13 +56,13 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-              Username or Email
+              Username
             </label>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
                 className="input-control"
-                placeholder="Enter username or email"
+                placeholder="Enter your username"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 style={{ paddingLeft: '38px' }}
@@ -104,7 +104,7 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-dim)', marginTop: '24px', textAlign: 'center' }}>
           <ShieldCheck size={14} color="#22c55e" />
-          <span>Secured with JWT + HMAC Cryptographic Authority</span>
+          <span>Secure staff access</span>
         </div>
 
       </div>
