@@ -50,10 +50,10 @@ export const configRepo = {
           registrationMode: data.registrationMode || 'native_payment',
           enablePaymentGateway: data.enablePaymentGateway !== undefined ? data.enablePaymentGateway : true,
           ticketPrices: {
-            'Hacker Pass': Number(data.ticketPrices?.['Hacker Pass']) > 0 ? Number(data.ticketPrices?.['Hacker Pass']) : 5,
-            'Student Pass': Number(data.ticketPrices?.['Student Pass']) > 0 ? Number(data.ticketPrices?.['Student Pass']) : 5,
-            'VIP Delegate': Number(data.ticketPrices?.['VIP Delegate']) > 0 ? Number(data.ticketPrices?.['VIP Delegate']) : 5,
-            'Judge / Mentor': Number(data.ticketPrices?.['Judge / Mentor']) > 0 ? Number(data.ticketPrices?.['Judge / Mentor']) : 5,
+            'Hacker Pass': data.ticketPrices?.['Hacker Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Hacker Pass'])) ? Number(data.ticketPrices['Hacker Pass']) : 5,
+            'Student Pass': data.ticketPrices?.['Student Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Student Pass'])) ? Number(data.ticketPrices['Student Pass']) : 5,
+            'VIP Delegate': data.ticketPrices?.['VIP Delegate'] !== undefined && !isNaN(Number(data.ticketPrices?.['VIP Delegate'])) ? Number(data.ticketPrices['VIP Delegate']) : 5,
+            'Judge / Mentor': data.ticketPrices?.['Judge / Mentor'] !== undefined && !isNaN(Number(data.ticketPrices?.['Judge / Mentor'])) ? Number(data.ticketPrices['Judge / Mentor']) : 5,
           },
         };
       }
@@ -79,6 +79,40 @@ export const configRepo = {
     };
 
     await collection.doc(CONFIG_DOC_ID).set(merged, { merge: true });
+
+    // Also synchronize the flagship event catalog record
+    try {
+      const { eventRepo, DEFAULT_EVENTS } = await import('./eventRepo.js');
+      if (DEFAULT_EVENTS && DEFAULT_EVENTS[0]) {
+        DEFAULT_EVENTS[0].name = merged.eventName || DEFAULT_EVENTS[0].name;
+        DEFAULT_EVENTS[0].tagline = merged.eventTagline || DEFAULT_EVENTS[0].tagline;
+        DEFAULT_EVENTS[0].dateDisplay = merged.eventDate || DEFAULT_EVENTS[0].dateDisplay;
+        DEFAULT_EVENTS[0].timeDisplay = merged.eventTime || DEFAULT_EVENTS[0].timeDisplay;
+        DEFAULT_EVENTS[0].venue = merged.eventVenue || DEFAULT_EVENTS[0].venue;
+        DEFAULT_EVENTS[0].organizerName = merged.organizerName || DEFAULT_EVENTS[0].organizerName;
+        DEFAULT_EVENTS[0].organizerEmail = merged.organizerEmail || DEFAULT_EVENTS[0].organizerEmail;
+        DEFAULT_EVENTS[0].googleFormUrl = merged.googleFormUrl || DEFAULT_EVENTS[0].googleFormUrl;
+        if (merged.ticketPrices?.['Hacker Pass'] !== undefined) {
+          DEFAULT_EVENTS[0].entryFee = Number(merged.ticketPrices['Hacker Pass']);
+          DEFAULT_EVENTS[0].feeDisplay = `₹${merged.ticketPrices['Hacker Pass']} Entry Pass`;
+        }
+      }
+      await eventRepo.update('hackseries-2026', {
+        name: merged.eventName,
+        tagline: merged.eventTagline,
+        dateDisplay: merged.eventDate,
+        timeDisplay: merged.eventTime,
+        venue: merged.eventVenue,
+        organizerName: merged.organizerName,
+        organizerEmail: merged.organizerEmail,
+        googleFormUrl: merged.googleFormUrl,
+        entryFee: merged.ticketPrices?.['Hacker Pass'] ?? 5,
+        feeDisplay: `₹${merged.ticketPrices?.['Hacker Pass'] ?? 5} Entry Pass`,
+      });
+    } catch (e) {
+      // quiet fallback
+    }
+
     return merged;
   },
 };

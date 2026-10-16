@@ -226,17 +226,30 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           </div>
         </div>
 
-        {/* Hero Huge Bold Typography for HACKSERIES 2026 */}
+        {/* Hero Huge Bold Typography */}
         <div style={{ margin: '14px 0 20px 0' }}>
           <h1 className="hero-aces-title">
-            HACKSERIES <span style={{ color: '#f7d070', textShadow: '0 0 35px rgba(247, 208, 112, 0.6)' }}>2026</span>
+            {eventConfig?.eventName ? (
+              eventConfig.eventName.toUpperCase().includes('2026') ? (
+                <>
+                  {eventConfig.eventName.replace(/2026/i, '').trim()}{' '}
+                  <span style={{ color: '#f7d070', textShadow: '0 0 35px rgba(247, 208, 112, 0.6)' }}>2026</span>
+                </>
+              ) : (
+                eventConfig.eventName
+              )
+            ) : (
+              <>
+                HACKSERIES <span style={{ color: '#f7d070', textShadow: '0 0 35px rgba(247, 208, 112, 0.6)' }}>2026</span>
+              </>
+            )}
           </h1>
         </div>
 
         {/* Subtitle Bar */}
         <div style={{ margin: '0 auto 26px auto', maxWidth: '840px' }}>
           <div className="black-subtitle-bar">
-            DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY • PIMPRI, PUNE (DYPDPU)
+            {eventConfig?.eventTagline || 'DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY • PIMPRI, PUNE (DYPDPU)'}
           </div>
         </div>
 

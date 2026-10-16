@@ -266,7 +266,7 @@ export const verifyAndCompleteRegistration = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Payment details missing.' });
     }
 
-    const isValid = verifyPaymentSignature({
+    const isValid = await verifyPaymentSignature({
       orderId: razorpay_order_id,
       paymentId: razorpay_payment_id,
       signature: razorpay_signature,

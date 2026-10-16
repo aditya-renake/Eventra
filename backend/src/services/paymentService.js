@@ -5,39 +5,54 @@ dotenv.config();
 
 let razorpayInstance = null;
 
+let currentClientKey = null;
+
 /**
  * Lazily instantiate Razorpay client if credentials are configured
  */
 export const getRazorpayClient = async () => {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  let keyId = process.env.RAZORPAY_KEY_ID;
+  let keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const cfg = await configRepo.getConfig();
+    if (cfg?.razorpayKeyId) keyId = cfg.razorpayKeyId.trim();
+    if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
+  } catch (e) {
+    // fallback to env
+  }
 
   if (!keyId || !keySecret) {
     return null;
   }
 
-  if (!razorpayInstance) {
+  const credentialsHash = `${keyId}:${keySecret}`;
+  if (!razorpayInstance || currentClientKey !== credentialsHash) {
     try {
       const { default: Razorpay } = await import('razorpay');
       razorpayInstance = new Razorpay({
         key_id: keyId,
         key_secret: keySecret,
       });
-      console.log('💳 Razorpay Payment Gateway client initialized.');
+      currentClientKey = credentialsHash;
+      console.log('💳 Razorpay Payment Gateway client initialized with active keys.');
     } catch (err) {
       console.warn('⚠️ Razorpay SDK load notice:', err.message);
       return null;
     }
   }
 
-  return razorpayInstance;
+  return { client: razorpayInstance, keyId };
 };
 
 /**
  * Create a new payment order
  */
 export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {} }) => {
-  const client = await getRazorpayClient();
+  const clientData = await getRazorpayClient();
+  const client = clientData?.client;
+  const keyId = clientData?.keyId || process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_mode';
   const amountInPaise = Math.round(Number(amount) * 100);
 
   // If Razorpay credentials are not set (e.g. Test / Demo mode), return mock order for seamless local testing
@@ -50,7 +65,7 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
       currency,
       receipt,
       isMock: true,
-      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_mode',
+      keyId,
     };
   }
 
@@ -64,15 +79,20 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
   return {
     ...order,
     isMock: false,
-    keyId: process.env.RAZORPAY_KEY_ID,
+    keyId,
   };
 };
 
 /**
  * Cryptographic HMAC SHA256 Signature Verification
  */
-export const verifyPaymentSignature = ({ orderId, paymentId, signature }) => {
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+export const verifyPaymentSignature = async ({ orderId, paymentId, signature }) => {
+  let keySecret = process.env.RAZORPAY_KEY_SECRET;
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const cfg = await configRepo.getConfig();
+    if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
+  } catch (e) {}
 
   // In test mock mode without secret, accept if signature contains mock prefix
   if (!keySecret) {
