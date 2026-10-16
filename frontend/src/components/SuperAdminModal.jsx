@@ -20,10 +20,20 @@ import {
   HardDrive,
   Users,
   CreditCard,
-  RotateCcw
+  RotateCcw,
+  Search
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
+
+const COMMAND_TABS = [
+  { id: 'telemetry', label: 'Telemetry', description: 'Database activity and system capacity', icon: Activity, keywords: 'database live metrics health' },
+  { id: 'intake', label: 'Registration & payments', description: 'Registration mode, ticket prices, and UPI settings', icon: Sparkles, keywords: 'intake payment form tickets upi pricing' },
+  { id: 'broadcast', label: 'Pass broadcast', description: 'Publish an announcement on attendee passes', icon: Radio, keywords: 'announcement message notice' },
+  { id: 'vip', label: 'Issue a VIP pass', description: 'Create a pass for a guest, speaker, judge, or mentor', icon: UserPlus, keywords: 'guest speaker judge mentor create' },
+  { id: 'backup', label: 'System backup', description: 'Download an attendee and configuration snapshot', icon: Download, keywords: 'export download json data' },
+  { id: 'diagnostics', label: 'Security health', description: 'Review service and credential status', icon: Cpu, keywords: 'security diagnostics status' },
+];
 
 export const SuperAdminModal = ({ 
   currentUser, 
@@ -34,6 +44,7 @@ export const SuperAdminModal = ({
   initialTab = 'telemetry'
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab || 'telemetry');
+  const [commandSearch, setCommandSearch] = useState('');
   const [broadcastText, setBroadcastText] = useState(eventConfig?.broadcastNotice || '');
   const [broadcastActive, setBroadcastActive] = useState(eventConfig?.broadcastActive || false);
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
@@ -61,6 +72,42 @@ export const SuperAdminModal = ({
   const [isGeneratingVip, setIsGeneratingVip] = useState(false);
   const [generatedVipPass, setGeneratedVipPass] = useState(null);
 
+  const filteredCommandTabs = COMMAND_TABS.filter((tab) =>
+    `${tab.label} ${tab.description} ${tab.keywords}`.toLowerCase().includes(commandSearch.trim().toLowerCase())
+  );
+  const activeCommandTab = filteredCommandTabs.find((tab) => tab.id === activeTab);
+
+  const handleSelectTab = (tabId) => {
+    sounds.playClick();
+    setActiveTab(tabId);
+    if (tabId === 'telemetry') fetchTelemetry();
+  };
+
+  const handleCommandSearch = (value) => {
+    setCommandSearch(value);
+    const query = value.trim().toLowerCase();
+    if (!query) return;
+    const firstMatch = COMMAND_TABS.find((tab) =>
+      `${tab.label} ${tab.description} ${tab.keywords}`.toLowerCase().includes(query)
+    );
+    if (firstMatch) setActiveTab(firstMatch.id);
+  };
+
+  const handleTabKeyDown = (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const buttons = Array.from(event.currentTarget.querySelectorAll('[role="tab"]'));
+    if (!buttons.length) return;
+    event.preventDefault();
+    const currentIndex = buttons.indexOf(document.activeElement);
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? buttons.length - 1
+        : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[nextIndex].focus();
+    buttons[nextIndex].click();
+  };
+
   // Fetch Live Database Telemetry
   const fetchTelemetry = async () => {
     try {
@@ -79,6 +126,14 @@ export const SuperAdminModal = ({
   useEffect(() => {
     fetchTelemetry();
   }, []);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
 
   // 1. Save Broadcast Notice to All Digital Passes
   const handleSaveBroadcast = async (e) => {
@@ -224,26 +279,23 @@ export const SuperAdminModal = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-content" 
-        onClick={(e) => e.stopPropagation()} 
-        style={{ 
-          maxWidth: '820px', 
-          border: '2px solid rgba(34, 211, 238, 0.4)', 
-          boxShadow: '0 20px 80px rgba(0, 0, 0, 0.7), 0 0 30px rgba(34, 211, 238, 0.2)',
-          background: 'linear-gradient(145deg, #090d18 0%, #03060f 100%)'
-        }}
+      <div
+        className="modal-content command-center-modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="command-center-title"
       >
         
         {/* Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 26px', borderBottom: '1px solid rgba(34, 211, 238, 0.2)', background: 'linear-gradient(90deg, rgba(34, 211, 238, 0.12) 0%, transparent 100%)' }}>
+        <div className="command-center-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #22c55e 0%, #06b6d4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#030712', boxShadow: '0 0 14px rgba(34, 197, 94, 0.4)' }}>
               <Zap size={20} strokeWidth={2.5} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px', fontWeight: '900', color: '#fff' }}>Operations Command Center</span>
+                <span id="command-center-title" className="command-center-title">Operations Command Center</span>
                 <span className="badge badge-cyan" style={{ fontSize: '10px' }}>ADMIN TOOLS</span>
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -251,79 +303,70 @@ export const SuperAdminModal = ({
               </div>
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close command center" title="Close (Esc)">
             <X size={18} />
           </button>
         </div>
 
-        {/* Tab Controls */}
-        <div style={{ display: 'flex', gap: '8px', padding: '14px 26px', borderBottom: '1px solid var(--border-subtle)', background: '#070a13', overflowX: 'auto' }}>
-          <button
-            className={`btn btn-sm ${activeTab === 'telemetry' ? 'btn-cyan' : 'btn-ghost'}`}
-            onClick={() => {
-              sounds.playClick();
-              setActiveTab('telemetry');
-              fetchTelemetry();
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Activity size={14} color={activeTab === 'telemetry' ? '#030712' : '#22d3ee'} /> 
-            <span>Live Database Telemetry</span>
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'intake' ? 'btn-gold' : 'btn-ghost'}`}
-            onClick={() => {
-              sounds.playClick();
-              setActiveTab('intake');
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Sparkles size={14} color={activeTab === 'intake' ? '#030712' : '#f7d070'} /> Intake & Payments (Option 1)
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'broadcast' ? 'btn-gold' : 'btn-ghost'}`}
-            onClick={() => {
-              sounds.playClick();
-              setActiveTab('broadcast');
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Radio size={14} /> Live Pass Broadcast
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'vip' ? 'btn-gold' : 'btn-ghost'}`}
-            onClick={() => {
-              sounds.playClick();
-              setActiveTab('vip');
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <UserPlus size={14} /> Issue VIP Pass
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'backup' ? 'btn-gold' : 'btn-ghost'}`}
-            onClick={() => {
-              sounds.playClick();
-              setActiveTab('backup');
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Download size={14} /> System Backup
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'diagnostics' ? 'btn-gold' : 'btn-ghost'}`}
-            onClick={() => {
-              sounds.playClick();
-              setActiveTab('diagnostics');
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Cpu size={14} /> Security Health
-          </button>
+        <div className="command-center-toolbar">
+          <label className="command-center-search-wrap" htmlFor="command-center-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              id="command-center-search"
+              className="command-center-search"
+              type="search"
+              value={commandSearch}
+              onChange={(event) => handleCommandSearch(event.target.value)}
+              placeholder="Find a tool or setting…"
+              autoFocus
+            />
+            <kbd>⌘K</kbd>
+          </label>
+          <span className="command-center-count" aria-live="polite">
+            {filteredCommandTabs.length} {filteredCommandTabs.length === 1 ? 'tool' : 'tools'}
+          </span>
+        </div>
+
+        <div className="command-center-tabs" role="tablist" aria-label="Command center tools" onKeyDown={handleTabKeyDown}>
+          {filteredCommandTabs.map((tab) => {
+            const TabIcon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                id={`command-tab-${tab.id}`}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls="command-center-panel"
+                tabIndex={isActive ? 0 : -1}
+                className={`command-center-tab ${isActive ? 'is-active' : ''}`}
+                title={tab.description}
+                onClick={() => handleSelectTab(tab.id)}
+              >
+                <TabIcon size={15} aria-hidden="true" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab Content */}
-        <div style={{ padding: '26px' }}>
+        <div
+          id="command-center-panel"
+          className="command-center-panel"
+          role="tabpanel"
+          aria-labelledby={activeCommandTab ? `command-tab-${activeTab}` : undefined}
+          tabIndex={0}
+        >
+          {filteredCommandTabs.length === 0 ? (
+            <div className="command-center-empty">
+              <Search size={22} />
+              <strong>No tools match “{commandSearch}”</strong>
+              <span>Try “payment”, “broadcast”, “backup”, or “security”.</span>
+            </div>
+          ) : (
+            <>
 
           {/* TAB 0: Live Database Telemetry */}
           {activeTab === 'telemetry' && (
@@ -876,7 +919,8 @@ export const SuperAdminModal = ({
               </div>
             </div>
           )}
-
+            </>
+          )}
         </div>
 
       </div>

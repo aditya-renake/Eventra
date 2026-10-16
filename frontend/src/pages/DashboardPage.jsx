@@ -103,6 +103,21 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
     fetchEvents();
   }, [fetchEvents]);
 
+  useEffect(() => {
+    const openCommandCenter = (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+
+      const activeElement = document.activeElement;
+      if (activeElement?.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+      event.preventDefault();
+      setShowSuperAdminModal(true);
+    };
+
+    window.addEventListener('keydown', openCommandCenter);
+    return () => window.removeEventListener('keydown', openCommandCenter);
+  }, []);
+
   // High-Speed Concurrent Fetch with SWR Caching
   const fetchData = useCallback(async (page = 1, silent = false) => {
     try {
@@ -470,6 +485,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
           >
             <Zap size={14} />
             <span>Operations Command Center</span>
+            <kbd className="command-shortcut-hint">⌘K / Ctrl K</kbd>
           </button>
         </div>
       </div>
@@ -682,6 +698,22 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
           onShowToast={onShowToast}
         />
       )}
+
+      <button
+        type="button"
+        className="command-center-fab"
+        onClick={() => {
+          sounds.playClick();
+          setShowSuperAdminModal(true);
+        }}
+        aria-label="Open Operations Command Center"
+        aria-keyshortcuts="Control+K Meta+K"
+        title="Open Command Center (⌘K / Ctrl K)"
+      >
+        <Zap size={17} />
+        <span>Command Center</span>
+        <kbd>⌘K</kbd>
+      </button>
 
     </div>
   );

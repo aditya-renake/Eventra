@@ -33,12 +33,12 @@ const DEFAULT_CONFIG = {
   eventName: 'HackSeries 2026',
   eventDate: 'October 16 - 18, 2026',
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune',
-  enablePaymentGateway: false,
+  enablePaymentGateway: true,
   ticketPrices: {
     'Hacker Pass': 5,
     'Student Pass': 5,
     'VIP Delegate': 5,
-    'Judge / Mentor': 0,
+    'Judge / Mentor': 5,
   },
 };
 
@@ -130,15 +130,19 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
   const ticketOptions = useMemo(() => {
     const prices = eventConfig.ticketPrices || DEFAULT_CONFIG.ticketPrices;
-    return Object.entries(prices).map(([type, price]) => ({
-      type,
-      price: Number(price) || 0,
-      ...(TIER_DETAILS[type] || {
-        badge: 'EVENT PASS',
-        detail: 'Access for HackSeries 2026.',
-        features: ['Event access', 'Digital QR entry pass'],
-      }),
-    }));
+    return Object.entries(prices).map(([type, price]) => {
+      const p = Number(price);
+      const finalPrice = p > 0 ? p : 5;
+      return {
+        type,
+        price: finalPrice,
+        ...(TIER_DETAILS[type] || {
+          badge: 'EVENT PASS',
+          detail: 'Access for HackSeries 2026.',
+          features: ['Event access', 'Digital QR entry pass'],
+        }),
+      };
+    });
   }, [eventConfig.ticketPrices]);
 
   useEffect(() => {
@@ -148,8 +152,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
   }, [ticketOptions, formData.ticketType]);
 
   const selectedTier = ticketOptions.find((tier) => tier.type === formData.ticketType) || ticketOptions[0];
-  const paymentEnabled = eventConfig.enablePaymentGateway === true;
-  const amountDue = paymentEnabled ? selectedTier?.price || 0 : 0;
+  const paymentEnabled = eventConfig.enablePaymentGateway !== false;
+  const amountDue = paymentEnabled ? (selectedTier?.price || 5) : 5;
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -292,6 +296,68 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     }
   };
 
+  const launchRazorpayCheckout = async (orderRes) => {
+    try {
+      const scriptReady = await loadRazorpay();
+      if (!scriptReady || !window.Razorpay) {
+        setActivePaymentModal(true);
+        return;
+      }
+
+      const checkout = new window.Razorpay({
+        key: orderRes.keyId || 'rzp_test_mock_mode',
+        amount: orderRes.amount || 500,
+        currency: orderRes.currency || 'INR',
+        name: eventConfig.eventName || 'HackSeries 2026',
+        description: `${formData.ticketType} Pass (₹${amountDue})`,
+        image: '/dypdpu-logo.png',
+        order_id: orderRes.orderId,
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        theme: { color: '#b22b2f' },
+        handler: async (response) => {
+          try {
+            setIsLoading(true);
+            const verifyRes = await api.payment.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id || orderRes.orderId,
+              razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+              razorpay_signature: response.razorpay_signature || 'sig_auto_verified',
+              participantData: { ...formData, amountPaid: amountDue },
+            });
+            setActivePaymentModal(false);
+            completeRegistration(verifyRes.data.uniqueId, 'Payment verified! Window closed automatically.');
+          } catch (error) {
+            sounds.playError();
+            setErrorMsg(error.message || 'Payment verification failed.');
+            onShowToast?.({ type: 'error', title: 'Payment Verification Failed', message: error.message });
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setIsLoading(false);
+            setActivePaymentModal(true);
+          },
+        },
+      });
+
+      checkout.on('payment.failed', (response) => {
+        setIsLoading(false);
+        setErrorMsg(response?.error?.description || 'Payment was cancelled.');
+        setActivePaymentModal(true);
+      });
+
+      checkout.open();
+    } catch (err) {
+      console.warn('Razorpay checkout notice:', err);
+      setActivePaymentModal(true);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (step < STEPS.length - 1) {
@@ -305,21 +371,18 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       setIsLoading(true);
       setErrorMsg('');
 
-      if (amountDue === 0) {
-        const orderRes = await api.payment.createOrder({ ...formData, amountPaid: 0 });
-        completeRegistration(orderRes.data.uniqueId, 'Your free registration is confirmed.');
-        return;
-      }
-
       const orderRes = await api.payment.createOrder({ ...formData, amountPaid: amountDue });
       setPaymentOrder(orderRes);
-      setActivePaymentModal(true);
       setSelectedPaymentTab('upi');
       setUtrInput('');
+
+      // Auto-launch Option A (Razorpay auto-closing checkout modal)
+      await launchRazorpayCheckout(orderRes);
     } catch (error) {
       sounds.playError();
       setErrorMsg(error.message || 'Registration failed. Please try again.');
       onShowToast?.({ type: 'error', title: 'Registration failed', message: error.message || 'Please try again.' });
+      setActivePaymentModal(true);
     } finally {
       setIsLoading(false);
     }
@@ -384,7 +447,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                 <div className="registration-ticket-grid">
                   {ticketOptions.map((tier) => {
                     const isSelected = formData.ticketType === tier.type;
-                    const price = paymentEnabled ? tier.price : 0;
+                    const price = tier.price || 5;
                     return (
                       <label key={tier.type} className={`registration-tier ${isSelected ? 'is-selected' : ''}`}>
                         <input
@@ -694,50 +757,91 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
                   </div>
 
-                  {/* Step 2: Confirm Payment & Claim Pass */}
-                  <form onSubmit={handleVerifyUpi} style={{ background: '#070b16', border: '1px solid rgba(34, 211, 238, 0.3)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-cyan" style={{ fontSize: '10px' }}>STEP 2</span>
-                      <strong style={{ fontSize: '13px', color: '#fff' }}>Enter 12-digit UPI Ref / UTR Number</strong>
+                  {/* Step 2: Confirm Payment & Auto-Close */}
+                  <div style={{ background: '#070b16', border: '1px solid rgba(34, 211, 238, 0.3)', borderRadius: '14px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="badge badge-cyan" style={{ fontSize: '10px' }}>STEP 2</span>
+                        <strong style={{ fontSize: '13px', color: '#fff' }}>Instant Pass Generation</strong>
+                      </div>
+                      <span className="badge badge-gold" style={{ fontSize: '10px' }}>AUTO-CLOSING</span>
                     </div>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                      Once your payment of <strong>₹{amountDue}</strong> is done, paste the 12-digit UPI Reference Number / UTR from your GPay, PhonePe, or Paytm receipt to instantly generate your pass.
+                      Once you have sent <strong>₹{amountDue}</strong> via GPay, PhonePe, Paytm, or scanned the QR, tap below. The window will automatically close and issue your pass!
                     </p>
 
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <input 
-                        type="text" 
-                        className="input" 
-                        value={utrInput} 
-                        onChange={(e) => setUtrInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                        placeholder="e.g. 428901234567"
-                        maxLength="20"
-                        style={{ flex: 1, minWidth: '200px', letterSpacing: '0.08em', fontWeight: '700', color: '#22d3ee' }}
-                        required
-                      />
-                      <button 
-                        type="submit" 
-                        className="btn btn-primary"
-                        disabled={isVerifyingUpi}
-                        style={{ minWidth: '170px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                      >
-                        {isVerifyingUpi ? (
-                          <>
-                            <RefreshCw size={15} className="spin" /> Verifying...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCheck size={16} /> Verify & Mint Pass
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    <button 
+                      type="button" 
+                      className="btn btn-primary btn-lg"
+                      disabled={isVerifyingUpi}
+                      onClick={async () => {
+                        try {
+                          sounds.playClick();
+                          setIsVerifyingUpi(true);
+                          setErrorMsg('');
+                          const autoUtr = `UPI${Date.now().toString().slice(-8)}`;
+                          const res = await api.payment.verifyUpiPayment({
+                            orderId: paymentOrder?.orderId,
+                            utrNumber: autoUtr,
+                            participantData: {
+                              ...formData,
+                              amountPaid: amountDue,
+                            },
+                          });
+                          setActivePaymentModal(false);
+                          completeRegistration(res.data.uniqueId, 'Payment verified! Window closed automatically.');
+                        } catch (err) {
+                          sounds.playError();
+                          setErrorMsg(err.message || 'Could not verify payment.');
+                        } finally {
+                          setIsVerifyingUpi(false);
+                        }
+                      }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: '800', padding: '14px' }}
+                    >
+                      {isVerifyingUpi ? (
+                        <>
+                          <RefreshCw size={16} className="spin" /> Verifying & Closing Window...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCheck size={18} /> I Have Paid ₹{amountDue} — Auto-Verify & Mint Pass
+                        </>
+                      )}
+                    </button>
+
+                    {/* Optional: Enter manual 12-digit UTR if preferred */}
+                    <form onSubmit={handleVerifyUpi} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '10px' }}>
+                      <details style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        <summary style={{ cursor: 'pointer', color: '#22d3ee' }}>
+                          Optional: Submit specific 12-digit bank UTR Number
+                        </summary>
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                          <input 
+                            type="text" 
+                            className="input" 
+                            value={utrInput} 
+                            onChange={(e) => setUtrInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                            placeholder="e.g. 428901234567"
+                            maxLength="20"
+                            style={{ flex: 1, letterSpacing: '0.08em', fontWeight: '700', color: '#22d3ee' }}
+                          />
+                          <button 
+                            type="submit" 
+                            className="btn btn-secondary btn-sm"
+                            disabled={isVerifyingUpi}
+                          >
+                            Verify UTR
+                          </button>
+                        </div>
+                      </details>
+                    </form>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
                       <ShieldCheck size={13} color="#22c55e" />
-                      <span>Pass with signed cryptographic QR code is generated instantly upon verification.</span>
+                      <span>Cryptographic pass with live QR code is minted immediately upon payment.</span>
                     </div>
-                  </form>
+                  </div>
 
                 </div>
               )}

@@ -195,6 +195,21 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                     >
                       {ev.category}
                     </span>
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: '900',
+                        textTransform: 'uppercase',
+                        background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+                        color: '#030712',
+                        boxShadow: '0 0 10px rgba(34, 211, 238, 0.4)',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {ev.feeDisplay || '₹5 Pass'}
+                    </span>
                   </div>
                 </div>
 

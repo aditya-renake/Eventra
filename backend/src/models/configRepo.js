@@ -11,13 +11,13 @@ const DEFAULT_CONFIG = {
   organizerEmail: 'tigeradi1504@gmail.com',
   organizerName: 'ACES (Association of Computer Engineering Students), DIT Pune',
   googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
-  registrationMode: 'google_form', // 'google_form' (classic) or 'native_payment' (direct in-app registration + payment)
-  enablePaymentGateway: false, // Feature flag: Set true for Razorpay, false for 100% Free / Google Form
+  registrationMode: 'native_payment', // 'native_payment' (direct in-app registration + payment) or 'google_form'
+  enablePaymentGateway: true, // Enabled: Razorpay and direct payments active
   ticketPrices: {
     'Hacker Pass': 5,
     'Student Pass': 5,
     'VIP Delegate': 5,
-    'Judge / Mentor': 0,
+    'Judge / Mentor': 5,
   },
   currency: 'INR',
   upiId: 'tigeradi1504-1@okicici',
@@ -43,7 +43,19 @@ export const configRepo = {
       const doc = await collection.doc(CONFIG_DOC_ID).get();
 
       if (doc.exists) {
-        return doc.data();
+        const data = doc.data();
+        return {
+          ...DEFAULT_CONFIG,
+          ...data,
+          registrationMode: data.registrationMode || 'native_payment',
+          enablePaymentGateway: data.enablePaymentGateway !== undefined ? data.enablePaymentGateway : true,
+          ticketPrices: {
+            'Hacker Pass': Number(data.ticketPrices?.['Hacker Pass']) > 0 ? Number(data.ticketPrices?.['Hacker Pass']) : 5,
+            'Student Pass': Number(data.ticketPrices?.['Student Pass']) > 0 ? Number(data.ticketPrices?.['Student Pass']) : 5,
+            'VIP Delegate': Number(data.ticketPrices?.['VIP Delegate']) > 0 ? Number(data.ticketPrices?.['VIP Delegate']) : 5,
+            'Judge / Mentor': Number(data.ticketPrices?.['Judge / Mentor']) > 0 ? Number(data.ticketPrices?.['Judge / Mentor']) : 5,
+          },
+        };
       }
 
       await collection.doc(CONFIG_DOC_ID).set(DEFAULT_CONFIG);

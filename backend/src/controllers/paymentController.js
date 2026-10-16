@@ -42,13 +42,13 @@ export const initiateRegistrationOrder = async (req, res) => {
     const config = await configRepo.getConfig();
     const isPaymentEnabled = config.enablePaymentGateway !== false;
     const priceMap = config.ticketPrices || {
-      'Hacker Pass': 199,
-      'Student Pass': 149,
-      'VIP Delegate': 499,
-      'Judge / Mentor': 0,
+      'Hacker Pass': 5,
+      'Student Pass': 5,
+      'VIP Delegate': 5,
+      'Judge / Mentor': 5,
     };
 
-    const passPrice = isPaymentEnabled ? (priceMap[ticketType] ?? 199) : 0;
+    const passPrice = isPaymentEnabled ? (priceMap[ticketType] ?? 5) : 5;
     const tempReceipt = `RCPT-${Date.now()}`;
 
     // If Free Pass (0 INR) or Payment Gateway is toggled OFF, generate pass immediately
