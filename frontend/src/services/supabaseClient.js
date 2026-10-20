@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * SUPABASE BROWSER CLIENT
+ * ============================================================================
+ * Purpose:
+ *   Initializes the browser-side Supabase client using public credentials.
+ *   Provides real-time event subscriptions, public bucket CDN asset retrieval,
+ *   and client-level authentication state listeners.
+ * ============================================================================
+ */
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://kbwtlqpooqwqynsjmmqz.supabase.co';

@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * FRONTEND API CLIENT SERVICE
+ * ============================================================================
+ * Purpose:
+ *   Centralized HTTP transport layer communicating with the Express backend.
+ *   Provides modular domain methods for authentication, event management,
+ *   attendee administration, gate check-in scanning, and payment operations.
+ *
+ * Architecture:
+ *   - Automatically attaches JWT Bearer token from localStorage to authenticated calls.
+ *   - Organizes endpoints by resource:
+ *       • api.auth        : Login, logout, session persistence, user role extraction.
+ *       • api.events      : Multi-event catalog, event creation, pricing config.
+ *       • api.registrants : Attendee list, filtering, CSV export/import, approval.
+ *       • api.checkin     : Cryptographic QR scan verification, status, recent scans.
+ *       • api.email       : Single and batch pass email triggers.
+ *       • api.payments    : Razorpay order initialization, signature verification.
+ * ============================================================================
+ */
+
 const API_BASE = '/api';
 
 /**
