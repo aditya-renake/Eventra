@@ -48,7 +48,6 @@ Any unauthorized reproduction, modification, distribution, reverse engineering, 
 - [Key Architectural Capabilities](#-key-architectural-capabilities)
 - [Interactive System Flow](#-interactive-system-flow)
 - [Quick Start & Setup](#-quick-start--setup)
-- [Secure Configuration Guide](#-secure-configuration-guide)
 - [Production Deployment (Vercel)](#-production-deployment-vercel)
 - [REST API Specifications](#-rest-api-specifications)
 - [Statutory License & Legal Notice](#-statutory-license--legal-notice)
@@ -149,7 +148,7 @@ cd ../frontend && npm install
 
 ### 2. Configure Environment
 
-Create a `.env` file in the `backend/` directory (see [Secure Configuration Guide](#-secure-configuration-guide) for details):
+Copy the template configuration file:
 
 ```bash
 cp backend/.env.example backend/.env
@@ -170,41 +169,6 @@ npm run dev
 ```
 
 Visit `http://localhost:5173` to explore the interface.
-
----
-
-## 🔒 Secure Configuration Guide
-
-> [!CAUTION]
-> **SECURITY DIRECTIVE**: Never commit production `.env` files, actual database credentials, JWT secrets, or SMTP passwords to version control. Always utilize platform secret managers (e.g., Vercel Environment Variables, Google Cloud Secret Manager) for deployment.
-
-### Backend Environment Variables (`backend/.env`)
-
-```ini
-# Server Configuration
-PORT=5001
-NODE_ENV=development
-
-# Database (MongoDB Atlas URI or leave blank for embedded in-memory database)
-MONGODB_URI=your_mongodb_cluster_uri_here
-
-# Cryptographic Pass Engine
-QR_SIGNING_SECRET=your_high_entropy_hmac_signing_secret_here
-JWT_SECRET=your_secure_jwt_token_secret_here
-
-# Email SMTP Dispatcher (Optional: Outlook, Gmail, or Custom SMTP)
-SMTP_HOST=smtp.office365.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your_organizer_email@outlook.com
-SMTP_PASS=your_secure_email_app_password
-EMAIL_FROM="Eventra Operations" <your_organizer_email@outlook.com>
-
-# Operator Access Defaults
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your_strong_admin_password_here
-ADMIN_NAME="Operations Lead"
-```
 
 ---
 
