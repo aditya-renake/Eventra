@@ -1,245 +1,285 @@
-# ⚡ Eventra 2026 — Event Registration + QR Pass + Check-in System
+<div align="center">
 
-A complete full-stack web application designed for **Eventra 2026**. Features real-time intake from Google Forms & Sheets, zero-tamper HMAC-SHA256 cryptographic QR passes, single-click prefilled Outlook email delivery (`aditya.renake@outlook.com`), public mobile pass viewer, and an in-browser camera gate check-in console.
+  <img src="frontend/public/eventra-logo.svg" alt="Eventra Logo" width="280" />
 
----
+  # Eventra
+  ### Enterprise Event Registration, Cryptographic QR Pass & Gate Intelligence Platform
 
-## 🌟 Key Capabilities
+  [![Live Platform](https://img.shields.io/badge/Production-Live%20on%20Vercel-596EE6?style=for-the-badge&logo=vercel&logoColor=white)](https://eventra-2026.vercel.app)
+  [![Copyright Registered](https://img.shields.io/badge/Statutory%20Copyright-Diary%20SW--49344%2F2026--CO-29304A?style=for-the-badge&logo=shield&logoColor=white)](#-statutory-copyright--intellectual-property-registration)
+  [![License](https://img.shields.io/badge/License-Proprietary%20All%20Rights%20Reserved-A8B4FF?style=for-the-badge&logo=googledocs&logoColor=29304A)](#-statutory-license--legal-notice)
+  [![Node.js](https://img.shields.io/badge/Runtime-Node.js%20v18%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+  [![React](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite%205-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 
-1. **Intake Bridge (Google Forms & Sheets)**
-   - Official Form: [https://forms.gle/TmoSjzxUt7yAKz1o6](https://forms.gle/TmoSjzxUt7yAKz1o6)
-   - Real-time `onFormSubmit` Google Apps Script webhook trigger (`POST /api/registrants/webhook`).
-   - Generates unique ID (`HS26-XXXXXX`) and anti-forgery cryptographic signature for each submission.
+  <p align="center">
+    <strong>Zero-Tamper HMAC-SHA256 Pass Verification • Real-Time Attendee Intake • In-Browser Camera Gate Scanner • Multi-Event Command Center</strong>
+  </p>
 
-2. **Zero-Forgery Cryptographic QR Pass Engine**
-   - Each QR code embeds an HMAC-SHA256 digital signature (`HS26.v1.<uniqueId>.<signature>`).
-   - Constant-time verification prevents spoofed or forged passes at the check-in gates.
+  [Explore Live App](https://eventra-2026.vercel.app) • [View Digital Pass](https://eventra-2026.vercel.app/#lookup-section) • [Gate Scanner](https://eventra-2026.vercel.app/scanner) • [Report Issue](https://github.com/aditya-renake/Hackseries-2026/issues)
 
-3. **1-Click Prefilled Pass Email Delivery**
-   - Single-click dispatch from the dashboard to the attendee's Google Form email.
-   - Pre-configured for Outlook: `aditya.renake@outlook.com`.
-   - Rich responsive HTML email with embedded inline QR code (`cid:hackpassqr`) and mobile pass button.
-   - 1-click fallback to open local email client with prefilled recipient, subject, and pass body.
-
-4. **Public Event Website & Mobile Pass Portal**
-   - Stunning modern landing page with tracks, prizes, schedule, and pass retrieval lookup.
-   - Public mobile ticket portal at `/pass/:uniqueId` with holographic badge, dynamic high-res QR, and PNG badge download.
-
-5. **Staff Gate Check-in Scanner**
-   - In-browser camera scanner using `html5-qrcode` (`/scanner`).
-   - Instant visual cards + Web Audio synthesized sound effects (verified chime, duplicate scan buzzer, alert beep).
-   - Duplicate check-in prevention with timestamp of previous scan.
-   - Manual code fallback and live scan stream with quick undo.
+</div>
 
 ---
 
-## 🚀 Quick Start Guide
+## 🇮🇳 Statutory Copyright & Intellectual Property Registration
+
+> [!IMPORTANT]
+> **LEGAL NOTICE & STATUTORY RECORD OF REGISTRATION**  
+> This computer software, architectural system, cryptographic validation engine, and user interfaces are formally registered under statutory copyright protection with the **Government of India, Copyright Office (Department for Promotion of Industry and Internal Trade - DPIIT)**.
+
+| Registry Parameter | Official Statutory Record |
+| :--- | :--- |
+| **Work Title** | **Eventra** |
+| **Official Diary Number** | **`SW-49344/2026-CO`** |
+| **Work Classification** | Computer Software (SW) / Literary Work |
+| **Statutory Jurisdiction** | Government of India — Copyright Office, Central Branch |
+| **Sole Author & Copyright Owner** | **Aditya Vinod Renake** |
+| **Filing Date** | October 20, 2026 |
+| **Governing Act** | **The Copyright Act, 1957 (Act No. 14 of 1957, Government of India)** |
+| **International Coverage** | Berne Convention, Universal Copyright Convention (UCC), and TRIPS Agreement |
+
+Any unauthorized reproduction, modification, distribution, reverse engineering, decompilation, public display, or commercial deployment of this codebase or its derivative works is strictly prohibited and subject to civil and criminal prosecution under Sections 63, 63A, and 64 of the Copyright Act, 1957.
+
+---
+
+## 📑 Table of Contents
+
+- [Platform Overview](#-platform-overview)
+- [Key Architectural Capabilities](#-key-architectural-capabilities)
+- [Interactive System Flow](#-interactive-system-flow)
+- [Quick Start & Setup](#-quick-start--setup)
+- [Secure Configuration Guide](#-secure-configuration-guide)
+- [Production Deployment (Vercel)](#-production-deployment-vercel)
+- [REST API Specifications](#-rest-api-specifications)
+- [Statutory License & Legal Notice](#-statutory-license--legal-notice)
+
+---
+
+## 🌟 Platform Overview
+
+**Eventra** is an enterprise-grade event intelligence and attendee management operating system engineered specifically for campus hackathons, technical symposia, summits, and multi-track conferences. 
+
+Built around a high-performance **React 18** frontend and an asynchronous **Node.js/Express** backend, Eventra replaces fragile paper passes and unverified spreadsheets with a cryptographically enforced verification loop that operates reliably on desktop, tablet, and mobile browsers.
+
+```
+       ┌──────────────────────┐         ┌─────────────────────────┐
+       │   Attendee Signup    │         │  Google Forms / Sheets  │
+       │ (Direct Native / Web)│         │     (Webhook Intake)    │
+       └──────────┬───────────┘         └────────────┬────────────┘
+                  │                                  │
+                  ▼                                  ▼
+       ┌──────────────────────────────────────────────────────────┐
+       │            Eventra Core Ingestion Engine                 │
+       │    HMAC-SHA256 Tokenization & Dynamic Pass Generation     │
+       └──────────────────────────┬───────────────────────────────┘
+                                  │
+           ┌──────────────────────┴──────────────────────┐
+           ▼                                             ▼
+┌──────────────────────┐                     ┌────────────────────────┐
+│  Holographic Mobile  │                     │ Camera Gate Scanner    │
+│  Digital Pass View   │ ──(QR Gate Scan)──> │ Real-Time Verification │
+│  (/pass/:uniqueId)   │                     │ & Photo Snapshot Audit │
+└──────────────────────┘                     └────────────────────────┘
+```
+
+---
+
+## ⚡ Key Architectural Capabilities
+
+<details open>
+<summary><strong>1. Zero-Tamper HMAC-SHA256 Cryptographic Pass Engine</strong></summary>
+
+- **Tamper-Evident Signatures**: Each issued ticket carries an encrypted cryptographic payload formatted as `EV26.v1.<uniqueId>.<hmacSignature>`.
+- **Constant-Time Verification**: Gate verification employs constant-time string comparisons to prevent timing side-channel exploits.
+- **Offline Capable & Spoof-Proof**: Passes cannot be fabricated, guessed, or modified by attendees without access to the server-side signing secret.
+</details>
+
+<details>
+<summary><strong>2. In-Browser Gate Scanner & Live Entry Snapshot</strong></summary>
+
+- **Real-Time Camera Integration**: Built with `html5-qrcode` to scan at 60 FPS directly through smartphone or laptop webcams without dedicated hardware scanners.
+- **Gate Camera Snapshot**: Optionally captures a live photo of the entrant during check-in to provide visual audit logs against credential sharing.
+- **Duplicate Scan Prevention**: Instant visual and acoustic feedback (synthesized through the Web Audio API) flags duplicate scans with exact timestamps of prior entries.
+</details>
+
+<details>
+<summary><strong>3. Multi-Channel Attendee Intake & Webhook Bridge</strong></summary>
+
+- **Native Intake Portal**: Interactive registration modal with customizable ticket tiers, team grouping, and optional Razorpay integration.
+- **Google Sheets & Forms Webhook**: Plug-and-play Google Apps Script trigger synchronizes external form submissions into verified Eventra passes in real time.
+- **Excel & Bulk Import**: Built-in drag-and-drop spreadsheet parser enables one-click batch pass generation for pre-registered cohorts.
+</details>
+
+<details>
+<summary><strong>4. Automated Dispatch & Digital Pass Delivery</strong></summary>
+
+- **Holographic Mobile Ticket**: Attendee passes at `/pass/:uniqueId` feature high-resolution dynamic QR codes, live event schedule tickers, and high-fidelity PNG ticket downloads.
+- **Automated SMTP Mailer**: Sends responsive HTML confirmation emails with inline QR attachments (`cid:eventrapassqr`) and calendar invites.
+</details>
+
+<details>
+<summary><strong>5. Multi-Event Command Center & Role-Based Access Control</strong></summary>
+
+- **Granular Permissions**: Three-tier clearance model (Lead Organizer, Event Head, Gate Verifier) protects sensitive attendee information.
+- **Real-Time Operational Telemetry**: Live metrics for checked-in attendees, revenue, dispatch queue health, and track distributions.
+</details>
+
+---
+
+## 🚀 Quick Start & Setup
 
 ### Prerequisites
-- Node.js (v18+)
-- npm
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- **Git**
 
-### 1. Install Dependencies
+### 1. Clone & Install
+
 ```bash
-# In backend
-cd backend
-npm install
+# Clone the repository
+git clone https://github.com/aditya-renake/Hackseries-2026.git
+cd Hackseries-2026
 
-# In frontend
-cd ../frontend
-npm install
+# Install backend dependencies
+cd backend && npm install
+
+# Install frontend dependencies
+cd ../frontend && npm install
 ```
 
-### 2. Start the Backend API (Port 5001)
+### 2. Configure Environment
+
+Create a `.env` file in the `backend/` directory (see [Secure Configuration Guide](#-secure-configuration-guide) for details):
+
 ```bash
+cp backend/.env.example backend/.env
+```
+
+### 3. Launch Development Environment
+
+Run backend and frontend in separate terminal tabs:
+
+```bash
+# Terminal 1: Backend API (Default: http://localhost:5001)
 cd backend
 npm run dev
-```
-> *Note:* The backend automatically runs an embedded in-memory MongoDB database with pre-seeded sample attendees if no MongoDB Atlas URI is specified in `.env`.
 
-### 3. Start the Frontend (Port 5173)
-```bash
+# Terminal 2: Frontend Client (Default: http://localhost:5173)
 cd frontend
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+Visit `http://localhost:5173` to explore the interface.
 
 ---
 
-## ⚡ Deploying to Vercel (1-Click Ready)
+## 🔒 Secure Configuration Guide
 
-The project is pre-configured with `vercel.json` and a root serverless function handler (`api/index.js`) so the entire full-stack app (React frontend + Express API) deploys seamlessly in a single Vercel project.
+> [!CAUTION]
+> **SECURITY DIRECTIVE**: Never commit production `.env` files, actual database credentials, JWT secrets, or SMTP passwords to version control. Always utilize platform secret managers (e.g., Vercel Environment Variables, Google Cloud Secret Manager) for deployment.
 
-### Option 1: Deploy with Vercel CLI
-```bash
-cd /Users/adityarenake/Desktop/hackseries
-npx vercel
-```
+### Backend Environment Variables (`backend/.env`)
 
-### Option 2: Deploy via GitHub / Vercel Dashboard
-1. Push your `hackseries` folder to a GitHub repository.
-2. Go to [vercel.com/new](https://vercel.com/new) and import your repository.
-3. Keep default settings (Root directory: `./`, Framework Preset: Vite).
-4. Add the following **Environment Variables** in Vercel:
-
-| Variable | Recommended Value | Description |
-|---|---|---|
-| `MONGODB_URI` | `mongodb+srv://...` | MongoDB Atlas cluster connection string |
-| `JWT_SECRET` | `hackseries_2026_jwt_super_secret_key_8899` | Secret for staff tokens |
-| `QR_SIGNING_SECRET` | `hackseries_2026_cryptographic_qr_signing_secret_9988` | Secret for anti-forgery QR HMAC signatures |
-| `SMTP_HOST` | `smtp.office365.com` | Outlook / Hotmail SMTP server |
-| `SMTP_PORT` | `587` | Port 587 |
-| `SMTP_USER` | `aditya.renake@outlook.com` | Organizer email |
-| `SMTP_PASS` | `your_outlook_app_password` | Outlook App Password |
-| `EMAIL_FROM` | `"Eventra 2026" <aditya.renake@outlook.com>` | Sender display header |
-
-5. Click **Deploy**!
-   - Frontend is live at `https://your-project.vercel.app/`
-   - Webhook is live at `https://your-project.vercel.app/api/registrants/webhook`
-   - Digital passes are live at `https://your-project.vercel.app/pass/<uniqueId>`
-
----
-
-## 🔐 Staff & Admin Access Credentials
-
-| Role | Username / Email | Password | Access |
-|---|---|---|---|
-| **Lead Operations Admin** | Aditya Renake | Full Control Room + Gate Scanner |
-
----
-
-## 📋 Google Apps Script Webhook Setup
-
-To connect your Google Form to this system:
-1. Open the Google Sheet linked to your Google Form [https://forms.gle/TmoSjzxUt7yAKz1o6](https://forms.gle/TmoSjzxUt7yAKz1o6).
-2. Click **Extensions** → **Apps Script**.
-3. Replace the code with the following snippet:
-
-```javascript
-const WEBHOOK_URL = "https://your-api-domain.com/api/registrants/webhook";
-
-function onFormSubmit(e) {
-  try {
-    const itemResponses = e ? e.namedValues : null;
-    
-    let name = "Hacker";
-    let email = "hacker@example.com";
-    let phone = "";
-    let ticketType = "Hacker Pass";
-    let teamName = "";
-    let track = "AI & Agentic Systems";
-    let formResponses = {};
-
-    if (itemResponses) {
-      for (const [key, valArray] of Object.entries(itemResponses)) {
-        const val = valArray ? valArray[0] : "";
-        const cleanKey = key.trim();
-        formResponses[cleanKey] = val;
-
-        const lower = cleanKey.toLowerCase();
-        if (lower.includes("name") && !lower.includes("team")) name = val;
-        else if (lower.includes("email")) email = val;
-        else if (lower.includes("phone") || lower.includes("contact")) phone = val;
-        else if (lower.includes("team")) teamName = val;
-        else if (lower.includes("track") || lower.includes("category")) track = val;
-      }
-    }
-
-    const payload = {
-      name: name,
-      email: email,
-      phone: phone,
-      ticketType: ticketType,
-      teamName: teamName,
-      track: track,
-      formResponses: formResponses
-    };
-
-    const options = {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-
-    UrlFetchApp.fetch(WEBHOOK_URL, options);
-  } catch (error) {
-    Logger.log("Error posting to Eventra: " + error.toString());
-  }
-}
-```
-
-4. In the Apps Script left menu, click **Triggers (Clock icon)** → **Add Trigger**.
-   - Function: `onFormSubmit`
-   - Event source: `From spreadsheet`
-   - Event type: `On form submit`
-5. Click **Save**. Now every submission automatically generates a verified cryptographic pass!
-
----
-
-## 📧 Email SMTP Configuration (Outlook / Hotmail)
-
-In `backend/.env`:
 ```ini
+# Server Configuration
+PORT=5001
+NODE_ENV=development
+
+# Database (MongoDB Atlas URI or leave blank for embedded in-memory database)
+MONGODB_URI=your_mongodb_cluster_uri_here
+
+# Cryptographic Pass Engine
+QR_SIGNING_SECRET=your_high_entropy_hmac_signing_secret_here
+JWT_SECRET=your_secure_jwt_token_secret_here
+
+# Email SMTP Dispatcher (Optional: Outlook, Gmail, or Custom SMTP)
 SMTP_HOST=smtp.office365.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=aditya.renake@outlook.com
-SMTP_PASS=your_outlook_app_password
-EMAIL_FROM="Eventra 2026" <aditya.renake@outlook.com>
-```
+SMTP_USER=your_organizer_email@outlook.com
+SMTP_PASS=your_secure_email_app_password
+EMAIL_FROM="Eventra Operations" <your_organizer_email@outlook.com>
 
-> **Tip for Outlook/Hotmail:** If you have 2-Factor Authentication enabled on your Microsoft account, create an **App Password** at `account.microsoft.com/security` and put it in `SMTP_PASS`.
-
----
-
-## 📁 Project Structure
-
-```
-hackseries/
-├── backend/
-│   ├── src/
-│   │   ├── config/db.js           # Mongo Atlas + In-Memory fallback
-│   │   ├── models/                # Registrant, StaffUser, EventConfig
-│   │   ├── controllers/           # Webhook, Checkin, Email, Auth, Event
-│   │   ├── services/              # HMAC QR engine & Nodemailer Outlook service
-│   │   ├── middleware/            # JWT Auth & error handlers
-│   │   ├── routes/                # REST API routes
-│   │   ├── utils/seedData.js      # Auto-seeder
-│   │   └── server.js              # Express server
-│   ├── .env.example
-│   └── package.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/            # QRScanner, RegistrantTable, Modals, Navbar
-│   │   ├── pages/                 # EventLanding, DigitalPass, Scanner, Dashboard, Login
-│   │   ├── services/api.js        # API Client
-│   │   ├── utils/soundEffects.js  # Web Audio API synthesizer
-│   │   ├── App.jsx
-│   │   └── index.css              # Custom neon glassmorphic design system
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-│
-├── package.json
-├── LICENSE
-└── README.md
+# Operator Access Defaults
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your_strong_admin_password_here
+ADMIN_NAME="Operations Lead"
 ```
 
 ---
 
-## ⚖️ Intellectual Property & Copyright Notice
+## ☁️ Production Deployment (Vercel)
 
-**Copyright (c) 2026 Aditya Vinod Renake. All Rights Reserved.**
+The repository includes a root `vercel.json` and a serverless API adapter (`api/index.js`), enabling the complete full-stack platform (React Single Page App + Express REST API) to deploy into a single Vercel project without microservice fragmentation.
 
-- **Work Title:** Eventra
-- **Official Diary Number:** `SW-49344/2026-CO`
-- **Filing Date:** 20/10/2026
-- **Copyright Office:** Government of India, Office of Controller General of Patents, Designs & Trade Marks (Central Branch)
-- **Sole Author & Owner:** Aditya Vinod Renake
+<details>
+<summary><strong>Step-by-Step Vercel Deployment Instructions</strong></summary>
 
-This platform, software architecture, backend engines, frontend interfaces, and cryptographic validation routines are the exclusive intellectual property of **Aditya Vinod Renake**. 
+1. Fork or push this repository to your private GitHub organization.
+2. In the [Vercel Dashboard](https://vercel.com/new), select **Import Project** and link your repository.
+3. Configure project settings:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `./`
+   - **Build Command**: `cd frontend && npm install && npm run build`
+   - **Output Directory**: `frontend/dist`
+4. Add your production environment variables (`MONGODB_URI`, `QR_SIGNING_SECRET`, `JWT_SECRET`, `SMTP_*`) in the **Environment Variables** panel.
+5. Click **Deploy**. Your custom domain will automatically route requests:
+   - Web Application: `https://your-domain.vercel.app/`
+   - Gate Scanner: `https://your-domain.vercel.app/scanner`
+   - API Endpoints: `https://your-domain.vercel.app/api/*`
+</details>
 
-Unauthorized copying, distribution, modification, reverse engineering, sublicensing, or deployment of this software is strictly prohibited under the **Copyright Act, 1957 (Government of India)** and international copyright treaties (Berne Convention).
+---
 
+## 📡 REST API Specifications
+
+<details>
+<summary><strong>View Endpoint Reference</strong></summary>
+
+### Public Endpoints
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/events` | Retrieve active public campus events |
+| `GET` | `/api/registrants/lookup/:uniqueId` | Fetch attendee pass data by Unique ID |
+| `POST` | `/api/registrants/register` | Direct attendee self-registration |
+| `POST` | `/api/registrants/webhook` | Webhook receiver for Google Forms / Sheets |
+
+### Protected Operations Endpoints (Bearer JWT Required)
+| Method | Route | Description | Clearance |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Operator authentication & session issue | Public |
+| `POST` | `/api/checkin/verify` | Cryptographic QR scanner validation | Verifier / Admin |
+| `GET` | `/api/registrants` | Paginated attendee table with search & filter | Admin |
+| `POST` | `/api/registrants/send-email/:id`| Trigger dynamic pass email dispatch | Admin |
+| `POST` | `/api/events` | Create new multi-track event | Super Admin |
+
+</details>
+
+---
+
+## ⚖️ Statutory License & Legal Notice
+
+```
+PROPRIETARY SOFTWARE LICENSE & STATUTORY COPYRIGHT RECORD
+Copyright (c) 2026 Aditya Vinod Renake. All Rights Reserved.
+
+OFFICIAL STATUTORY COPYRIGHT DIARY NUMBER: SW-49344/2026-CO
+REGISTERED WITH: GOVERNMENT OF INDIA, COPYRIGHT OFFICE (DPIIT)
+WORK TITLE: EVENTRA (COMPUTER SOFTWARE / LITERARY WORK)
+SOLE AUTHOR & EXCLUSIVE COPYRIGHT OWNER: ADITYA VINOD RENAKE
+```
+
+This software and its accompanying documentation, schemas, and media assets are protected under **The Copyright Act, 1957 (Government of India)** and international intellectual property treaties including the **Berne Convention** and the **Universal Copyright Convention**.
+
+No part of this codebase may be copied, stored in a retrieval system, modified, sublicensed, sold, or transmitted in any form without the prior express written authorization of the copyright owner.
+
+For licensing inquiries, enterprise deployment permissions, or official correspondence:
+- **Author**: Aditya Vinod Renake
+- **Official Inquiries**: `aditya.renake@outlook.com`
+- **Statutory Reference**: Diary No. `SW-49344/2026-CO`
+
+---
+
+<div align="center">
+  <sub>Engineered with precision for Eventra 2026 • Registered Statutory Intellectual Property of Aditya Vinod Renake</sub>
+</div>
