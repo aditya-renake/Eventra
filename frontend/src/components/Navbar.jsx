@@ -157,7 +157,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
                 }}
               >
                 <ShieldCheck size={12} color="#22d3ee" />
-                <span>{user.name ? user.name.split(' ')[0] : 'Admin'}</span>
+                <span>{((user.name || user.username || (user.email ? user.email.split('@')[0] : 'Admin'))).split(' ')[0]}</span>
               </div>
 
               <button
@@ -240,7 +240,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
                   setMobileMenuOpen(false);
                 }}
               >
-                <LogOut size={14} /> Sign Out ({user.name})
+                <LogOut size={14} /> Sign Out ({user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')})
               </button>
             </>
           )}

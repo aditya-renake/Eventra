@@ -268,18 +268,17 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   );
 
   const currentUser = api.auth.getUser();
-  const username = currentUser?.username?.toLowerCase() || '';
+  const username = currentUser?.username || '';
   const email = currentUser?.email?.toLowerCase() || '';
   const name = currentUser?.name || '';
   
-  const isMainBoss = username === 'adityarenake' || email === 'tigeradi1504@gmail.com' || email === 'aditya.renake@outlook.com' || currentUser?.role === 'root_owner';
+  const isMainBoss = username.toLowerCase() === 'adityarenake' || email === 'tigeradi1504@gmail.com' || email === 'aditya.renake@outlook.com' || currentUser?.role === 'root_owner';
 
-  let adminDisplayName = name;
-  if (isMainBoss) {
-    adminDisplayName = 'Aditya Renake (Main Event Organizer 👑)';
-  } else if (!adminDisplayName) {
-    adminDisplayName = 'Operations Admin';
-  }
+  // Dynamically resolve the username/name of the email with which the user registered
+  const resolvedDisplayName = name || username || (email ? email.split('@')[0] : 'Operations Admin');
+  const adminDisplayName = isMainBoss
+    ? `${resolvedDisplayName} (Main Event Organizer 👑)`
+    : `${resolvedDisplayName} (Operations Staff)`;
 
   return (
     <div className="dashboard-page" style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
