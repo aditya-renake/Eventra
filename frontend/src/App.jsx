@@ -13,6 +13,7 @@ import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'l
 export function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [activePassId, setActivePassId] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [user, setUser] = useState(() => api.auth.getUser());
   const [toasts, setToasts] = useState([]);
 
@@ -141,7 +142,8 @@ export function App() {
         {currentView === 'landing' && (
           <EventLandingPage
             onNavigateToPass={handleNavigateToPass}
-            onNavigateToRegister={() => {
+            onNavigateToRegister={(event) => {
+              setSelectedEvent(event || null);
               window.location.hash = '#register';
               setCurrentView('register');
             }}
@@ -151,6 +153,8 @@ export function App() {
 
         {currentView === 'register' && (
           <RegistrationPage
+            selectedEvent={selectedEvent}
+            onSelectEvent={setSelectedEvent}
             onRegistrationSuccess={(passId) => {
               handleNavigateToPass(passId);
             }}

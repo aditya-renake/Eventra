@@ -45,7 +45,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
     sounds.playClick();
     const link = document.createElement('a');
     link.download = `HackSeries2026-${passData.uniqueId}.png`;
-    link.href = passData.qrCodeDataUrl;
+    link.href = passData.qrCodeUrl || passData.qrCodeDataUrl;
     link.click();
     if (onShowToast) {
       onShowToast({
@@ -131,7 +131,9 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
               <DYPDPULogo height={22} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>HACKSERIES 2026</span>
+                  <span style={{ fontSize: '16px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px', textTransform: 'uppercase' }}>
+                    {(passData.formResponses?.eventName || 'HACKSERIES 2026').substring(0, 32)}
+                  </span>
                   <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>DIT PUNE</span>
                 </div>
                 <div style={{ fontSize: '9px', color: '#d1a550', fontWeight: '800', marginTop: '1px' }}>DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY (DYPDPU)</div>
@@ -158,7 +160,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
           <div style={{ textAlign: 'center', margin: '20px 0' }}>
             <div style={{ background: '#ffffff', padding: '16px', borderRadius: '18px', display: 'inline-block', boxShadow: '0 12px 35px rgba(0,0,0,0.6)' }}>
               <img
-                src={passData.qrCodeDataUrl}
+                src={passData.qrCodeUrl || passData.qrCodeDataUrl}
                 alt={`Pass QR Code for ${passData.uniqueId}`}
                 style={{ width: '220px', height: '220px', display: 'block' }}
               />

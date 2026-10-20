@@ -94,9 +94,17 @@ const loadRazorpay = () => new Promise((resolve) => {
   script.addEventListener('error', () => finish(false), { once: true });
 });
 
-export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onShowToast }) => {
+export const RegistrationPage = ({
+  selectedEvent = null,
+  onSelectEvent,
+  onRegistrationSuccess,
+  onBackToLanding,
+  onShowToast,
+}) => {
   const formRef = useRef(null);
   const [eventConfig, setEventConfig] = useState(DEFAULT_CONFIG);
+  const [availableEvents, setAvailableEvents] = useState([]);
+  const [activeEvent, setActiveEvent] = useState(selectedEvent || null);
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
@@ -111,6 +119,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Fetch event config and events catalog
   useEffect(() => {
     let mounted = true;
     api.event.getConfig()
@@ -118,11 +127,61 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         if (mounted && res?.data) setEventConfig((current) => ({ ...current, ...res.data }));
       })
       .catch(() => {});
+
+    api.events.getAll()
+      .then((res) => {
+        if (mounted && Array.isArray(res.data) && res.data.length > 0) {
+          setAvailableEvents(res.data);
+          if (!activeEvent) {
+            const defaultEv = res.data.find((e) => e.id === 'hackseries-2026' || e.isFlagship) || res.data[0];
+            setActiveEvent(defaultEv);
+          }
+        }
+      })
+      .catch(() => {});
+
     return () => { mounted = false; };
   }, []);
 
+  // Sync when selectedEvent changes externally
+  useEffect(() => {
+    if (selectedEvent) {
+      setActiveEvent(selectedEvent);
+    }
+  }, [selectedEvent]);
+
+  // Dynamic Tracks based on activeEvent
+  const availableTracks = useMemo(() => {
+    if (activeEvent?.tracks && Array.isArray(activeEvent.tracks) && activeEvent.tracks.length > 0) {
+      return activeEvent.tracks;
+    }
+    return TRACKS;
+  }, [activeEvent]);
+
+  useEffect(() => {
+    if (availableTracks.length > 0 && !availableTracks.includes(formData.track)) {
+      setFormData((prev) => ({ ...prev, track: availableTracks[0] }));
+    }
+  }, [availableTracks]);
+
   const ticketOptions = useMemo(() => {
     const prices = eventConfig.ticketPrices || DEFAULT_CONFIG.ticketPrices;
+
+    if (activeEvent?.ticketTiers && Array.isArray(activeEvent.ticketTiers) && activeEvent.ticketTiers.length > 0) {
+      return activeEvent.ticketTiers.map((type) => {
+        const rawFee = activeEvent.entryFee !== undefined ? Number(activeEvent.entryFee) : (prices[type] !== undefined ? Number(prices[type]) : 5);
+        return {
+          type,
+          price: rawFee,
+          ...(TIER_DETAILS[type] || {
+            badge: activeEvent.category || 'EVENT PASS',
+            detail: `Official pass for ${activeEvent.name || 'HackSeries 2026'}.`,
+            features: ['Entry & check-in access', 'Digital QR entry pass', 'Certificate & swag eligibility'],
+          }),
+        };
+      });
+    }
+
     return Object.entries(prices).map(([type, price]) => {
       const p = Number(price);
       const finalPrice = p > 0 ? p : 5;
@@ -136,7 +195,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         }),
       };
     });
-  }, [eventConfig.ticketPrices]);
+  }, [eventConfig.ticketPrices, activeEvent]);
 
   useEffect(() => {
     if (ticketOptions.length && !ticketOptions.some((ticket) => ticket.type === formData.ticketType)) {
@@ -146,7 +205,18 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
   const selectedTier = ticketOptions.find((tier) => tier.type === formData.ticketType) || ticketOptions[0];
   const paymentEnabled = eventConfig.enablePaymentGateway !== false;
-  const amountDue = paymentEnabled ? (selectedTier?.price || 5) : 5;
+  const amountDue = paymentEnabled ? (selectedTier?.price !== undefined ? selectedTier.price : 5) : 5;
+
+  const handleEventSwitch = (eventItem) => {
+    sounds.playClick();
+    setActiveEvent(eventItem);
+    if (onSelectEvent) onSelectEvent(eventItem);
+    setFormData((prev) => ({
+      ...prev,
+      track: (eventItem.tracks && eventItem.tracks[0]) || TRACKS[0],
+      ticketType: (eventItem.ticketTiers && eventItem.ticketTiers[0]) || 'Hacker Pass',
+    }));
+  };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -183,11 +253,14 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Toe8X3rzRfnIsm';
       const effectiveOrderId = orderRes?.order_id || orderRes?.orderId;
 
+      const effectiveEventId = activeEvent?.id || activeEvent?.eventId || 'hackseries-2026';
+      const effectiveEventName = activeEvent?.name || eventConfig.eventName || 'HackSeries 2026';
+
       const options = {
         key: razorpayKey,
         amount: orderRes?.amount || (amountDue * 100),
         currency: orderRes?.currency || 'INR',
-        name: eventConfig.eventName || 'HackSeries 2026',
+        name: effectiveEventName,
         description: `${formData.ticketType} Entry Pass (₹${amountDue})`,
         image: `${window.location.origin}/dypdpu-logo.png`,
         prefill: {
@@ -210,7 +283,12 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
               razorpay_payment_id: response.razorpay_payment_id,
               signature: response.razorpay_signature,
               razorpay_signature: response.razorpay_signature,
-              participantData: { ...formData, amountPaid: amountDue },
+              participantData: {
+                ...formData,
+                eventId: effectiveEventId,
+                eventName: effectiveEventName,
+                amountPaid: amountDue,
+              },
             });
 
             completeRegistration(verifyRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
@@ -218,7 +296,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
             // Auto-recovery: Check directly with Razorpay before declaring failure
             try {
               if (response?.razorpay_order_id) {
-                const checkRes = await api.payment.checkOrderStatus(response.razorpay_order_id, formData);
+                const checkRes = await api.payment.checkOrderStatus(response.razorpay_order_id, {
+                  ...formData,
+                  eventId: effectiveEventId,
+                  eventName: effectiveEventName,
+                });
                 if (checkRes.isPaid && checkRes.data) {
                   completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
                   return;
@@ -243,7 +325,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
             if (effectiveOrderId) {
               try {
                 setIsLoading(true);
-                const checkRes = await api.payment.checkOrderStatus(effectiveOrderId, formData);
+                const checkRes = await api.payment.checkOrderStatus(effectiveOrderId, {
+                  ...formData,
+                  eventId: effectiveEventId,
+                  eventName: effectiveEventName,
+                });
                 if (checkRes.isPaid && checkRes.data) {
                   completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
                   return;
@@ -273,7 +359,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         if (effectiveOrderId) {
           try {
             setIsLoading(true);
-            const checkRes = await api.payment.checkOrderStatus(effectiveOrderId, formData);
+            const checkRes = await api.payment.checkOrderStatus(effectiveOrderId, {
+              ...formData,
+              eventId: effectiveEventId,
+              eventName: effectiveEventName,
+            });
             if (checkRes.isPaid && checkRes.data) {
               completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
               return;
@@ -310,7 +400,15 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       setIsLoading(true);
       setErrorMsg('');
 
-      const orderRes = await api.payment.createOrder({ ...formData, amountPaid: amountDue });
+      const effectiveEventId = activeEvent?.id || activeEvent?.eventId || 'hackseries-2026';
+      const effectiveEventName = activeEvent?.name || eventConfig.eventName || 'HackSeries 2026';
+
+      const orderRes = await api.payment.createOrder({
+        ...formData,
+        eventId: effectiveEventId,
+        eventName: effectiveEventName,
+        amountPaid: amountDue,
+      });
 
       if (orderRes?.isFree) {
         completeRegistration(orderRes.data?.uniqueId || orderRes.uniqueId, 'Registration successful!');
@@ -349,12 +447,12 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
       <main className="registration-shell">
         <div className="registration-intro">
-          <div className="registration-eyebrow"><Sparkles size={14} /> {eventConfig.eventName || 'HackSeries 2026'}</div>
+          <div className="registration-eyebrow"><Sparkles size={14} /> {activeEvent?.name || eventConfig.eventName || 'HackSeries 2026'}</div>
           <h1>Your next big idea<br /><span>starts here.</span></h1>
-          <p>Save your place at the 48-hour student hackathon. Choose a pass, tell us a little about yourself, and you’re all set.</p>
+          <p>{activeEvent?.tagline || 'Save your place at the 48-hour student hackathon. Choose a pass, tell us a little about yourself, and you’re all set.'}</p>
           <div className="registration-event-meta">
-            <span><Ticket size={15} /> {eventConfig.eventDate || DEFAULT_CONFIG.eventDate}</span>
-            <span><MapPin size={15} /> DIT Pune</span>
+            <span><Ticket size={15} /> {activeEvent?.dateDisplay || eventConfig.eventDate || DEFAULT_CONFIG.eventDate}</span>
+            <span><MapPin size={15} /> {activeEvent?.venue || 'DIT Pune'}</span>
           </div>
         </div>
 
@@ -380,16 +478,66 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           <div className="registration-form-card">
             {step === 0 && (
               <section className="registration-form-step" aria-labelledby="pass-heading">
+                {/* Event Selector / Switcher */}
+                {availableEvents.length > 1 && (
+                  <div style={{
+                    marginBottom: '24px',
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '16px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        🎯 Selected Event
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                        Click to change event
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {availableEvents.map((ev) => {
+                        const isCurrent = (activeEvent?.id || 'hackseries-2026') === ev.id;
+                        return (
+                          <button
+                            key={ev.id}
+                            type="button"
+                            onClick={() => handleEventSwitch(ev)}
+                            style={{
+                              padding: '8px 14px',
+                              borderRadius: '10px',
+                              border: isCurrent ? '1px solid var(--accent-red)' : '1px solid rgba(255, 255, 255, 0.1)',
+                              background: isCurrent ? 'rgba(178, 43, 47, 0.25)' : 'rgba(255, 255, 255, 0.02)',
+                              color: isCurrent ? '#ffffff' : 'var(--text-muted)',
+                              fontWeight: isCurrent ? '800' : '500',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {isCurrent && <CheckCircle2 size={13} color="var(--accent-red)" />}
+                            <span>{ev.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="registration-section-heading">
                   <div><span className="registration-overline">STEP 01 · PASS</span><h2 id="pass-heading">Pick your pass</h2></div>
                   <span className="registration-section-icon"><Ticket size={20} /></span>
                 </div>
-                <p className="registration-section-note">Choose the pass that fits how you’ll join HackSeries.</p>
+                <p className="registration-section-note">Choose the pass that fits how you’ll join {activeEvent?.name || 'HackSeries'}.</p>
 
                 <div className="registration-ticket-grid">
                   {ticketOptions.map((tier) => {
                     const isSelected = formData.ticketType === tier.type;
-                    const price = tier.price || 5;
+                    const price = tier.price !== undefined ? tier.price : 5;
                     return (
                       <label key={tier.type} className={`registration-tier ${isSelected ? 'is-selected' : ''}`}>
                         <input
@@ -412,16 +560,16 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                 </div>
 
                 <div className="registration-field-block">
-                  <label htmlFor="registration-track">Choose your problem track</label>
+                  <label htmlFor="registration-track">Choose your track / problem domain</label>
                   <select
                     id="registration-track"
                     className="input-control registration-select"
                     value={formData.track}
                     onChange={(e) => handleInputChange('track', e.target.value)}
                   >
-                    {TRACKS.map((track) => <option key={track} value={track}>{track}</option>)}
+                    {availableTracks.map((track) => <option key={track} value={track}>{track}</option>)}
                   </select>
-                  <small>You can refine your idea and team during the event.</small>
+                  <small>You can refine your topic and team during the event.</small>
                 </div>
               </section>
             )}
@@ -516,8 +664,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
           <aside className="registration-summary">
             <div className="registration-summary-heading"><span>YOUR EVENT</span><span className="registration-live-dot" /> <small>Registration portal</small></div>
-            <div className="registration-summary-event">{eventConfig.eventName || 'HackSeries 2026'}</div>
-            <div className="registration-summary-subtitle">48 hours to build something remarkable.</div>
+            <div className="registration-summary-event">{activeEvent?.name || eventConfig.eventName || 'HackSeries 2026'}</div>
+            <div className="registration-summary-subtitle">{activeEvent?.tagline || '48 hours to build something remarkable.'}</div>
             <div className="registration-summary-rule" />
             <div className="registration-summary-line"><Ticket size={16} /><span>{selectedTier?.type || 'Hacker Pass'}</span><strong>{amountDue === 0 ? 'Free' : `₹${amountDue}`}</strong></div>
             <div className="registration-summary-line"><Sparkles size={16} /><span>{formData.track}</span></div>
