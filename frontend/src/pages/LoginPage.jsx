@@ -26,16 +26,19 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorCode, setErrorCode] = useState('');
 
   // Handle Standard Email Login
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     setErrorMessage('');
+    setErrorCode('');
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail.includes('@')) {
       const msg = 'Please enter your registered email address to sign in.';
       setErrorMessage(msg);
+      setErrorCode('INVALID_EMAIL');
       onShowToast({ type: 'warning', title: 'Email Required', message: msg });
       return;
     }
@@ -53,9 +56,10 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
     } catch (err) {
       const msg = err.message || 'Invalid email address or password.';
       setErrorMessage(msg);
+      setErrorCode(err.code || '');
       onShowToast({
         type: 'error',
-        title: 'Login Failed',
+        title: err.code === 'USER_NOT_REGISTERED' ? 'Account Not Registered' : 'Authentication Failed',
         message: msg,
       });
     } finally {
@@ -153,10 +157,41 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
           </p>
         </div>
 
-        {/* Inline Error Alert */}
+        {/* Inline Error Alert with Direct Action Trigger */}
         {errorMessage && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '10px', padding: '12px 14px', color: '#fca5a5', fontSize: '13px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>⚠️ {errorMessage}</span>
+          <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '10px', padding: '12px 14px', color: '#fca5a5', fontSize: '13px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={{ fontSize: '15px' }}>⚠️</span>
+              <span style={{ lineHeight: '1.4' }}>{errorMessage}</span>
+            </div>
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMessage('');
+                  setErrorCode('');
+                  setMode('register_owner');
+                }}
+                style={{
+                  alignSelf: 'flex-start',
+                  marginTop: '2px',
+                  background: 'rgba(247, 208, 112, 0.18)',
+                  border: '1px solid rgba(247, 208, 112, 0.4)',
+                  color: '#f7d070',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Crown size={12} color="#f7d070" />
+                <span>{errorCode === 'USER_NOT_REGISTERED' ? 'Register Now as Owner' : 'Reset / Set Password with Owner Passcode'}</span>
+              </button>
+            )}
           </div>
         )}
 
