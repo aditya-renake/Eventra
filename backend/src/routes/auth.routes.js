@@ -13,12 +13,13 @@
  */
 
 import express from 'express';
-import { login, getMe } from '../controllers/authController.js';
+import { login, registerOwner, getMe } from '../controllers/authController.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
 router.post('/login', login);
+router.post('/register-owner', registerOwner);
 router.get('/me', requireAuth, getMe);
 
 export default router;
