@@ -1,4 +1,15 @@
-// Synthesized Sound Effects & Haptic Vibration Feedback via Web Audio API & navigator.vibrate
+/**
+ * ============================================================================
+ * SYNTHESIZED SOUND & HAPTIC FEEDBACK (soundEffects.js)
+ * ============================================================================
+ * Purpose:
+ *   Zero-asset audio synthesizer utilizing the native browser Web Audio API to
+ *   generate real-time scan chirps, celebratory chords, warning buzzers, and
+ *   click sounds without needing external mp3/wav files.
+ *   Also triggers physical device haptic vibrations via `navigator.vibrate` on mobile devices.
+ * ============================================================================
+ */
+
 class SoundSynthesizer {
   constructor() {
     this.ctx = null;
