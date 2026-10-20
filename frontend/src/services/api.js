@@ -50,7 +50,18 @@ export const api = {
     async login(identifier, password) {
       const data = await request('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, email: identifier }),
+      });
+      if (data.token) {
+        localStorage.setItem('hs26_auth_token', data.token);
+        localStorage.setItem('hs26_user', JSON.stringify(data.user));
+      }
+      return data;
+    },
+    async registerOwner(email, password, ownerSecret, name) {
+      const data = await request('/auth/register-owner', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, ownerSecret, name }),
       });
       if (data.token) {
         localStorage.setItem('hs26_auth_token', data.token);
