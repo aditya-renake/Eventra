@@ -1,22 +1,7 @@
-/**
- * ==============================================================================
- * HackSeries 2026 — Express Application Router & Middleware Pipeline
- * ==============================================================================
- * Purpose:
- *   Assembles core HTTP middleware, logging, route mounts, and error handlers.
- * 
- * Architectural Features:
- *   - Dual Route Mounting: Every route is mounted at both `/api/<endpoint>` and `/<endpoint>`.
- *     This eliminates 404 routing anomalies whether hosted locally with a Vite proxy
- *     or deployed to Vercel with path-stripping serverless rewrites.
- *   - Large JSON Body Limit (10MB): Allows camera gate terminals to send high-clarity
- *     canvas snapshots directly alongside check-in payloads.
- * ==============================================================================
- */
-
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { initFirebase } from './config/firebase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -36,15 +21,19 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Development Request Logger
+// Request Logger
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Asynchronously ensure staff users exist in background without blocking requests
-staffRepo.seedDefaultAdmin().catch(() => {});
-import('./services/supabaseAuthService.js').then((m) => m.seedSupabaseStaffUsers().catch(() => {}));
+// Initialize Google Cloud Firestore
+initFirebase();
+
+// Ensure staff users exist if in persistent server mode
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  staffRepo.seedDefaultAdmin().catch(() => {});
+}
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -57,8 +46,6 @@ app.use('/api/email', emailRoutes);
 app.use('/email', emailRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/event', eventRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/events', eventRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/payment', paymentRoutes);
 
@@ -70,7 +57,7 @@ app.use('/', paymentRoutes);
 app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({
     status: 'online',
-    database: 'Supabase Postgres',
+    database: 'Google Cloud Firestore',
     event: 'HackSeries 2026',
     environment: process.env.NODE_ENV || 'production',
     timestamp: new Date(),

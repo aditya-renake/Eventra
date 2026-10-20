@@ -1,35 +1,11 @@
-/**
- * ==============================================================================
- * HackSeries 2026 — Cryptographic QR Pass Security Engine
- * ==============================================================================
- * Purpose:
- *   Mints, signs, and cryptographically verifies attendee QR passes.
- * 
- * Security Architecture:
- *   - Bare QR passes (e.g. raw attendee ID or plain JSON) can be easily forged
- *     or screenshot-shared by bad actors.
- *   - HackSeries 2026 uses an HMAC-SHA256 keyed digest using a server-held secret
- *     `QR_SIGNING_SECRET` over `HACKSERIES2026|<uniqueId>|<email>|<ticketType>`.
- *   - The token format is standardized as: `HS26.v1.<uniqueId>.<signature>`.
- *   - Gate check-in uses constant-time byte buffer comparison (`crypto.timingSafeEqual`)
- *     to eliminate side-channel timing attack vectors.
- * ==============================================================================
- */
-
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 
-// Secret key for HMAC signing (must remain private to the backend)
 const QR_SECRET = process.env.QR_SIGNING_SECRET || 'hackseries_2026_cryptographic_qr_signing_secret_9988';
 
 /**
- * Generates an HMAC-SHA256 16-character hex signature for an attendee pass.
- * Guarantees that neither ticket type, email, nor pass ID can be forged without the secret.
- * 
- * @param {string} uniqueId - Official attendee identifier (e.g. HS26-A1B2C3D4)
- * @param {string} email - Attendee email address (case-insensitive)
- * @param {string} ticketType - Ticket tier (e.g. Hacker Pass, VIP Delegate)
- * @returns {string} 16-character cryptographic signature
+ * Generate a cryptographic HMAC-SHA256 signature for a registrant's pass.
+ * Guarantees zero forged or spoofed QR codes.
  */
 export const generatePassSignature = (uniqueId, email, ticketType) => {
   const data = `HACKSERIES2026|${uniqueId}|${email.toLowerCase().trim()}|${ticketType}`;
@@ -38,12 +14,7 @@ export const generatePassSignature = (uniqueId, email, ticketType) => {
 
 /**
  * Creates the official tamper-proof QR code payload string.
- * Format: `HS26.v1.<uniqueId>.<signature>`
- * 
- * @param {string} uniqueId - Pass ID
- * @param {string} email - Attendee email
- * @param {string} ticketType - Pass tier
- * @returns {string} Serialized QR string
+ * Format: HS26.v1.<uniqueId>.<signature>
  */
 export const createQRPayload = (uniqueId, email, ticketType) => {
   const signature = generatePassSignature(uniqueId, email, ticketType);
@@ -52,13 +23,8 @@ export const createQRPayload = (uniqueId, email, ticketType) => {
 
 /**
  * Verifies if a scanned payload is cryptographically authentic and untampered.
- * Validates the HMAC signature against the database record using timing-safe comparison.
- * 
- * @param {string} scannedString - Raw string decoded from camera QR scanner
- * @param {object} registrant - Matched registrant database record from Supabase
- * @returns {{ valid: boolean, uniqueId?: string, verifiedCryptographically?: boolean, reason?: string, forged?: boolean }}
  */
-export const verifyQRPayload = (scannedString, registrant = null) => {
+export const verifyQRPayload = (scannedString, registrant) => {
   if (!scannedString || typeof scannedString !== 'string') {
     return { valid: false, reason: 'Invalid or empty QR payload' };
   }
@@ -161,44 +127,3 @@ export const generateQRCodeBuffer = async (payload) => {
     throw error;
   }
 };
-
-/**
- * Generates QR Code and uploads to Cloudinary CDN for instant, lightweight access.
- * Falls back to local Base64 Data URL if Cloudinary is unavailable.
- */
-export const generatePassQRCode = async (payload, uniqueId) => {
-  try {
-    const buffer = await generateQRCodeBuffer(payload);
-    let cdnUrl = null;
-
-    try {
-      const { uploadQRCodeToCloudinary } = await import('./cloudinaryService.js');
-      cdnUrl = await uploadQRCodeToCloudinary(buffer, uniqueId);
-    } catch (e) {
-      console.warn('⚠️ Cloudinary upload warning, falling back to data URL:', e.message);
-    }
-
-    if (cdnUrl) {
-      return {
-        qrCodeUrl: cdnUrl,
-        qrCodeDataUrl: cdnUrl,
-        buffer,
-      };
-    }
-
-    const dataUrl = await generateQRCodeDataUrl(payload);
-    return {
-      qrCodeUrl: null,
-      qrCodeDataUrl: dataUrl,
-      buffer,
-    };
-  } catch (err) {
-    console.error('Error in generatePassQRCode:', err);
-    const dataUrl = await generateQRCodeDataUrl(payload);
-    return {
-      qrCodeUrl: null,
-      qrCodeDataUrl: dataUrl,
-    };
-  }
-};
-

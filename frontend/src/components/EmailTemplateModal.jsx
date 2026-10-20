@@ -1,18 +1,3 @@
-/**
- * ============================================================================
- * EMAIL TEMPLATE CUSTOMIZATION MODAL (EmailTemplateModal.jsx)
- * ============================================================================
- * Purpose:
- *   Visual editor for customizing the transactional HTML pass emails sent to
- *   registered hackers and VIP attendees.
- *
- * Key Capabilities:
- *   - Custom subject line and body notice injection with variable tags ({{name}}).
- *   - Live rendered iframe preview of the actual HTML email.
- *   - Updates configuration in Supabase via `/api/event/config`.
- * ============================================================================
- */
-
 import React, { useState } from 'react';
 import { X, Mail, Eye, Save, ExternalLink, Sparkles, Check } from 'lucide-react';
 import { api } from '../services/api';

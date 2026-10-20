@@ -1,19 +1,3 @@
-/**
- * ============================================================================
- * EMAIL DELIVERY SERVICE
- * ============================================================================
- * Purpose:
- *   Handles transactional email delivery with dynamic provider detection
- *   (Resend, SendGrid, Gmail, custom SMTP) and builds responsive HTML passes
- *   with embedded QR codes and Apple Wallet / Calendar attachments.
- *
- * Key Capabilities:
- *   - Auto-detects Resend, SendGrid, or Gmail based on API key prefix or host.
- *   - Dynamically generates embedded CID QR code buffer for offline email rendering.
- *   - Supports single dispatch, bulk queueing, and fallback retry mechanisms.
- * ============================================================================
- */
-
 import nodemailer from 'nodemailer';
 import { generateQRCodeBuffer } from './qrService.js';
 import dotenv from 'dotenv';
@@ -156,7 +140,6 @@ export const buildPassEmailHtml = ({
   eventVenue,
   passUrl,
   notice,
-  qrCodeUrl,
 }) => {
   const badgeColor =
     ticketType === 'VIP Pass'
@@ -363,7 +346,7 @@ export const buildPassEmailHtml = ({
         <div class="ticket-id">PASS ID: ${uniqueId}</div>
 
         <div class="qr-container">
-          <img src="${qrCodeUrl || 'cid:hackpassqr'}" alt="HackSeries Entry QR" class="qr-image" />
+          <img src="cid:hackpassqr" alt="HackSeries Entry QR" class="qr-image" />
         </div>
 
         <div class="security-notice">
@@ -435,21 +418,18 @@ export const sendPassEmail = async (registrant, eventConfig = {}) => {
 
   const qrBuffer = await generateQRCodeBuffer(registrant.qrPayload);
 
-  const effectiveEventName = registrant.formResponses?.eventName || eventName;
-
   const html = buildPassEmailHtml({
     attendeeName: registrant.name,
     ticketType: registrant.ticketType,
     uniqueId: registrant.uniqueId,
     teamName: registrant.teamName,
     track: registrant.track,
-    eventName: effectiveEventName,
+    eventName,
     eventDate,
     eventTime,
     eventVenue,
     passUrl,
     notice: eventConfig.emailBodyNotice,
-    qrCodeUrl: registrant.qrCodeUrl,
   });
 
   const subject = (eventConfig.emailSubjectTemplate || '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}')

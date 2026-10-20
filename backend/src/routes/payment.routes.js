@@ -1,21 +1,3 @@
-/**
- * ============================================================================
- * PAYMENT & PASS CHECKOUT API ROUTES
- * ============================================================================
- * Purpose:
- *   Exposes public endpoints for Razorpay order generation, client signature
- *   verification, UPI UTR verification, order recovery, and webhook handling.
- *
- * Route Mapping:
- *   - POST /create-order      : Generates Razorpay Order ID for frontend checkout.
- *   - POST /verify-payment    : Verifies cryptographic payment signature & mints pass.
- *   - POST /verify            : Unified registration validation & pass generation.
- *   - POST/GET /check-order   : Self-healing pass recovery if browser drops connection.
- *   - POST /verify-upi        : Direct UPI manual transaction ID (UTR) verification.
- *   - POST /webhook           : Server-to-server Razorpay asynchronous payment events.
- * ============================================================================
- */
-
 import { Router } from 'express';
 import {
   initiateRegistrationOrder,

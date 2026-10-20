@@ -1,31 +1,14 @@
-/**
- * ==============================================================================
- * HackSeries 2026 — Razorpay Payment Gateway Service
- * ==============================================================================
- * Purpose:
- *   Handles server-side payment lifecycle for ticket orders:
- *   1. Order Creation: Requests official Razorpay order IDs via REST API.
- *   2. Cryptographic Signature Verification: Computes HMAC-SHA256 hash over
- *      `${order_id}|${payment_id}` using `RAZORPAY_KEY_SECRET` to verify authenticity.
- *   3. Sandbox Dev Mode: Gracefully allows local sandbox testing if keys are unset.
- * ==============================================================================
- */
-
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Cached singleton instance and credentials fingerprint
 let razorpayInstance = null;
+
 let currentClientKey = null;
 
 /**
- * Lazily instantiates and caches the Razorpay SDK client.
- * Dynamically prioritizes credentials configured in the database (`event_config`)
- * before falling back to system environment variables.
- * 
- * @returns {Promise<{ client: any, keyId: string } | null>}
+ * Lazily instantiate Razorpay client if credentials are configured
  */
 export const getRazorpayClient = async () => {
   let keyId = process.env.RAZORPAY_KEY_ID;
@@ -37,7 +20,7 @@ export const getRazorpayClient = async () => {
     if (cfg?.razorpayKeyId) keyId = cfg.razorpayKeyId.trim();
     if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
   } catch (e) {
-    // Fallback to environment variables
+    // fallback to env
   }
 
   if (!keyId || !keySecret) {
@@ -130,10 +113,6 @@ export const verifyPaymentSignature = async ({ orderId, paymentId, signature }) 
   }
 
   if (!keySecret) {
-    if (process.env.NODE_ENV !== 'production' || signature.startsWith('mock_') || signature === 'test_signature' || signature === 'test_signature_mock') {
-      console.warn('⚠️ [Razorpay] RAZORPAY_KEY_SECRET not set in .env. Approving sandbox test payment.');
-      return true;
-    }
     console.error('❌ [Razorpay] Verification failed: RAZORPAY_KEY_SECRET is not configured.');
     return false;
   }

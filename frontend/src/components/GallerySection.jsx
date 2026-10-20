@@ -1,18 +1,3 @@
-/**
- * ============================================================================
- * INTERACTIVE PHOTO GALLERY COMPONENT (GallerySection.jsx)
- * ============================================================================
- * Purpose:
- *   Visual media showcase highlighting previous HackSeries editions, coding sprints,
- *   mentorship rounds, and felicitation ceremonies at DIT Pune.
- *
- * Key Capabilities:
- *   - Album categorization (Opening Ceremony, 48H Sprint, Finale).
- *   - Responsive image thumbnail grid with hover zoom effects.
- *   - Full-screen lightbox viewer with keyboard and backdrop navigation.
- * ============================================================================
- */
-
 import React, { useState } from 'react';
 import { Image, ArrowLeft, Maximize2, X, Sparkles, ChevronRight, Layers } from 'lucide-react';
 

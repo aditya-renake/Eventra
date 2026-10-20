@@ -1,195 +1,137 @@
-/**
- * ==============================================================================
- * HackSeries 2026 — Operations Staff & Volunteer Repository
- * ==============================================================================
- * Purpose:
- *   Manages operations staff accounts, gate scanner profiles, and permission roles
- *   in Supabase Postgres `public.staff_users`.
- *   Supports bcrypt password hashing, event assignment scopes, and idempotent admin seeding.
- * ==============================================================================
- */
-
 import bcrypt from 'bcryptjs';
-import { getSupabaseAdmin } from '../config/supabase.js';
-
-// In-memory fallback map for offline local dev
-const memoryStaff = new Map();
-
-function rowToStaff(row) {
-  if (!row) return null;
-  return {
-    id: row.id || row.username,
-    username: row.username,
-    email: row.email,
-    name: row.name,
-    passwordHash: row.password_hash,
-    role: row.role || 'scanner',
-    assignedEventIds: row.assigned_event_ids || ['*'],
-    lastLogin: row.last_login,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-function staffToRow(staff) {
-  return {
-    id: staff.username,
-    username: staff.username,
-    email: staff.email,
-    name: staff.name,
-    password_hash: staff.passwordHash,
-    role: staff.role,
-    assigned_event_ids: staff.assignedEventIds || ['*'],
-    last_login: staff.lastLogin,
-    updated_at: new Date().toISOString(),
-  };
-}
+import { getFirestore } from '../config/firebase.js';
 
 export const staffRepo = {
+  getCollection() {
+    const db = getFirestore();
+    return db.collection('staff_users');
+  },
+
+  /**
+   * Find staff user by username
+   */
   async findByUsername(username) {
     if (!username) return null;
     const cleanUsername = username.toLowerCase().trim();
+    const collection = this.getCollection();
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('staff_users')
-          .select('*')
-          .eq('username', cleanUsername)
-          .maybeSingle();
-
-        if (data && !error) return rowToStaff(data);
-      } catch (err) {
-        console.warn('[staffRepo] Supabase findByUsername notice:', err.message);
-      }
-    }
-    return memoryStaff.get(cleanUsername) || null;
-  },
-
-  async findByEmail(email) {
-    if (!email) return null;
-    const cleanEmail = email.toLowerCase().trim();
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('staff_users')
-          .select('*')
-          .ilike('email', cleanEmail)
-          .maybeSingle();
-
-        if (data && !error) return rowToStaff(data);
-      } catch (err) {
-        console.warn('[staffRepo] Supabase findByEmail notice:', err.message);
-      }
-    }
-
-    for (const user of memoryStaff.values()) {
-      if (user.email === cleanEmail) return user;
+    const doc = await collection.doc(cleanUsername).get();
+    if (doc.exists) {
+      return { id: doc.id, username: doc.id, ...doc.data() };
     }
     return null;
   },
 
+  /**
+   * Find staff user by email
+   */
+  async findByEmail(email) {
+    if (!email) return null;
+    const cleanEmail = email.toLowerCase().trim();
+    const collection = this.getCollection();
+
+    const snapshot = await collection.where('email', '==', cleanEmail).limit(1).get();
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      return { id: doc.id, username: doc.id, ...doc.data() };
+    }
+    return null;
+  },
+
+  /**
+   * Find staff user by either username or email
+   */
   async findByIdentifier(identifier) {
     if (!identifier) return null;
     const clean = identifier.toLowerCase().trim();
+
     const byUsername = await this.findByUsername(clean);
     if (byUsername) return byUsername;
+
     return this.findByEmail(clean);
   },
 
+  /**
+   * Create staff user with hashed password
+   */
   async createStaff({ username, email, name, password, role = 'admin' }) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
     const cleanUsername = username.toLowerCase().trim();
 
     const user = {
-      id: cleanUsername,
       username: cleanUsername,
       email: email.toLowerCase().trim(),
       name: name.trim(),
       passwordHash,
       role,
-      assignedEventIds: ['*'],
       lastLogin: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    memoryStaff.set(cleanUsername, user);
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        await supabase.from('staff_users').upsert(staffToRow(user));
-      } catch (err) {
-        console.warn('[staffRepo] Supabase createStaff notice:', err.message);
-      }
-    }
-
-    return user;
+    const collection = this.getCollection();
+    await collection.doc(cleanUsername).set(user);
+    return { id: cleanUsername, ...user };
   },
 
+  /**
+   * Verify password against bcrypt hash
+   */
   async verifyPassword(candidatePassword, passwordHash) {
     if (!candidatePassword || !passwordHash) return false;
     return bcrypt.compare(candidatePassword, passwordHash);
   },
 
+  /**
+   * Update last login timestamp
+   */
   async updateLastLogin(username) {
     if (!username) return;
-    const cleanUsername = username.toLowerCase().trim();
-    const now = new Date().toISOString();
-
-    const existing = memoryStaff.get(cleanUsername);
-    if (existing) {
-      existing.lastLogin = now;
-      existing.updatedAt = now;
-    }
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        await supabase
-          .from('staff_users')
-          .update({ last_login: now, updated_at: now })
-          .eq('username', cleanUsername);
-      } catch (e) {
-        // quiet
-      }
+    try {
+      const cleanUsername = username.toLowerCase().trim();
+      const collection = this.getCollection();
+      await collection.doc(cleanUsername).set(
+        { lastLogin: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+    } catch (e) {
+      console.warn('[staffRepo] updateLastLogin error:', e.message);
     }
   },
 
+  /**
+   * Get all registered staff users
+   */
   async getAll() {
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.from('staff_users').select('*');
-        if (data && !error && data.length > 0) {
-          return data.map((row) => {
-            const user = rowToStaff(row);
-            const { passwordHash, ...safe } = user;
-            if (user.username === 'adityarenake') safe.role = 'root_owner';
-            return safe;
-          });
+    try {
+      const collection = this.getCollection();
+      const snapshot = await collection.get();
+      const staffList = [];
+      snapshot.docs.forEach((doc) => {
+        const { passwordHash, ...safeUser } = doc.data();
+        const u = doc.id.toLowerCase().trim();
+        let role = safeUser.role || 'scanner';
+        if (u === 'adityarenake') {
+          role = 'root_owner';
         }
-      } catch (e) {
-        console.warn('[staffRepo] Supabase getAll notice:', e.message);
-      }
+        staffList.push({ id: doc.id, username: doc.id, ...safeUser, role });
+      });
+      return staffList;
+    } catch (e) {
+      console.warn('[staffRepo] getAll error:', e.message);
+      return [];
     }
-
-    const list = [];
-    for (const u of memoryStaff.values()) {
-      const { passwordHash, ...safe } = u;
-      list.push(safe);
-    }
-    return list;
   },
 
+  /**
+   * Update staff member (e.g. role or assigned events)
+   */
   async updateStaff(username, updates) {
     if (!username) return null;
     const cleanUsername = username.toLowerCase().trim();
+    const collection = this.getCollection();
+
     const existing = await this.findByUsername(cleanUsername);
     if (!existing) return null;
 
@@ -200,43 +142,35 @@ export const staffRepo = {
       delete nextUpdates.password;
     }
 
-    const merged = { ...existing, ...nextUpdates };
-    memoryStaff.set(cleanUsername, merged);
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        await supabase.from('staff_users').upsert(staffToRow(merged));
-      } catch (err) {
-        console.warn('[staffRepo] Supabase updateStaff error:', err.message);
-      }
-    }
-
-    const { passwordHash, ...safe } = merged;
+    await collection.doc(cleanUsername).set(nextUpdates, { merge: true });
+    const updated = await this.findByUsername(cleanUsername);
+    const { passwordHash, ...safe } = updated;
     return safe;
   },
 
+  /**
+   * Delete a staff user
+   */
   async deleteStaff(username) {
     if (!username) return false;
     const cleanUsername = username.toLowerCase().trim();
     if (cleanUsername === 'adityarenake') {
       throw new Error('Cannot delete the Main Event Organizer (Aditya Renake)');
     }
-
-    memoryStaff.delete(cleanUsername);
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        await supabase.from('staff_users').delete().eq('username', cleanUsername);
-      } catch (err) {
-        console.warn('[staffRepo] Supabase deleteStaff error:', err.message);
-      }
-    }
+    const collection = this.getCollection();
+    await collection.doc(cleanUsername).delete();
     return true;
   },
 
+  /**
+   * Seed default admin and staff users (adityarenake as exclusive root_owner)
+   */
   async seedDefaultAdmin() {
     try {
+      // Ensure Soham and Hariti access is permanently revoked and deleted
+      await this.getCollection().doc('sohamchitnis').delete().catch(() => {});
+      await this.getCollection().doc('haritirawal').delete().catch(() => {});
+
       const staffList = [
         {
           username: 'adityarenake',
@@ -244,13 +178,7 @@ export const staffRepo = {
           name: 'Aditya Renake',
           password: 'Aditya@11',
           role: 'root_owner',
-        },
-        {
-          username: 'rajsingh',
-          email: 'rajsingh2007.rs@gmail.com',
-          name: 'Raj Singh',
-          password: 'Admin@123',
-          role: 'root_owner',
+          assignedEventIds: ['*'],
         },
         {
           username: 'gate_scanner_1',
@@ -258,18 +186,22 @@ export const staffRepo = {
           name: 'Gate Scanner Volunteer 1',
           password: 'Scanner@11',
           role: 'scanner',
+          assignedEventIds: ['*'],
         },
       ];
 
       for (const staff of staffList) {
         const existing = await this.findByUsername(staff.username);
         if (!existing) {
-          console.log(`👑 [Supabase Postgres] Seeding staff user (${staff.username})...`);
+          console.log(`👑 [Firestore] Seeding staff user (${staff.username})...`);
           await this.createStaff(staff);
+          console.log(`✅ [Firestore] User ${staff.username} created successfully.`);
+        } else if (staff.username === 'adityarenake' && existing.role !== 'root_owner') {
+          await this.getCollection().doc('adityarenake').set({ role: 'root_owner' }, { merge: true });
         }
       }
     } catch (e) {
-      console.warn('⚠️ [staffRepo] Staff seed notice:', e.message);
+      console.warn('⚠️ [Firestore] Staff seed notice:', e.message);
     }
   },
 };

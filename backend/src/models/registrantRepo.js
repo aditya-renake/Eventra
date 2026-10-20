@@ -1,44 +1,14 @@
-/**
- * ==============================================================================
- * HackSeries 2026 — Registrant Repository (Data Access Layer)
- * ==============================================================================
- * Purpose:
- *   High-throughput repository managing attendee registrations in Supabase Postgres.
- * 
- * Performance & Architecture:
- *   1. Micro-Cache Layer:
- *      - 10-second in-memory TTL caching for list queries and aggregate metrics.
- *      - Absorbs high-concurrency dashboard traffic (5,000+ simultaneous requests).
- *   2. Dual-Layer Resiliency:
- *      - Primary persistence in Supabase Postgres `public.registrants` table.
- *      - Synchronous fallback in-memory Map (`fallbackStore`) if Postgres is unreachable.
- *   3. Atomic Check-In Concurrency:
- *      - Uses Postgres conditional updates (`eq('checked_in', false)`) to prevent
- *        gate race conditions where two scanners read an un-checked pass at the same millisecond.
- *   4. Cloudinary Decoupling:
- *      - Keeps list query payloads light by storing CDN URLs (`qr_code_url`)
- *        rather than bulky Base64 image strings.
- * ==============================================================================
- */
-
-import { getSupabaseAdmin } from '../config/supabase.js';
+import { getFirestore } from '../config/firebase.js';
 
 // In-memory micro-cache for sub-millisecond dashboard speeds (5,000+ attendee concurrency)
 let memoryCache = null;
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 10000;
+const CACHE_TTL_MS = 10000; // 10 second micro-cache for instantaneous dashboard speeds
 
-// High-efficiency aggregate counter cache
 let aggregateStatsCache = null;
 let lastStatsCacheTime = 0;
-const STATS_CACHE_TTL_MS = 10000;
+const STATS_CACHE_TTL_MS = 10000; // 10 second cache for aggregate counts
 
-// In-memory fallback store if database is offline or during testing
-const fallbackStore = new Map();
-
-/**
- * Invalidates active memory caches when a mutation (create/update/delete) occurs.
- */
 function invalidateCache() {
   memoryCache = null;
   lastCacheTime = 0;
@@ -46,114 +16,29 @@ function invalidateCache() {
   lastStatsCacheTime = 0;
 }
 
-function rowToRegistrant(row) {
-  if (!row) return null;
-  return {
-    _id: row.unique_id,
-    uniqueId: row.unique_id,
-    name: row.name,
-    email: row.email,
-    phone: row.phone || '',
-    ticketType: row.ticket_type || 'Hacker Pass',
-    teamName: row.team_name || '',
-    track: row.track || 'AI & Agentic Systems',
-    institution: row.institution || '',
-    githubUrl: row.github_url || '',
-    formResponses: row.form_responses || {},
-    qrPayload: row.qr_payload,
-    qrSignature: row.qr_signature,
-    qrCodeUrl: row.qr_code_url,
-    qrCodeDataUrl: row.qr_code_data_url || row.qr_code_url,
-    verified: Boolean(row.verified),
-    verificationStatus: row.verification_status || (row.verified ? 'Verified' : 'Not Verified'),
-    verifiedAt: row.verified_at,
-    paymentStatus: row.payment_status || 'PENDING',
-    paymentId: row.payment_id,
-    orderId: row.order_id,
-    amountPaid: Number(row.amount_paid) || 0,
-    paidAt: row.paid_at,
-    checkedIn: Boolean(row.checked_in),
-    checkedInAt: row.checked_in_at,
-    checkedInBy: row.checked_in_by,
-    checkedInPhoto: row.checked_in_photo,
-    emailSent: Boolean(row.email_sent),
-    emailSentAt: row.email_sent_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-function registrantToRow(reg) {
-  const cleanId = String(reg.uniqueId || reg._id).toUpperCase().trim();
-  const cleanEmail = String(reg.email || '').toLowerCase().trim();
-
-  return {
-    unique_id: cleanId,
-    name: (reg.name || '').trim(),
-    email: cleanEmail,
-    phone: reg.phone ? String(reg.phone).trim() : '',
-    ticket_type: reg.ticketType || 'Hacker Pass',
-    team_name: reg.teamName ? String(reg.teamName).trim() : '',
-    track: reg.track || 'AI & Agentic Systems',
-    institution: reg.institution ? String(reg.institution).trim() : '',
-    github_url: reg.githubUrl ? String(reg.githubUrl).trim() : '',
-    form_responses: reg.formResponses || {},
-    qr_payload: reg.qrPayload,
-    qr_signature: reg.qrSignature,
-    qr_code_url: reg.qrCodeUrl || reg.qrCodeDataUrl,
-    qr_code_data_url: reg.qrCodeDataUrl || reg.qrCodeUrl,
-    verified: Boolean(reg.verified),
-    verification_status: reg.verificationStatus || (reg.verified ? 'Verified' : 'Not Verified'),
-    verified_at: reg.verifiedAt,
-    payment_status: reg.paymentStatus || 'PENDING',
-    payment_id: reg.paymentId,
-    order_id: reg.orderId,
-    amount_paid: Number(reg.amountPaid) || 0,
-    paid_at: reg.paidAt,
-    checked_in: Boolean(reg.checkedIn),
-    checked_in_at: reg.checkedInAt,
-    checked_in_by: reg.checkedInBy,
-    checked_in_photo: reg.checkedInPhoto,
-    email_sent: Boolean(reg.emailSent),
-    email_sent_at: reg.emailSentAt,
-    updated_at: new Date().toISOString(),
-  };
-}
-
 export const registrantRepo = {
+  getCollection() {
+    const db = getFirestore();
+    return db.collection('registrants');
+  },
+
   /**
-   * Create or overwrite registrant document in Supabase Postgres
+   * Create or overwrite registrant document in Firestore
    */
   async create(data) {
     invalidateCache();
-    const cleanId = String(data.uniqueId || data._id).toUpperCase().trim();
-    const cleanEmail = String(data.email || '').toLowerCase().trim();
-
+    const collection = this.getCollection();
+    const cleanId = data.uniqueId.toUpperCase().trim();
     const item = {
       ...data,
       _id: cleanId,
       uniqueId: cleanId,
-      email: cleanEmail,
+      email: data.email.toLowerCase().trim(),
       createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    fallbackStore.set(cleanId, item);
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const row = registrantToRow(item);
-        if (!row.created_at) row.created_at = item.createdAt;
-        const { error } = await supabase.from('registrants').upsert(row);
-        if (error) {
-          console.warn('⚠️ [registrantRepo] Supabase create error:', error.message);
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase upsert exception:', err.message);
-      }
-    }
-
+    await collection.doc(cleanId).set(item);
     return item;
   },
 
@@ -162,34 +47,20 @@ export const registrantRepo = {
    */
   async findByUniqueId(uniqueId) {
     if (!uniqueId) return null;
-    const cleanId = String(uniqueId).toUpperCase().trim();
-
+    const cleanId = uniqueId.toUpperCase().trim();
+    
     // Check in-memory cache first if warm
-    if (memoryCache && Date.now() - lastCacheTime < CACHE_TTL_MS) {
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
       const cached = memoryCache.find((r) => r.uniqueId === cleanId || r._id === cleanId);
       if (cached) return cached;
     }
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('registrants')
-          .select('*')
-          .eq('unique_id', cleanId)
-          .maybeSingle();
-
-        if (data && !error) {
-          const item = rowToRegistrant(data);
-          fallbackStore.set(cleanId, item);
-          return item;
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase findByUniqueId error:', err.message);
-      }
+    const collection = this.getCollection();
+    const doc = await collection.doc(cleanId).get();
+    if (doc.exists) {
+      return { _id: doc.id, ...doc.data() };
     }
-
-    return fallbackStore.get(cleanId) || null;
+    return null;
   },
 
   /**
@@ -197,10 +68,10 @@ export const registrantRepo = {
    */
   async findByEmail(email) {
     if (!email) return null;
-    const cleanEmail = String(email).toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
 
     // Check in-memory cache first if warm (returning newest)
-    if (memoryCache && Date.now() - lastCacheTime < CACHE_TTL_MS) {
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
       const matches = memoryCache.filter((r) => String(r.email).toLowerCase().trim() === cleanEmail);
       if (matches.length > 0) {
         matches.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -208,30 +79,12 @@ export const registrantRepo = {
       }
     }
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('registrants')
-          .select('*')
-          .ilike('email', cleanEmail)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (data && !error && data.length > 0) {
-          const item = rowToRegistrant(data[0]);
-          fallbackStore.set(item.uniqueId, item);
-          return item;
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase findByEmail error:', err.message);
-      }
-    }
-
-    for (const item of fallbackStore.values()) {
-      if (String(item.email).toLowerCase().trim() === cleanEmail) {
-        return item;
-      }
+    const collection = this.getCollection();
+    const snapshot = await collection.where('email', '==', cleanEmail).get();
+    if (!snapshot.empty) {
+      const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+      items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      return items[0];
     }
     return null;
   },
@@ -242,6 +95,7 @@ export const registrantRepo = {
   async findByIdOrEmail(query) {
     if (!query) return null;
     const cleanQuery = query.trim();
+
     if (cleanQuery.includes('@')) {
       return this.findByEmail(cleanQuery);
     }
@@ -255,27 +109,16 @@ export const registrantRepo = {
     if (!utrNumber) return null;
     const cleanUtr = String(utrNumber).trim();
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('registrants')
-          .select('*')
-          .ilike('payment_id', cleanUtr)
-          .limit(1);
-
-        if (data && !error && data.length > 0) {
-          return rowToRegistrant(data[0]);
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase findByUtr error:', err.message);
-      }
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      const cached = memoryCache.find((r) => r.utrNumber && String(r.utrNumber).trim().toUpperCase() === cleanUtr.toUpperCase());
+      if (cached) return cached;
     }
 
-    for (const item of fallbackStore.values()) {
-      if (item.paymentId && String(item.paymentId).trim().toUpperCase() === cleanUtr.toUpperCase()) {
-        return item;
-      }
+    const collection = this.getCollection();
+    const snapshot = await collection.where('utrNumber', '==', cleanUtr).limit(1).get();
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      return { _id: doc.id, ...doc.data() };
     }
     return null;
   },
@@ -287,33 +130,29 @@ export const registrantRepo = {
     if (!orderId) return null;
     const cleanOrder = String(orderId).trim();
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('registrants')
-          .select('*')
-          .or(`order_id.eq.${cleanOrder},payment_id.eq.${cleanOrder}`)
-          .limit(1);
-
-        if (data && !error && data.length > 0) {
-          return rowToRegistrant(data[0]);
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase findByOrderId error:', err.message);
-      }
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      const cached = memoryCache.find(
+        (r) => (r.orderId && r.orderId === cleanOrder) || (r.paymentId && r.paymentId === cleanOrder)
+      );
+      if (cached) return cached;
     }
 
-    for (const item of fallbackStore.values()) {
-      if ((item.orderId && item.orderId === cleanOrder) || (item.paymentId && item.paymentId === cleanOrder)) {
-        return item;
-      }
+    const collection = this.getCollection();
+    const snap1 = await collection.where('orderId', '==', cleanOrder).limit(1).get();
+    if (!snap1.empty) {
+      const doc = snap1.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    const snap2 = await collection.where('paymentId', '==', cleanOrder).limit(1).get();
+    if (!snap2.empty) {
+      const doc = snap2.docs[0];
+      return { _id: doc.id, ...doc.data() };
     }
     return null;
   },
 
   /**
-   * Get all registrants with search, filter, and pagination
+   * Get all registrants with search, filter, and pagination (optimized with micro-cache)
    */
   async getAll({
     page = 1,
@@ -328,46 +167,26 @@ export const registrantRepo = {
     sortOrder = 'desc',
   } = {}) {
     let items = [];
-    const now = Date.now();
 
-    if (memoryCache && now - lastCacheTime < CACHE_TTL_MS) {
+    const now = Date.now();
+    if (memoryCache && (now - lastCacheTime < CACHE_TTL_MS)) {
       items = [...memoryCache];
     } else {
-      const supabase = getSupabaseAdmin();
-      if (supabase) {
-        try {
-          const { data, error } = await supabase
-            .from('registrants')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (data && !error) {
-            items = data.map(rowToRegistrant);
-            items.forEach((it) => fallbackStore.set(it.uniqueId, it));
-            memoryCache = items;
-            lastCacheTime = now;
-          } else {
-            items = Array.from(fallbackStore.values());
-          }
-        } catch (err) {
-          console.warn('⚠️ [registrantRepo] Supabase getAll error, using fallback:', err.message);
-          items = Array.from(fallbackStore.values());
-        }
-      } else {
-        items = Array.from(fallbackStore.values());
-      }
+      const collection = this.getCollection();
+      const snapshot = await collection.get();
+      snapshot.docs.forEach((doc) => {
+        items.push({ _id: doc.id, ...doc.data() });
+      });
+      memoryCache = items;
+      lastCacheTime = now;
     }
 
-    // Counts
+    // Total counts across all items
     const totalAll = items.length;
     const checkedInCount = items.filter((i) => i.checkedIn).length;
     const emailSentCount = items.filter((i) => i.emailSent).length;
-    const verifiedCount = items.filter(
-      (i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified'
-    ).length;
-    const verifiedPendingEmailCount = items.filter(
-      (i) => (i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified') && !i.emailSent
-    ).length;
+    const verifiedCount = items.filter((i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified').length;
+    const verifiedPendingEmailCount = items.filter((i) => (i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified') && !i.emailSent).length;
 
     // Filters
     if (checkedIn !== undefined && checkedIn !== '') {
@@ -382,9 +201,7 @@ export const registrantRepo = {
 
     if (verified !== undefined && verified !== '' && verified !== 'all') {
       const isVer = verified === 'true' || verified === true;
-      items = items.filter(
-        (item) => (item.verified === true || String(item.verificationStatus).toLowerCase() === 'verified') === isVer
-      );
+      items = items.filter((item) => (item.verified === true || String(item.verificationStatus).toLowerCase() === 'verified') === isVer);
     }
 
     if (ticketType && ticketType !== 'all') {
@@ -397,14 +214,13 @@ export const registrantRepo = {
 
     if (search && search.trim() !== '') {
       const s = search.toLowerCase().trim();
-      items = items.filter(
-        (item) =>
-          (item.name && item.name.toLowerCase().includes(s)) ||
-          (item.email && item.email.toLowerCase().includes(s)) ||
-          (item.phone && item.phone.toLowerCase().includes(s)) ||
-          (item.uniqueId && item.uniqueId.toLowerCase().includes(s)) ||
-          (item.teamName && item.teamName.toLowerCase().includes(s)) ||
-          (item.institution && item.institution.toLowerCase().includes(s))
+      items = items.filter((item) =>
+        (item.name && item.name.toLowerCase().includes(s)) ||
+        (item.email && item.email.toLowerCase().includes(s)) ||
+        (item.phone && item.phone.toLowerCase().includes(s)) ||
+        (item.uniqueId && item.uniqueId.toLowerCase().includes(s)) ||
+        (item.teamName && item.teamName.toLowerCase().includes(s)) ||
+        (item.institution && item.institution.toLowerCase().includes(s))
       );
     }
 
@@ -422,6 +238,7 @@ export const registrantRepo = {
     const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
     const paginatedItems = items.slice(skip, skip + limitNum).map((item) => {
+      // Omit heavy base64 image strings from list endpoint to save 90% bandwidth
       const { qrCodeDataUrl, ...lightweightItem } = item;
       return lightweightItem;
     });
@@ -450,12 +267,13 @@ export const registrantRepo = {
   },
 
   /**
-   * Update registrant document in Supabase Postgres
+   * Update registrant document in Firestore
    */
   async update(uniqueId, updates) {
     invalidateCache();
     if (!uniqueId) return null;
-    const cleanId = String(uniqueId).toUpperCase().trim();
+    const cleanId = uniqueId.toUpperCase().trim();
+    const collection = this.getCollection();
 
     const existing = await this.findByUniqueId(cleanId);
     if (!existing) return null;
@@ -467,18 +285,7 @@ export const registrantRepo = {
       updatedAt: new Date().toISOString(),
     };
 
-    fallbackStore.set(cleanId, merged);
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const row = registrantToRow(merged);
-        await supabase.from('registrants').update(row).eq('unique_id', cleanId);
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase update error:', err.message);
-      }
-    }
-
+    await collection.doc(cleanId).set(merged, { merge: true });
     return merged;
   },
 
@@ -488,192 +295,148 @@ export const registrantRepo = {
   async delete(uniqueId) {
     invalidateCache();
     if (!uniqueId) return false;
-    const cleanId = String(uniqueId).toUpperCase().trim();
-    fallbackStore.delete(cleanId);
-
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        await supabase.from('registrants').delete().eq('unique_id', cleanId);
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase delete error:', err.message);
-      }
-    }
+    const cleanId = uniqueId.toUpperCase().trim();
+    const collection = this.getCollection();
+    await collection.doc(cleanId).delete();
     return true;
   },
 
   /**
-   * Atomic Check-In via Supabase Postgres
-   * Guarantees zero duplicate check-ins across concurrent scanners
+   * Atomic Check-In via Firestore Transaction
+   * Guarantees zero race conditions / zero duplicate check-ins across multiple concurrent gate scanners
    */
   async checkinAtomic(uniqueId, { staffName = 'Gate Scanner', photo = null } = {}) {
     if (!uniqueId) return { notFound: true };
-    const cleanId = String(uniqueId).toUpperCase().trim();
-    const checkedInAt = new Date().toISOString();
+    const cleanId = uniqueId.toUpperCase().trim();
+    const db = getFirestore();
+    const docRef = db.collection('registrants').doc(cleanId);
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        // Atomic conditional update in Postgres: only update if checked_in is FALSE
-        const updatePayload = {
-          checked_in: true,
-          checked_in_at: checkedInAt,
-          checked_in_by: staffName,
-          updated_at: checkedInAt,
-        };
-        if (photo) updatePayload.checked_in_photo = photo;
-
-        const { data, error } = await supabase
-          .from('registrants')
-          .update(updatePayload)
-          .eq('unique_id', cleanId)
-          .eq('checked_in', false)
-          .select('*')
-          .maybeSingle();
-
-        if (data) {
-          // Successfully checked in!
-          invalidateCache();
-          const registrant = rowToRegistrant(data);
-          fallbackStore.set(cleanId, registrant);
-          return {
-            alreadyCheckedIn: false,
-            registrant,
-          };
-        }
-
-        // If no row was updated, check if the attendee exists and is already checked in
-        const existing = await this.findByUniqueId(cleanId);
-        if (!existing) {
-          return { notFound: true };
-        }
-        if (existing.checkedIn) {
-          return {
-            alreadyCheckedIn: true,
-            registrant: existing,
-          };
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase atomic checkin error, fallback:', err.message);
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(docRef);
+      if (!doc.exists) {
+        return { notFound: true };
       }
-    }
 
-    // Local fallback atomic logic
-    const existing = fallbackStore.get(cleanId);
-    if (!existing) return { notFound: true };
-    if (existing.checkedIn) {
-      return {
-        alreadyCheckedIn: true,
-        registrant: existing,
+      const data = doc.data();
+      if (data.checkedIn) {
+        return {
+          alreadyCheckedIn: true,
+          registrant: { _id: doc.id, ...data },
+        };
+      }
+
+      const checkedInAt = new Date().toISOString();
+      const updateFields = {
+        checkedIn: true,
+        checkedInAt,
+        checkedInBy: staffName,
+        updatedAt: checkedInAt,
       };
-    }
 
-    existing.checkedIn = true;
-    existing.checkedInAt = checkedInAt;
-    existing.checkedInBy = staffName;
-    if (photo) existing.checkedInPhoto = photo;
-    existing.updatedAt = checkedInAt;
-    fallbackStore.set(cleanId, existing);
+      if (photo) {
+        updateFields.checkedInPhoto = photo;
+      }
+
+      transaction.update(docRef, updateFields);
+
+      return {
+        alreadyCheckedIn: false,
+        registrant: { _id: doc.id, ...data, ...updateFields },
+      };
+    });
+
     invalidateCache();
-
-    return {
-      alreadyCheckedIn: false,
-      registrant: existing,
-    };
+    return result;
   },
 
   /**
-   * Get recent check-ins stream for gate monitor
+   * Get recent check-ins stream for gate monitor (Optimized for 5,000+ attendees)
    */
   async getRecentCheckins(limitCount = 20) {
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('registrants')
-          .select('*')
-          .eq('checked_in', true)
-          .order('checked_in_at', { ascending: false })
-          .limit(limitCount);
+    const collection = this.getCollection();
+    try {
+      const snapshot = await collection
+        .where('checkedIn', '==', true)
+        .orderBy('checkedInAt', 'desc')
+        .limit(limitCount)
+        .get();
 
-        if (data && !error) {
-          return data.map(rowToRegistrant);
-        }
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase getRecentCheckins error:', err.message);
-      }
+      return snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+    } catch (idxErr) {
+      // Fallback query if composite index is pending or absent
+      const snapshot = await collection.where('checkedIn', '==', true).limit(50).get();
+      const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+      items.sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
+      return items.slice(0, limitCount);
     }
-
-    const items = Array.from(fallbackStore.values()).filter((i) => i.checkedIn);
-    items.sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
-    return items.slice(0, limitCount);
   },
 
   /**
    * High-Efficiency Server-Side Aggregate Counts
+   * Uses native Firestore collection.count().get() to calculate stats without scanning 5,000 documents
    */
   async getAggregateStats() {
     const now = Date.now();
-    if (aggregateStatsCache && now - lastStatsCacheTime < STATS_CACHE_TTL_MS) {
+    if (aggregateStatsCache && (now - lastStatsCacheTime < STATS_CACHE_TTL_MS)) {
       return aggregateStatsCache;
     }
 
-    const supabase = getSupabaseAdmin();
-    if (supabase) {
-      try {
-        const [totalRes, checkedInRes, emailRes, verifiedRes] = await Promise.all([
-          supabase.from('registrants').select('*', { count: 'exact', head: true }),
-          supabase.from('registrants').select('*', { count: 'exact', head: true }).eq('checked_in', true),
-          supabase.from('registrants').select('*', { count: 'exact', head: true }).eq('email_sent', true),
-          supabase.from('registrants').select('*', { count: 'exact', head: true }).eq('verified', true),
-        ]);
+    const collection = this.getCollection();
+    try {
+      const [totalSnap, checkedInSnap, emailSentSnap, verifiedSnap] = await Promise.all([
+        collection.count().get(),
+        collection.where('checkedIn', '==', true).count().get(),
+        collection.where('emailSent', '==', true).count().get(),
+        collection.where('verified', '==', true).count().get(),
+      ]);
 
-        const totalRegistrants = totalRes.count || 0;
-        const checkedInCount = checkedInRes.count || 0;
-        const emailSentCount = emailRes.count || 0;
-        const verifiedCount = verifiedRes.count || 0;
+      const totalRegistrants = totalSnap.data().count;
+      const checkedInCount = checkedInSnap.data().count;
+      const emailSentCount = emailSentSnap.data().count;
+      const verifiedCount = verifiedSnap.data().count;
 
-        const stats = {
-          totalRegistrants,
-          checkedInCount,
-          checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
-          emailSentCount,
-          pendingEmailCount: Math.max(0, totalRegistrants - emailSentCount),
-          verifiedCount,
-          verifiedPendingEmailCount: Math.max(0, verifiedCount - emailSentCount),
-        };
+      const stats = {
+        totalRegistrants,
+        checkedInCount,
+        checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
+        emailSentCount,
+        pendingEmailCount: Math.max(0, totalRegistrants - emailSentCount),
+        verifiedCount,
+        verifiedPendingEmailCount: Math.max(0, verifiedCount - emailSentCount),
+      };
 
-        aggregateStatsCache = stats;
-        lastStatsCacheTime = now;
-        return stats;
-      } catch (err) {
-        console.warn('⚠️ [registrantRepo] Supabase count query fallback:', err.message);
-      }
+      aggregateStatsCache = stats;
+      lastStatsCacheTime = now;
+      return stats;
+    } catch (err) {
+      console.warn('⚠️ Aggregate count query fallback:', err.message);
+      // Fallback calculation
+      const snapshot = await collection.get();
+      const items = snapshot.docs.map((d) => d.data());
+      const totalRegistrants = items.length;
+      const checkedInCount = items.filter((i) => i.checkedIn).length;
+      const emailSentCount = items.filter((i) => i.emailSent).length;
+      const verifiedCount = items.filter((i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified').length;
+
+      const fallbackStats = {
+        totalRegistrants,
+        checkedInCount,
+        checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
+        emailSentCount,
+        pendingEmailCount: Math.max(0, totalRegistrants - emailSentCount),
+        verifiedCount,
+        verifiedPendingEmailCount: Math.max(0, verifiedCount - emailSentCount),
+      };
+
+      aggregateStatsCache = fallbackStats;
+      lastStatsCacheTime = now;
+      return fallbackStats;
     }
-
-    const items = Array.from(fallbackStore.values());
-    const totalRegistrants = items.length;
-    const checkedInCount = items.filter((i) => i.checkedIn).length;
-    const emailSentCount = items.filter((i) => i.emailSent).length;
-    const verifiedCount = items.filter(
-      (i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified'
-    ).length;
-
-    const fallbackStats = {
-      totalRegistrants,
-      checkedInCount,
-      checkedInPercentage: totalRegistrants > 0 ? Math.round((checkedInCount / totalRegistrants) * 100) : 0,
-      emailSentCount,
-      pendingEmailCount: Math.max(0, totalRegistrants - emailSentCount),
-      verifiedCount,
-      verifiedPendingEmailCount: Math.max(0, verifiedCount - emailSentCount),
-    };
-
-    aggregateStatsCache = fallbackStats;
-    lastStatsCacheTime = now;
-    return fallbackStats;
   },
 
+  /**
+   * Total stats summary
+   */
   async getStats() {
     return this.getAggregateStats();
   },

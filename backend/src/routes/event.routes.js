@@ -1,21 +1,3 @@
-/**
- * ============================================================================
- * EVENT & TEAM MANAGEMENT API ROUTES
- * ============================================================================
- * Purpose:
- *   Handles public event catalog discovery, ticket pricing configuration, and
- *   administrative team/role management.
- *
- * Route Mapping:
- *   - GET /               : Public listing of active events and hackathons.
- *   - GET /config         : Public retrieval of pricing and platform settings.
- *   - PUT /config         : Admin updates to ticket prices, dates, and UPI details.
- *   - GET /:id            : Details for a specific event by ID.
- *   - POST/PUT/DELETE /   : Admin CRUD operations for event records.
- *   - /admin/staff*       : Admin staff accounts, RBAC roles, and credential management.
- * ============================================================================
- */
-
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import {

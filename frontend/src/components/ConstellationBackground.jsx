@@ -1,16 +1,9 @@
-/**
- * ============================================================================
- * CONSTELLATION NETWORK BACKGROUND (ConstellationBackground.jsx)
- * ============================================================================
- * Purpose:
- *   High-performance HTML5 Canvas animation rendering connected cybernetic nodes,
- *   subtle grid textures, and floating crimson square particles.
- *   Provides the signature immersive visual aesthetic of the ACES event portal.
- * ============================================================================
- */
-
 import React, { useEffect, useRef } from 'react';
 
+/**
+ * Interactive Network Constellation Background matching ACES website
+ * Renders connected nodes, fine grid, and floating crimson square particles.
+ */
 export const ConstellationBackground = () => {
   const canvasRef = useRef(null);
 

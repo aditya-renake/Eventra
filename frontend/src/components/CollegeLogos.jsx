@@ -1,14 +1,3 @@
-/**
- * ============================================================================
- * INSTITUTIONAL EMBLEMS & BRANDING BADGES (CollegeLogos.jsx)
- * ============================================================================
- * Purpose:
- *   Reusable SVG and image emblem components representing:
- *     - Dr. D. Y. Patil Vidyapeeth (DYPDPU) / DIT Pune
- *     - Association of Computer Engineering Students (ACES)
- * ============================================================================
- */
-
 import React from 'react';
 
 /**

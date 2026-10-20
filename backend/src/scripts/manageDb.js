@@ -1,19 +1,4 @@
 #!/usr/bin/env node
-/**
- * ============================================================================
- * DATABASE MANAGEMENT CLI TOOL (manageDb.js)
- * ============================================================================
- * Purpose:
- *   Command-line utility for developers and devops engineers to inspect, query,
- *   delete, or dump attendee data directly from the terminal without opening a GUI.
- *
- * Usage:
- *   node backend/src/scripts/manageDb.js list
- *   node backend/src/scripts/manageDb.js delete <email-or-passId>
- *   node backend/src/scripts/manageDb.js export-json > attendees.json
- * ============================================================================
- */
-
 import { registrantRepo } from '../models/registrantRepo.js';
 import dotenv from 'dotenv';
 dotenv.config();

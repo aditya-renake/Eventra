@@ -1,19 +1,3 @@
-/**
- * ============================================================================
- * GATE CHECK-IN & SCANNER STATION (ScannerPage.jsx)
- * ============================================================================
- * Purpose:
- *   High-throughput gate access control page for volunteers and security staff.
- *   Provides live camera scanning, cryptographic pass validation, real-time audio
- *   feedback, and a chronological stream of recent venue check-ins.
- *
- * Key Capabilities:
- *   - Continuous video stream scanning using HTML5 camera stream & jsQR / ZXing.
- *   - Real-time cryptographic validation preventing badge sharing or counterfeit passes.
- *   - Instant audit log showing recent entries with 1-click check-in undo capability.
- * ============================================================================
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ShieldCheck, 

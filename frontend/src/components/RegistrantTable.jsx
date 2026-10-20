@@ -1,18 +1,3 @@
-/**
- * ============================================================================
- * ATTENDEE DATA GRID & ROSTER TABLE (RegistrantTable.jsx)
- * ============================================================================
- * Purpose:
- *   High-density interactive data table displaying event attendees, check-in
- *   statuses, payment proofs, and email delivery receipts.
- *
- * Key Capabilities:
- *   - Per-row operations: Instant pass preview, email resend, QR regen, gate photo viewer.
- *   - Multi-select row actions for batch email blasts and bulk verification approvals.
- *   - Responsive pagination with dynamic page size and sorting indicator cues.
- * ============================================================================
- */
-
 import React, { useState } from 'react';
 import { 
   Mail, 

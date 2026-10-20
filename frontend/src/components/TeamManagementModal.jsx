@@ -1,18 +1,3 @@
-/**
- * ============================================================================
- * TEAM & RBAC MANAGEMENT MODAL (TeamManagementModal.jsx)
- * ============================================================================
- * Purpose:
- *   Administrative modal for managing organizer credentials, volunteer accounts,
- *   and gate scanner access permissions.
- *
- * Key Capabilities:
- *   - Create staff accounts with scoped roles: 'root_owner', 'admin', 'scanner'.
- *   - Restrict staff members to specific event IDs or grant universal access ('*').
- *   - Safeguards root owner account against accidental revocation or deletion.
- * ============================================================================
- */
-
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Shield, ShieldCheck, QrCode, Trash2, Key, Users, CheckCircle2, Crown, Lock, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';

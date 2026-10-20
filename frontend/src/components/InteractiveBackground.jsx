@@ -1,14 +1,3 @@
-/**
- * ============================================================================
- * INTERACTIVE AMBIENT GLOW BACKGROUND (InteractiveBackground.jsx)
- * ============================================================================
- * Purpose:
- *   Tracks desktop mouse coordinates to project a subtle radial gradient aura
- *   beneath the user's cursor, bringing a responsive, premium glassmorphism feel
- *   to the application interface.
- * ============================================================================
- */
-
 import React, { useEffect, useState } from 'react';
 
 export const InteractiveBackground = () => {

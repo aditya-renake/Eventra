@@ -1,18 +1,3 @@
-/**
- * ============================================================================
- * GOOGLE APPS SCRIPT WEBHOOK GUIDE MODAL (WebhookGuideModal.jsx)
- * ============================================================================
- * Purpose:
- *   Provides event organizers with copy-paste Google Apps Script code to connect
- *   external Google Forms or Google Sheets directly to HackSeries 2026.
- *
- * Key Capabilities:
- *   - Auto-generates exact Google Apps Script with onFormSubmit triggers.
- *   - Explains bidirectional status synchronization (e.g. Sheet edits sync to app).
- *   - Embedded interactive simulator allowing instant dry-run payload testing.
- * ============================================================================
- */
-
 import React, { useState } from 'react';
 import { 
   X, 

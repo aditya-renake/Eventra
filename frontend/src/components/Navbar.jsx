@@ -1,18 +1,3 @@
-/**
- * ============================================================================
- * FLOATING GLASSMORPHIC NAVIGATION BAR (Navbar.jsx)
- * ============================================================================
- * Purpose:
- *   Top-level navigation component providing quick access between public pages
- *   (Event Showcase, Registration) and restricted staff portals (Scanner, Dashboard).
- *
- * Key Capabilities:
- *   - Glassmorphic backdrop blur floating pill styling.
- *   - Role-aware links: Reveals Scanner and Dashboard buttons when authenticated.
- *   - Mobile responsive drawer with toggle animation.
- * ============================================================================
- */
-
 import React, { useState, useEffect } from 'react';
 import { QrCode, LayoutDashboard, Globe, LogOut, Lock, Menu, X, ShieldCheck, Crown } from 'lucide-react';
 import { DYPDPULogo } from './CollegeLogos';
@@ -157,7 +142,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
                 }}
               >
                 <ShieldCheck size={12} color="#22d3ee" />
-                <span>{((user.name || user.username || (user.email ? user.email.split('@')[0] : 'Admin'))).split(' ')[0]}</span>
+                <span>{user.name ? user.name.split(' ')[0] : 'Admin'}</span>
               </div>
 
               <button
@@ -240,7 +225,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
                   setMobileMenuOpen(false);
                 }}
               >
-                <LogOut size={14} /> Sign Out ({user.name || user.username || (user.email ? user.email.split('@')[0] : 'User')})
+                <LogOut size={14} /> Sign Out ({user.name})
               </button>
             </>
           )}

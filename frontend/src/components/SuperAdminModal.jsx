@@ -1,20 +1,3 @@
-/**
- * ============================================================================
- * SUPER ADMIN & MISSION CONTROL MODAL (SuperAdminModal.jsx)
- * ============================================================================
- * Purpose:
- *   High-level configuration center for root owners and lead organizers.
- *   Provides real-time system telemetry, event configuration editing, dynamic
- *   ticket pricing management, announcement broadcasting, and VIP pass minting.
- *
- * Command Modules:
- *   - Telemetry      : Real-time database capacity, latency, and platform uptime.
- *   - Event & Pricing: Live edits to dates, venue, ticket tiers, and Razorpay/UPI flags.
- *   - Pass Broadcast : Injects emergency alert banners onto all live attendee passes.
- *   - VIP Issuance   : Instant minting of VIP, Judge, Speaker, and Mentor passes.
- * ============================================================================
- */
-
 import React, { useState, useEffect } from 'react';
 import { 
   X, 

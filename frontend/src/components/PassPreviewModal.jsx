@@ -1,19 +1,3 @@
-/**
- * ============================================================================
- * DIGITAL PASS INSPECTION MODAL (PassPreviewModal.jsx)
- * ============================================================================
- * Purpose:
- *   Popup modal within the organizer dashboard allowing staff to inspect an
- *   attendee's holographic digital pass, verify payment status, dispatch emails,
- *   and test print rendering.
- *
- * Key Capabilities:
- *   - Live preview of attendee credentials, team details, and cryptographic QR.
- *   - 1-click manual verification override switch.
- *   - Direct pass email trigger and print/download buttons.
- * ============================================================================
- */
-
 import React, { useState } from 'react';
 import { 
   X, 
