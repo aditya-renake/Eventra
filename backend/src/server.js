@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5001;
 const startServer = async () => {
   await staffRepo.seedDefaultAdmin().catch(() => {});
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ══════════════════════════════════════════════════════════════
 🚀 HackSeries 2026 Backend Engine Online!
