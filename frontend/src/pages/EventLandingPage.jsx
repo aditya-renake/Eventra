@@ -227,15 +227,16 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           </div>
 
           <div className="event-hero-actions">
-            {isNativePaymentMode ? (
-              <button type="button" onClick={onNavigateToRegister} className="event-hero-cta">
-                <Ticket size={17} /> Get your pass <ArrowUpRight size={16} />
-              </button>
-            ) : (
-              <a href={googleFormUrl} target="_blank" rel="noreferrer" className="event-hero-cta">
-                <Ticket size={17} /> Register for the event <ExternalLink size={14} />
-              </a>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                sounds.playClick();
+                if (onNavigateToRegister) onNavigateToRegister();
+              }}
+              className="event-hero-cta"
+            >
+              <Ticket size={17} /> Get your pass <ArrowUpRight size={16} />
+            </button>
             <a href="#tracks-section" className="event-hero-secondary">Explore the tracks <ArrowUpRight size={15} /></a>
           </div>
 
@@ -548,6 +549,11 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
 
       {/* CampusMeet Style Events Discovery Hub */}
       <EventsDiscoverySection
+        onSelectEvent={(ev) => {
+          if (onNavigateToRegister) {
+            onNavigateToRegister(ev);
+          }
+        }}
         onNavigateToLookup={() => {
           const el = document.getElementById('lookup-section');
           if (el) el.scrollIntoView({ behavior: 'smooth' });
