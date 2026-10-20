@@ -58,10 +58,10 @@ export const api = {
       }
       return data;
     },
-    async registerOwner(email, password, ownerSecret, name) {
+    async registerOwner(email, password, ownerSecret, username) {
       const data = await request('/auth/register-owner', {
         method: 'POST',
-        body: JSON.stringify({ email, password, ownerSecret, name }),
+        body: JSON.stringify({ email, password, ownerSecret, username, name: username }),
       });
       if (data.token) {
         localStorage.setItem('hs26_auth_token', data.token);
