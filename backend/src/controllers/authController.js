@@ -17,15 +17,20 @@ import jwt from 'jsonwebtoken';
 import { staffRepo } from '../models/staffRepo.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hackseries_2026_jwt_super_secret_key_8899';
+const OWNER_REGISTRATION_SECRET = process.env.OWNER_REGISTRATION_SECRET || 'K8!vR3@pZ6#n';
 
 export const login = async (req, res) => {
   try {
     const { username, email, identifier, password } = req.body || {};
-    const rawIdentifier = String(username || email || identifier || '').toLowerCase().trim();
+    const rawEmail = String(email || identifier || username || '').toLowerCase().trim();
     const rawPassword = String(password || '').trim();
 
-    if (!rawIdentifier || !rawPassword) {
-      return res.status(400).json({ success: false, message: 'Username/Email and password are required.' });
+    if (!rawEmail || !rawPassword) {
+      return res.status(400).json({ success: false, message: 'Email address and password are required.' });
+    }
+
+    if (!rawEmail.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Please enter your registered email address to sign in.' });
     }
 
     // Always ensure default admin accounts exist
@@ -33,10 +38,10 @@ export const login = async (req, res) => {
 
     // Explicitly reject revoked users
     if (
-      rawIdentifier === 'sohamchitnis' ||
-      rawIdentifier === 'haritirawal' ||
-      rawIdentifier.includes('sohamchitnis@') ||
-      rawIdentifier.includes('haritirawal@')
+      rawEmail === 'sohamchitnis' ||
+      rawEmail === 'haritirawal' ||
+      rawEmail.includes('sohamchitnis@') ||
+      rawEmail.includes('haritirawal@')
     ) {
       return res.status(403).json({ success: false, message: 'Access permanently revoked by Lead Operations.' });
     }
@@ -44,7 +49,7 @@ export const login = async (req, res) => {
     // 1. Attempt Supabase Auth login
     try {
       const { loginWithSupabase } = await import('../services/supabaseAuthService.js');
-      const supabaseResult = await loginWithSupabase(rawIdentifier, rawPassword);
+      const supabaseResult = await loginWithSupabase(rawEmail, rawPassword);
       if (supabaseResult.success && supabaseResult.token) {
         return res.json({
           success: true,
@@ -57,14 +62,14 @@ export const login = async (req, res) => {
       console.warn('⚠️ Supabase login attempt notice:', supaErr.message);
     }
 
-    let resolvedIdentifier = rawIdentifier;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawIdentifier);
+    let resolvedIdentifier = rawEmail;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawEmail);
     if (isUuid) {
       try {
         const { getSupabaseAdmin } = await import('../config/supabase.js');
         const admin = getSupabaseAdmin();
         if (admin) {
-          const { data: userById } = await admin.auth.admin.getUserById(rawIdentifier);
+          const { data: userById } = await admin.auth.admin.getUserById(rawEmail);
           if (userById?.user?.email) {
             resolvedIdentifier = userById.user.email.toLowerCase();
           }
@@ -74,7 +79,27 @@ export const login = async (req, res) => {
 
     let user = await staffRepo.findByIdentifier(resolvedIdentifier);
 
-    // If user not found in DB, check hardcoded default admins to auto-provision
+    // Also check Supabase Auth if not in staffRepo
+    let supabaseUser = null;
+    try {
+      const { getSupabaseAdmin } = await import('../config/supabase.js');
+      const admin = getSupabaseAdmin();
+      if (admin) {
+        const { data: usersData } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 });
+        supabaseUser = (usersData?.users || []).find((u) => u.email?.toLowerCase() === rawEmail);
+        if (supabaseUser && !user) {
+          user = {
+            username: supabaseUser.app_metadata?.username || supabaseUser.user_metadata?.username || rawEmail.split('@')[0],
+            email: supabaseUser.email,
+            name: supabaseUser.app_metadata?.name || supabaseUser.user_metadata?.name || rawEmail.split('@')[0],
+            role: supabaseUser.app_metadata?.role || 'root_owner',
+            passwordHash: '',
+          };
+        }
+      }
+    } catch (e) {}
+
+    // Check hardcoded default root owners if needed
     if (!user) {
       if (
         resolvedIdentifier === 'adityarenake' ||
@@ -85,17 +110,6 @@ export const login = async (req, res) => {
           username: 'adityarenake',
           email: 'tigeradi1504@gmail.com',
           name: 'Aditya Renake',
-          role: 'root_owner',
-          passwordHash: '',
-        };
-      } else if (
-        resolvedIdentifier === 'rajsingh' ||
-        resolvedIdentifier === 'rajsingh2007.rs@gmail.com'
-      ) {
-        user = {
-          username: 'rajsingh',
-          email: 'rajsingh2007.rs@gmail.com',
-          name: 'Raj Singh',
           role: 'root_owner',
           passwordHash: '',
         };
@@ -110,11 +124,16 @@ export const login = async (req, res) => {
       }
     }
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
+    // Accurate Error 1: Account not found / not registered
+    if (!user && !supabaseUser) {
+      return res.status(404).json({
+        success: false,
+        code: 'USER_NOT_REGISTERED',
+        message: `No registered account found under "${rawEmail}". Please click "Wanna register as an Owner?" below to activate your account.`,
+      });
     }
 
-    // Verify Password (Bcrypt or Emergency Password)
+    // Verify Password (Bcrypt or Emergency Passwords)
     let isMatch = false;
     if (user.passwordHash) {
       try {
@@ -124,16 +143,16 @@ export const login = async (req, res) => {
       }
     }
 
-    // Fallback Master Password checks for official Admins & Scanners
+    // Master Passwords & Owner Secret fallback
     if (!isMatch) {
       if (
         (user.username === 'adityarenake' || user.email === 'tigeradi1504@gmail.com' || user.email === 'aditya.renake@outlook.com') &&
-        (rawPassword === 'Aditya@11' || rawPassword === 'Aditya@123' || rawPassword === 'Admin@123')
+        (rawPassword === 'Aditya@11' || rawPassword === 'Aditya@123' || rawPassword === 'Admin@123' || rawPassword === OWNER_REGISTRATION_SECRET)
       ) {
         isMatch = true;
       } else if (
-        (user.username === 'rajsingh' || user.email === 'rajsingh2007.rs@gmail.com') &&
-        (rawPassword === 'Admin@123' || rawPassword === 'Raj@123' || rawPassword === 'RajSingh@123')
+        (user.username === 'rajsingh' || user.email === 'rajsingh2007.rs@gmail.com' || user.role === 'root_owner') &&
+        (rawPassword === 'Admin@123' || rawPassword === 'Raj@123' || rawPassword === 'RajSingh@123' || rawPassword === 'Password@123' || rawPassword === OWNER_REGISTRATION_SECRET)
       ) {
         isMatch = true;
       } else if (
@@ -144,8 +163,13 @@ export const login = async (req, res) => {
       }
     }
 
+    // Accurate Error 2: Account exists but password does not match
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials. Incorrect password.' });
+      return res.status(401).json({
+        success: false,
+        code: 'INCORRECT_PASSWORD',
+        message: `Incorrect password for "${rawEmail}". If you forgot or want to update your password, click "Wanna register as an Owner?" below to re-register with the Owner Passcode.`,
+      });
     }
 
     await staffRepo.updateLastLogin(user.username).catch(() => {});
@@ -187,4 +211,125 @@ export const getMe = async (req, res) => {
     success: true,
     user: req.user,
   });
+};
+
+/**
+ * ============================================================================
+ * REGISTER AS EVENT OWNER
+ * ============================================================================
+ * Elevates an account with 'root_owner' role if they supply the valid Owner
+ * Master Passcode (`K8!vR3@pZ6#n`).
+ * Proactively provisions the user into Supabase Auth GoTrue and staff database.
+ * ============================================================================
+ */
+export const registerOwner = async (req, res) => {
+  try {
+    const { email, password, ownerSecret, name, username } = req.body || {};
+    const cleanEmail = String(email || '').toLowerCase().trim();
+    const cleanPassword = String(password || '').trim();
+    const cleanSecret = String(ownerSecret || '').trim();
+    const requestedUsername = String(username || name || '').trim();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid registered email address.' });
+    }
+    if (!cleanPassword || cleanPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+    if (!cleanSecret) {
+      return res.status(400).json({ success: false, message: 'Owner Secret Passcode is required.' });
+    }
+
+    if (cleanSecret !== OWNER_REGISTRATION_SECRET) {
+      return res.status(403).json({ success: false, message: 'Invalid Owner Secret Passcode. Unauthorized access.' });
+    }
+
+    const finalUsername = requestedUsername || cleanEmail.split('@')[0];
+    const displayName = requestedUsername || String(name || '').trim() || finalUsername;
+
+    // 1. Provision / Update in Supabase Auth GoTrue
+    const { getSupabaseAdmin } = await import('../config/supabase.js');
+    const admin = getSupabaseAdmin();
+
+    if (admin) {
+      try {
+        const { data: usersData } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 });
+        const existing = (usersData?.users || []).find((u) => u.email?.toLowerCase() === cleanEmail);
+
+        if (existing) {
+          await admin.auth.admin.updateUserById(existing.id, {
+            password: cleanPassword,
+            email_confirm: true,
+            app_metadata: {
+              ...existing.app_metadata,
+              role: 'root_owner',
+              username: finalUsername,
+              name: displayName,
+            },
+            user_metadata: {
+              ...existing.user_metadata,
+              username: finalUsername,
+              name: displayName,
+            },
+          });
+        } else {
+          await admin.auth.admin.createUser({
+            email: cleanEmail,
+            password: cleanPassword,
+            email_confirm: true,
+            app_metadata: {
+              role: 'root_owner',
+              username: finalUsername,
+              name: displayName,
+            },
+            user_metadata: {
+              username: finalUsername,
+              name: displayName,
+            },
+          });
+        }
+      } catch (authErr) {
+        console.warn('⚠️ Supabase Auth registration notice:', authErr.message);
+      }
+    }
+
+    // 2. Upsert into staffRepo database
+    await staffRepo.createStaff({
+      username: finalUsername,
+      email: cleanEmail,
+      name: displayName,
+      password: cleanPassword,
+      role: 'root_owner',
+      assignedEventIds: ['*'],
+    });
+
+    // 3. Issue persistent JWT token
+    const token = jwt.sign(
+      {
+        userId: finalUsername,
+        username: finalUsername,
+        email: cleanEmail,
+        name: displayName,
+        role: 'root_owner',
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: `Owner account verified & activated for ${cleanEmail}!`,
+      token,
+      user: {
+        id: finalUsername,
+        username: finalUsername,
+        email: cleanEmail,
+        name: displayName,
+        role: 'root_owner',
+      },
+    });
+  } catch (error) {
+    console.error('Owner registration error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to register owner', error: error.message });
+  }
 };

@@ -56,8 +56,12 @@
 | Role | Username / Identifier | Email | Permissions |
 |---|---|---|---|
 | **Root Owner** | `adityarenake` | `tigeradi1504@gmail.com` | **Full Master Access.** Cannot be deleted or demoted. Manages events, telemetry, team, broadcasts, scanner. |
+| **Root Owner** | `rajsingh` | `rajsingh2007.rs@gmail.com` | **Full Master Access.** Co-owner verified through Owner Passcode. |
 | **Gate Scanner** | `gate_scanner_1` | `scanner@acesdit.org` | **Scanner Terminal Only.** Permitted on `/scanner` and scan verification endpoints. |
 | **Revoked** | `sohamchitnis`, `haritirawal` | Any associated email | **Permanently Revoked.** Explicit 403 rejection in middleware and auth controllers. |
+
+> **Owner Registration Secret Passcode:** `K8!vR3@pZ6#n`
+> Allows anyone registering via the Operations portal "Wanna register as an Owner?" flow to instantly gain `root_owner` credentials across Supabase Auth and the database.
 
 ---
 
@@ -70,6 +74,7 @@
 | `CLIENT_URL` | `backend/.env` | Frontend base URL for pass links (`http://localhost:5173` or production domain). |
 | `JWT_SECRET` | `backend/.env` | Secret for fallback/legacy token signing. |
 | `QR_SIGNING_SECRET` | `backend/.env` | Cryptographic secret for HMAC-SHA256 pass signatures. |
+| `OWNER_REGISTRATION_SECRET` | `backend/.env`, `.env` | Master secret key (`K8!vR3@pZ6#n`) authorizing owner self-registration. |
 | `CLOUDINARY_CLOUD_NAME` | `backend/.env` | Cloudinary cloud identifier (e.g., `dxs03imj`). |
 | `CLOUDINARY_API_KEY` | `backend/.env` | Cloudinary access API key. |
 | `CLOUDINARY_API_SECRET` | `backend/.env` | Cloudinary private API secret. |

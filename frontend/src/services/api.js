@@ -39,7 +39,10 @@ async function request(endpoint, options = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message || `Request failed with status ${response.status}`);
+    const error = new Error(data.message || `Request failed with status ${response.status}`);
+    error.code = data.code;
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -50,7 +53,18 @@ export const api = {
     async login(identifier, password) {
       const data = await request('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, email: identifier }),
+      });
+      if (data.token) {
+        localStorage.setItem('hs26_auth_token', data.token);
+        localStorage.setItem('hs26_user', JSON.stringify(data.user));
+      }
+      return data;
+    },
+    async registerOwner(email, password, ownerSecret, username) {
+      const data = await request('/auth/register-owner', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, ownerSecret, username, name: username }),
       });
       if (data.token) {
         localStorage.setItem('hs26_auth_token', data.token);

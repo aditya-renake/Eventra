@@ -76,6 +76,12 @@
 - [x] Unified Cloudinary CDN upload across all ticket creation flows (free pass, Razorpay checkout, recovery, webhook).
 - [x] Enhanced digital pass retrieval and pass email delivery with Cloudinary CDN QR code URLs and event metadata.
 
+### ✅ Milestone 8: Owner Self-Registration & Dynamic Identity Flow
+- [x] Enforced email-only authentication for operations staff and owners in backend controllers and UI.
+- [x] Added "Wanna register as an Owner?" modal flow in `LoginPage.jsx` requiring Master Secret Passcode (`K8!vR3@pZ6#n`).
+- [x] Built `registerOwner` controller in backend, provisioning `root_owner` in Supabase Auth GoTrue and postgres database.
+- [x] Dynamically resolved and displayed logged-in owner/admin username across Operations Control Room dashboard and Navbar header.
+
 ### 🔄 Milestone 8: Mobile Pass Enhancements (Planned)
 - [ ] Generate Apple Wallet `.pkpass` files for iPhone lock-screen passes.
 - [ ] Generate Google Wallet JWT pass objects for Android devices.
