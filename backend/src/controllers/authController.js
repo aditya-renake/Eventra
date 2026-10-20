@@ -205,10 +205,11 @@ export const getMe = async (req, res) => {
  */
 export const registerOwner = async (req, res) => {
   try {
-    const { email, password, ownerSecret, name } = req.body || {};
+    const { email, password, ownerSecret, name, username } = req.body || {};
     const cleanEmail = String(email || '').toLowerCase().trim();
     const cleanPassword = String(password || '').trim();
     const cleanSecret = String(ownerSecret || '').trim();
+    const requestedUsername = String(username || name || '').trim();
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return res.status(400).json({ success: false, message: 'Please provide a valid registered email address.' });
@@ -224,8 +225,8 @@ export const registerOwner = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Invalid Owner Secret Passcode. Unauthorized access.' });
     }
 
-    const username = cleanEmail.split('@')[0];
-    const displayName = String(name || '').trim() || username;
+    const finalUsername = requestedUsername || cleanEmail.split('@')[0];
+    const displayName = requestedUsername || String(name || '').trim() || finalUsername;
 
     // 1. Provision / Update in Supabase Auth GoTrue
     const { getSupabaseAdmin } = await import('../config/supabase.js');
@@ -243,11 +244,12 @@ export const registerOwner = async (req, res) => {
             app_metadata: {
               ...existing.app_metadata,
               role: 'root_owner',
-              username,
+              username: finalUsername,
               name: displayName,
             },
             user_metadata: {
               ...existing.user_metadata,
+              username: finalUsername,
               name: displayName,
             },
           });
@@ -258,10 +260,11 @@ export const registerOwner = async (req, res) => {
             email_confirm: true,
             app_metadata: {
               role: 'root_owner',
-              username,
+              username: finalUsername,
               name: displayName,
             },
             user_metadata: {
+              username: finalUsername,
               name: displayName,
             },
           });
@@ -273,7 +276,7 @@ export const registerOwner = async (req, res) => {
 
     // 2. Upsert into staffRepo database
     await staffRepo.createStaff({
-      username,
+      username: finalUsername,
       email: cleanEmail,
       name: displayName,
       password: cleanPassword,
@@ -284,8 +287,8 @@ export const registerOwner = async (req, res) => {
     // 3. Issue persistent JWT token
     const token = jwt.sign(
       {
-        userId: username,
-        username,
+        userId: finalUsername,
+        username: finalUsername,
         email: cleanEmail,
         name: displayName,
         role: 'root_owner',
@@ -299,8 +302,8 @@ export const registerOwner = async (req, res) => {
       message: `Owner account verified & activated for ${cleanEmail}!`,
       token,
       user: {
-        id: username,
-        username,
+        id: finalUsername,
+        username: finalUsername,
         email: cleanEmail,
         name: displayName,
         role: 'root_owner',

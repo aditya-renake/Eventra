@@ -241,9 +241,9 @@ export const loginWithSupabase = async (identifier, password) => {
     refreshToken: data.session.refresh_token,
     user: {
       id: user.id,
-      username: user.app_metadata?.username || userEmail?.split('@')[0],
+      username: user.app_metadata?.username || user.user_metadata?.username || userEmail?.split('@')[0],
       email: user.email,
-      name: user.app_metadata?.name || user.user_metadata?.name || userEmail?.split('@')[0],
+      name: user.app_metadata?.name || user.user_metadata?.name || user.app_metadata?.username || user.user_metadata?.username || userEmail?.split('@')[0],
       role,
     },
   };
