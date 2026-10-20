@@ -46,7 +46,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
   // Multi-Event State
   const [eventsList, setEventsList] = useState([]);
-  const [selectedEventId, setSelectedEventId] = useState('hackseries-2026');
+  const [selectedEventId, setSelectedEventId] = useState('eventra-2026');
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
 

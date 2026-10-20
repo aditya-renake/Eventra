@@ -58,7 +58,7 @@ app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({
     status: 'online',
     database: 'Google Cloud Firestore',
-    event: 'HackSeries 2026',
+    event: 'Eventra 2026',
     environment: process.env.NODE_ENV || 'production',
     timestamp: new Date(),
     uptime: process.uptime(),

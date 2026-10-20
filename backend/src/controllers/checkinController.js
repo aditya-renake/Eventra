@@ -135,7 +135,7 @@ export const scanCheckin = async (req, res) => {
       status: 'SUCCESS',
       emailNotificationSent: true,
       hasLivePhoto: Boolean(livePhoto),
-      message: `✅ Check-in Approved: Welcome to HackSeries 2026, ${updated.name}! Live photo verified & confirmation email dispatched.`,
+      message: `✅ Check-in Approved: Welcome to Eventra 2026, ${updated.name}! Live photo verified & confirmation email dispatched.`,
       registrant: {
         _id: updated.uniqueId,
         uniqueId: updated.uniqueId,

@@ -71,7 +71,7 @@ export const handleWebhookSubmission = async (req, res) => {
       if (!existing) {
         return res.status(404).json({
           success: false,
-          message: `Attendee (${cleanEmail || uniqueId || req.body.name}) not found in HackSeries database.`,
+          message: `Attendee (${cleanEmail || uniqueId || req.body.name}) not found in Eventra database.`,
         });
       }
 
@@ -132,7 +132,7 @@ export const handleWebhookSubmission = async (req, res) => {
       attendeeEmail = `hacker.${Date.now()}@hackseries.org`;
     }
     if (!attendeeName) {
-      attendeeName = attendeeEmail.split('@')[0] || 'HackSeries Participant';
+      attendeeName = attendeeEmail.split('@')[0] || 'Eventra Participant';
     }
 
     const cleanEmail = attendeeEmail.toLowerCase().trim();
@@ -153,7 +153,7 @@ export const handleWebhookSubmission = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: 'Existing HackSeries registrant updated with latest response.',
+        message: 'Existing Eventra registrant updated with latest response.',
         data: updated,
         isNew: false,
       });
@@ -281,7 +281,7 @@ export const getPublicPass = async (req, res) => {
     if (!registrant) {
       return res.status(404).json({
         success: false,
-        message: 'No HackSeries pass found matching the provided ID or Email address.',
+        message: 'No Eventra pass found matching the provided ID or Email address.',
       });
     }
 
@@ -476,7 +476,7 @@ export const exportCSV = async (req, res) => {
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=hackseries-2026-registrants.csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=eventra-2026-registrants.csv');
     res.send(csvContent);
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to generate CSV export', error: error.message });

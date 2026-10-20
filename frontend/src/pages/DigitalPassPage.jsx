@@ -44,7 +44,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
     if (!passData) return;
     sounds.playClick();
     const link = document.createElement('a');
-    link.download = `HackSeries2026-${passData.uniqueId}.png`;
+    link.download = `Eventra2026-${passData.uniqueId}.png`;
     link.href = passData.qrCodeDataUrl;
     link.click();
     if (onShowToast) {
@@ -60,7 +60,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
     if (!passData) return;
     sounds.playClick();
     const passUrl = window.location.href;
-    const message = `🎟️ *HackSeries 2026 Digital Entry Pass*\n\n` +
+    const message = `🎟️ *Eventra 2026 Digital Entry Pass*\n\n` +
       `👤 *Attendee:* ${passData.name}\n` +
       `🎫 *Pass ID:* ${passData.uniqueId}\n` +
       `🎟️ *Ticket Type:* ${passData.ticketType}\n` +
@@ -94,7 +94,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
       <div style={{ maxWidth: '480px', margin: '80px auto', textAlign: 'center', padding: '24px' }}>
         <RefreshCw size={36} className="spin" color="#22c55e" style={{ margin: '0 auto 16px auto' }} />
         <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>Loading Cryptographic Pass...</div>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px' }}>Verifying digital signature with HackSeries authority</p>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '6px' }}>Verifying digital signature with Eventra authority</p>
       </div>
     );
   }

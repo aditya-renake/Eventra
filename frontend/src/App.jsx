@@ -207,7 +207,7 @@ export function App() {
       <footer style={{ background: '#030712', borderTop: '1px solid var(--border-subtle)', padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-dim)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <span>© 2026 <strong>HackSeries</strong> • Lead Operations:</span>
+            <span>© 2026 <strong>Eventra</strong> • Lead Operations:</span>
             
             {/* Aditya Renake */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>

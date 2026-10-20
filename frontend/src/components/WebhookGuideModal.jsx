@@ -25,7 +25,7 @@ export const WebhookGuideModal = ({ onClose, onShowToast, onRefresh }) => {
   const webhookUrl = `${window.location.origin}/api/registrants/webhook`;
 
   const appsScriptCode = `/**
- * Google Apps Script for HackSeries 2026 Registration Intake & Verification Sync
+ * Google Apps Script for Eventra 2026 Registration Intake & Verification Sync
  * 1. Open your Google Sheet linked to Google Forms
  * 2. Click Extensions -> Apps Script -> Paste this entire code
  * 3. Triggers (⏰ Alarm clock icon on left) -> Add 2 Triggers:
@@ -86,7 +86,7 @@ function onFormSubmit(e) {
     };
 
     const response = UrlFetchApp.fetch(WEBHOOK_URL, options);
-    Logger.log("HackSeries Webhook Response: " + response.getContentText());
+    Logger.log("Eventra Webhook Response: " + response.getContentText());
   } catch (error) {
     Logger.log("Error onFormSubmit: " + error.toString());
   }

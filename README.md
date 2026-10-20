@@ -1,6 +1,6 @@
-# ⚡ HackSeries 2026 — Event Registration + QR Pass + Check-in System
+# ⚡ Eventra 2026 — Event Registration + QR Pass + Check-in System
 
-A complete full-stack web application designed for **HackSeries 2026**. Features real-time intake from Google Forms & Sheets, zero-tamper HMAC-SHA256 cryptographic QR passes, single-click prefilled Outlook email delivery (`aditya.renake@outlook.com`), public mobile pass viewer, and an in-browser camera gate check-in console.
+A complete full-stack web application designed for **Eventra 2026**. Features real-time intake from Google Forms & Sheets, zero-tamper HMAC-SHA256 cryptographic QR passes, single-click prefilled Outlook email delivery (`aditya.renake@outlook.com`), public mobile pass viewer, and an in-browser camera gate check-in console.
 
 ---
 
@@ -91,7 +91,7 @@ npx vercel
 | `SMTP_PORT` | `587` | Port 587 |
 | `SMTP_USER` | `aditya.renake@outlook.com` | Organizer email |
 | `SMTP_PASS` | `your_outlook_app_password` | Outlook App Password |
-| `EMAIL_FROM` | `"HackSeries 2026" <aditya.renake@outlook.com>` | Sender display header |
+| `EMAIL_FROM` | `"Eventra 2026" <aditya.renake@outlook.com>` | Sender display header |
 
 5. Click **Deploy**!
    - Frontend is live at `https://your-project.vercel.app/`
@@ -164,7 +164,7 @@ function onFormSubmit(e) {
 
     UrlFetchApp.fetch(WEBHOOK_URL, options);
   } catch (error) {
-    Logger.log("Error posting to HackSeries: " + error.toString());
+    Logger.log("Error posting to Eventra: " + error.toString());
   }
 }
 ```
@@ -186,7 +186,7 @@ SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=aditya.renake@outlook.com
 SMTP_PASS=your_outlook_app_password
-EMAIL_FROM="HackSeries 2026" <aditya.renake@outlook.com>
+EMAIL_FROM="Eventra 2026" <aditya.renake@outlook.com>
 ```
 
 > **Tip for Outlook/Hotmail:** If you have 2-Factor Authentication enabled on your Microsoft account, create an **App Password** at `account.microsoft.com/security` and put it in `SMTP_PASS`.

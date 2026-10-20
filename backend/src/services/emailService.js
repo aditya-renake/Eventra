@@ -126,7 +126,7 @@ export const getTransporter = async () => {
 };
 
 /**
- * Builds the high-impact HackSeries 2026 Pass Email Template
+ * Builds the high-impact Eventra 2026 Pass Email Template
  */
 export const buildPassEmailHtml = ({
   attendeeName,
@@ -346,7 +346,7 @@ export const buildPassEmailHtml = ({
         <div class="ticket-id">PASS ID: ${uniqueId}</div>
 
         <div class="qr-container">
-          <img src="cid:hackpassqr" alt="HackSeries Entry QR" class="qr-image" />
+          <img src="cid:hackpassqr" alt="Eventra Entry QR" class="qr-image" />
         </div>
 
         <div class="security-notice">
@@ -408,7 +408,7 @@ export const buildPassEmailHtml = ({
 export const sendPassEmail = async (registrant, eventConfig = {}) => {
   const mailTransporter = await getTransporter();
 
-  const eventName = eventConfig.eventName || 'HackSeries 2026';
+  const eventName = eventConfig.eventName || 'Eventra 2026';
   const eventDate = eventConfig.eventDate || 'October 16 - 18, 2026';
   const eventTime = eventConfig.eventTime || '09:00 AM IST';
   const eventVenue = eventConfig.eventVenue || 'Apex Tech Hub & Innovation Arena, Pune';
@@ -432,11 +432,11 @@ export const sendPassEmail = async (registrant, eventConfig = {}) => {
     notice: eventConfig.emailBodyNotice,
   });
 
-  const subject = (eventConfig.emailSubjectTemplate || '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}')
+  const subject = (eventConfig.emailSubjectTemplate || '🎟️ Your Official Entry Pass for Eventra 2026 — {{name}}')
     .replace('{{eventName}}', eventName)
     .replace('{{name}}', registrant.name);
 
-  const fromAddress = process.env.EMAIL_FROM || `"HackSeries 2026" <${senderEmail}>`;
+  const fromAddress = process.env.EMAIL_FROM || `"Eventra 2026" <${senderEmail}>`;
 
   const mailOptions = {
     from: fromAddress,
@@ -526,7 +526,7 @@ export const buildCheckinConfirmationEmailHtml = ({
   checkedInAt,
   checkedInBy,
   hasLivePhoto = false,
-  eventName = 'HackSeries 2026',
+  eventName = 'Eventra 2026',
   eventVenue = 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
   clientUrl = 'http://localhost:5173',
 }) => {
@@ -541,7 +541,7 @@ export const buildCheckinConfirmationEmailHtml = ({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to HackSeries 2026 — You are Checked In!</title>
+  <title>Welcome to Eventra 2026 — You are Checked In!</title>
   <style>
     body { margin: 0; padding: 0; background-color: #030712; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e5e7eb; }
     .email-container { max-width: 600px; margin: 20px auto; background-color: #0b0f19; border: 1px solid #1f293d; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
@@ -630,10 +630,10 @@ export const buildCheckinConfirmationEmailHtml = ({
       <!-- Hacker Quick Start Kit -->
       <div class="guide-box">
         <div class="guide-title">⚡ Hacker Onboarding Quick-Guide</div>
-        <div class="guide-item">📶 <strong>High-Speed WiFi:</strong> Connect to <code>DIT_HACKSERIES_GUEST</code> (Password: <code>HackSeries@2026</code>)</div>
+        <div class="guide-item">📶 <strong>High-Speed WiFi:</strong> Connect to <code>DIT_HACKSERIES_GUEST</code> (Password: <code>Eventra@2026</code>)</div>
         <div class="guide-item">👕 <strong>Swag & Food Kit:</strong> Collect your participant badge & food coupon wristband at Desk 2.</div>
         <div class="guide-item">⚡ <strong>Workstation & Power:</strong> Dedicated lab blocks 401-408 with continuous high-speed LAN & power ports.</div>
-        <div class="guide-item">🆘 <strong>24x7 Help Desk:</strong> Reach out to volunteers wearing the ACES HackSeries badge at the Central Control Desk.</div>
+        <div class="guide-item">🆘 <strong>24x7 Help Desk:</strong> Reach out to volunteers wearing the ACES Eventra badge at the Central Control Desk.</div>
       </div>
 
       <!-- Live Pass Button -->
@@ -644,7 +644,7 @@ export const buildCheckinConfirmationEmailHtml = ({
 
     <!-- Footer -->
     <div class="footer">
-      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">HackSeries 2026 • Association of Computer Engineering Students (ACES)</p>
+      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">Eventra 2026 • Association of Computer Engineering Students (ACES)</p>
       <p style="margin: 0 0 6px 0;">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)</p>
       <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong> (<a href="mailto:tigeradi1504@gmail.com" style="color: #f7d070; text-decoration: none;">tigeradi1504@gmail.com</a>)</p>
     </div>
@@ -662,7 +662,7 @@ export const sendCheckinConfirmationEmail = async (registrant, eventConfig = {})
   try {
     const mailTransporter = await getTransporter();
 
-    const eventName = eventConfig.eventName || 'HackSeries 2026';
+    const eventName = eventConfig.eventName || 'Eventra 2026';
     const eventVenue = eventConfig.eventVenue || 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune';
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
@@ -696,7 +696,7 @@ export const sendCheckinConfirmationEmail = async (registrant, eventConfig = {})
     });
 
     const subject = `🎉 Welcome to ${eventName}! You are Checked In ✅ [${registrant.uniqueId}]`;
-    const fromAddress = process.env.EMAIL_FROM || `"HackSeries 2026" <${senderEmail}>`;
+    const fromAddress = process.env.EMAIL_FROM || `"Eventra 2026" <${senderEmail}>`;
 
     const mailOptions = {
       from: fromAddress,
@@ -732,7 +732,7 @@ export const buildRegistrationReceivedEmailHtml = ({
   teamName,
   track,
   institution,
-  eventName = 'HackSeries 2026',
+  eventName = 'Eventra 2026',
   eventDate = 'September 2026',
   eventVenue = 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
 }) => {
@@ -846,7 +846,7 @@ export const buildRegistrationReceivedEmailHtml = ({
 
     <!-- Footer -->
     <div style="background-color: #06080e; border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 20px 24px; text-align: center; font-size: 11px; color: #6b7280;">
-      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">HackSeries 2026 • Association of Computer Engineering Students (ACES)</p>
+      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">Eventra 2026 • Association of Computer Engineering Students (ACES)</p>
       <p style="margin: 0 0 6px 0;">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)</p>
       <p style="margin: 0;">
         Lead Operations: <strong>Aditya Renake</strong> • 
@@ -868,7 +868,7 @@ export const sendRegistrationReceivedEmail = async (registrant, eventConfig = {}
   try {
     const mailTransporter = await getTransporter();
 
-    const eventName = eventConfig.eventName || 'HackSeries 2026';
+    const eventName = eventConfig.eventName || 'Eventra 2026';
     const eventDate = eventConfig.eventDate || 'September 2026';
     const eventVenue = eventConfig.eventVenue || 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune';
     const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
@@ -886,7 +886,7 @@ export const sendRegistrationReceivedEmail = async (registrant, eventConfig = {}
     });
 
     const subject = `⏳ We've Received Your Registration — ${eventName} (Ref: ${registrant.uniqueId})`;
-    const fromAddress = process.env.EMAIL_FROM || `"HackSeries 2026" <${senderEmail}>`;
+    const fromAddress = process.env.EMAIL_FROM || `"Eventra 2026" <${senderEmail}>`;
 
     const mailOptions = {
       from: fromAddress,

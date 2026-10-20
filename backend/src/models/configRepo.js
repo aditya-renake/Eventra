@@ -3,7 +3,7 @@ import { getFirestore } from '../config/firebase.js';
 const CONFIG_DOC_ID = 'main_event_2026';
 
 const DEFAULT_CONFIG = {
-  eventName: 'HackSeries 2026',
+  eventName: 'Eventra 2026',
   eventTagline: 'Presented by ACES — Dept. of Computer Engineering, Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)',
   eventDate: 'October 16 - 18, 2026',
   eventTime: '09:00 AM IST (Gate Check-in starts 07:30 AM)',
@@ -21,10 +21,10 @@ const DEFAULT_CONFIG = {
   },
   currency: 'INR',
   upiId: 'tigeradi1504-1@okicici',
-  upiPayeeName: 'HackSeries 2026',
+  upiPayeeName: 'Eventra 2026',
   smtpUser: 'tigeradi1504@gmail.com',
   smtpPass: '',
-  emailSubjectTemplate: '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}',
+  emailSubjectTemplate: '🎟️ Your Official Entry Pass for Eventra 2026 — {{name}}',
   emailBodyNotice: 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -99,7 +99,7 @@ export const configRepo = {
           DEFAULT_EVENTS[0].feeDisplay = `₹${merged.ticketPrices['Hacker Pass']} Entry Pass`;
         }
       }
-      await eventRepo.update('hackseries-2026', {
+      await eventRepo.update('eventra-2026', {
         name: merged.eventName,
         tagline: merged.eventTagline,
         dateDisplay: merged.eventDate,

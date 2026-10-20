@@ -64,7 +64,7 @@ export const ScannerPage = ({ onShowToast }) => {
           <QrCode size={13} color="#22d3ee" /> DIT PUNE GATE ENTRY SCANNER • ACES OPS
         </div>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
-          HackSeries 2026 Check-in Terminal
+          Eventra 2026 Check-in Terminal
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
           Dr. D. Y. Patil Institute of Technology (DIT) Campus • Live anti-forgery QR verification

@@ -147,7 +147,7 @@ export const api = {
         body: JSON.stringify({ ids, verified }),
       });
     },
-    async bulkImport(rows, autoVerify = false, sendAckEmail = true, eventId = 'hackseries-2026') {
+    async bulkImport(rows, autoVerify = false, sendAckEmail = true, eventId = 'eventra-2026') {
       return request('/registrants/bulk-import', {
         method: 'POST',
         body: JSON.stringify({ rows, autoVerify, sendAckEmail, eventId }),
@@ -173,7 +173,7 @@ export const api = {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `hackseries-2026-registrants.csv`;
+      a.download = `eventra-2026-registrants.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

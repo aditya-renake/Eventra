@@ -11,9 +11,9 @@ function invalidateCache() {
 
 export const DEFAULT_EVENTS = [
   {
-    id: 'hackseries-2026',
-    eventId: 'hackseries-2026',
-    name: 'HackSeries 2026',
+    id: 'eventra-2026',
+    eventId: 'eventra-2026',
+    name: 'Eventra 2026',
     tagline: "India's Flagship 48-Hour National Hackathon • ACES DIT Pune",
     category: 'Hackathon',
     description: '48-hour continuous hackathon with ₹15,00,000+ prize pool, Gigabit Wi-Fi, mentorship, and high-density computing labs at Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune.',

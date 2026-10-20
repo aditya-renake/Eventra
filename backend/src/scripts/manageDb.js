@@ -43,7 +43,7 @@ async function main() {
       console.log(JSON.stringify(data.items, null, 2));
     } else {
       console.log(`
-HackSeries Database Manager CLI:
+Eventra Database Manager CLI:
 --------------------------------
 1. View all collected data:
    node backend/src/scripts/manageDb.js list

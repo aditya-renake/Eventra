@@ -11,7 +11,7 @@ const startServer = async () => {
   app.listen(PORT, () => {
     console.log(`
 ══════════════════════════════════════════════════════════════
-🚀 HackSeries 2026 Backend Engine Online!
+🚀 Eventra 2026 Backend Engine Online!
 🗄️ Database: Google Cloud Firestore (Firebase)
 🌐 API URL: http://localhost:${PORT}
 ⚡ Webhook: http://localhost:${PORT}/api/registrants/webhook

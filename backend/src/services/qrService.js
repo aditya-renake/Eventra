@@ -35,7 +35,7 @@ export const verifyQRPayload = (scannedString, registrant) => {
   if (trimmed.startsWith('HS26.v1.')) {
     const parts = trimmed.split('.');
     if (parts.length < 4) {
-      return { valid: false, reason: 'Malformed HackSeries QR token structure' };
+      return { valid: false, reason: 'Malformed Eventra QR token structure' };
     }
     const scannedId = parts[2];
     const scannedSig = parts[3];

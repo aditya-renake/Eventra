@@ -8,7 +8,7 @@ export const GallerySection = () => {
   const albums = [
     {
       id: 'hs01',
-      title: 'HackSeries 01 Edition',
+      title: 'Eventra 01 Edition',
       subtitle: 'Opening Ceremony & Ideation Phase',
       tag: 'FLAGSHIP',
       images: [
@@ -24,7 +24,7 @@ export const GallerySection = () => {
     },
     {
       id: 'hs01-hackathon',
-      title: 'HackSeries 01 Hackathon',
+      title: 'Eventra 01 Hackathon',
       subtitle: 'Midnight Coding, Mentorship & Pitches',
       tag: '48H SPRINT',
       images: [
@@ -48,7 +48,7 @@ export const GallerySection = () => {
     },
     {
       id: 'hs00-roadmap',
-      title: 'HackSeries 00 Roadmap',
+      title: 'Eventra 00 Roadmap',
       subtitle: 'Technical Foundations & Keynote',
       tag: 'ORIENTATION',
       images: [
@@ -74,7 +74,7 @@ export const GallerySection = () => {
           Event Gallery & Moments
         </h2>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '600px', margin: '4px auto 0 auto' }}>
-          Relive past editions of HackSeries at Dr. D. Y. Patil Institute of Technology. Select an album to explore photos.
+          Relive past editions of Eventra at Dr. D. Y. Patil Institute of Technology. Select an album to explore photos.
         </p>
       </div>
 

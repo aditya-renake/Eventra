@@ -186,7 +186,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
           type: 'success',
           status: 'SUCCESS',
           title: 'ACCESS GRANTED ✅',
-          subtitle: 'Verified Official HackSeries Entry Pass',
+          subtitle: 'Verified Official Eventra Entry Pass',
           message: response.message,
           attendee: response.registrant,
           timestamp: new Date().toLocaleTimeString(),
@@ -216,7 +216,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
         isForged,
         title: isForged ? '🚫 SECURITY ALERT: FORGED QR' : 'INVALID PASS ❌',
         subtitle: isForged ? 'Cryptographic Signature Mismatch' : 'Record Not Found',
-        message: err.message || 'Pass ID not found in HackSeries database.',
+        message: err.message || 'Pass ID not found in Eventra database.',
         scannedCode: codeString,
         timestamp: new Date().toLocaleTimeString(),
       });
@@ -498,7 +498,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
                             const digits = rawPhone.replace(/\D/g, '');
                             const waPhone = digits.length === 10 ? `91${digits}` : digits;
                             const waText = encodeURIComponent(
-                              `🎉 *Welcome to HackSeries 2026!* ✅\n\nHey *${popupModalResult.attendee.name}*, your gate entry pass (*${popupModalResult.attendee.uniqueId}*) has been verified at Dr. D. Y. Patil Institute of Technology (DIT), Pune!\n\n📶 *WiFi:* DIT_HACKSERIES_GUEST (Pass: HackSeries@2026)\n👕 *Swag Kit & Food Coupon:* Collect at Desk 2\n🎟️ *Live Pass & Schedule:* ${window.location.origin}/pass/${popupModalResult.attendee.uniqueId}\n\nLead Operations: *Aditya Renake* (+91 9890829874)`
+                              `🎉 *Welcome to Eventra 2026!* ✅\n\nHey *${popupModalResult.attendee.name}*, your gate entry pass (*${popupModalResult.attendee.uniqueId}*) has been verified at Dr. D. Y. Patil Institute of Technology (DIT), Pune!\n\n📶 *WiFi:* DIT_HACKSERIES_GUEST (Pass: Eventra@2026)\n👕 *Swag Kit & Food Coupon:* Collect at Desk 2\n🎟️ *Live Pass & Schedule:* ${window.location.origin}/pass/${popupModalResult.attendee.uniqueId}\n\nLead Operations: *Aditya Renake* (+91 9890829874)`
                             );
                             return waPhone ? `https://api.whatsapp.com/send?phone=${waPhone}&text=${waText}` : `https://wa.me/?text=${waText}`;
                           })()}

@@ -24,7 +24,7 @@ import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
 const DEFAULT_CONFIG = {
-  eventName: 'HackSeries 2026',
+  eventName: 'Eventra 2026',
   eventDate: 'October 16 - 18, 2026',
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune',
   enablePaymentGateway: true,
@@ -131,7 +131,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         price: finalPrice,
         ...(TIER_DETAILS[type] || {
           badge: 'EVENT PASS',
-          detail: 'Access for HackSeries 2026.',
+          detail: 'Access for Eventra 2026.',
           features: ['Event access', 'Digital QR entry pass'],
         }),
       };
@@ -187,7 +187,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         key: razorpayKey,
         amount: orderRes?.amount || (amountDue * 100),
         currency: orderRes?.currency || 'INR',
-        name: eventConfig.eventName || 'HackSeries 2026',
+        name: eventConfig.eventName || 'Eventra 2026',
         description: `${formData.ticketType} Entry Pass (₹${amountDue})`,
         image: `${window.location.origin}/dypdpu-logo.png`,
         prefill: {
@@ -349,7 +349,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
       <main className="registration-shell">
         <div className="registration-intro">
-          <div className="registration-eyebrow"><Sparkles size={14} /> {eventConfig.eventName || 'HackSeries 2026'}</div>
+          <div className="registration-eyebrow"><Sparkles size={14} /> {eventConfig.eventName || 'Eventra 2026'}</div>
           <h1>Your next big idea<br /><span>starts here.</span></h1>
           <p>Save your place at the 48-hour student hackathon. Choose a pass, tell us a little about yourself, and you’re all set.</p>
           <div className="registration-event-meta">
@@ -384,7 +384,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   <div><span className="registration-overline">STEP 01 · PASS</span><h2 id="pass-heading">Pick your pass</h2></div>
                   <span className="registration-section-icon"><Ticket size={20} /></span>
                 </div>
-                <p className="registration-section-note">Choose the pass that fits how you’ll join HackSeries.</p>
+                <p className="registration-section-note">Choose the pass that fits how you’ll join Eventra.</p>
 
                 <div className="registration-ticket-grid">
                   {ticketOptions.map((tier) => {
@@ -516,7 +516,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
           <aside className="registration-summary">
             <div className="registration-summary-heading"><span>YOUR EVENT</span><span className="registration-live-dot" /> <small>Registration portal</small></div>
-            <div className="registration-summary-event">{eventConfig.eventName || 'HackSeries 2026'}</div>
+            <div className="registration-summary-event">{eventConfig.eventName || 'Eventra 2026'}</div>
             <div className="registration-summary-subtitle">48 hours to build something remarkable.</div>
             <div className="registration-summary-rule" />
             <div className="registration-summary-line"><Ticket size={16} /><span>{selectedTier?.type || 'Hacker Pass'}</span><strong>{amountDue === 0 ? 'Free' : `₹${amountDue}`}</strong></div>
@@ -528,7 +528,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           </aside>
         </form>
 
-        <div className="registration-footer-note"><Lock size={13} /> Your registration details stay with the HackSeries event team.</div>
+        <div className="registration-footer-note"><Lock size={13} /> Your registration details stay with the Eventra event team.</div>
       </main>
     </div>
   );

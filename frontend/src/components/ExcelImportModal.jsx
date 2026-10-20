@@ -136,7 +136,7 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
       onShowToast({
         type: 'success',
         title: 'Import Successful! 🎉',
-        message: res.message || `Imported ${parsedRows.length} attendees to HackSeries database.`,
+        message: res.message || `Imported ${parsedRows.length} attendees to Eventra database.`,
       });
       if (onRefresh) onRefresh();
       onClose();

@@ -45,7 +45,7 @@ export const buildCheckinMessage = ({
 
   const passUrl = `${clientUrl}/pass/${uniqueId}`;
 
-  return `🎉 *Welcome to HackSeries 2026!* ✅\n\nHey *${name}*, your gate entry pass has been verified at Dr. D. Y. Patil Institute of Technology (DIT), Pune!\n\n🎫 *Pass ID:* ${uniqueId}\n🎟️ *Tier:* ${ticketType || 'Hacker Pass'}\n${teamName ? `👥 *Team:* ${teamName}\n` : ''}${track ? `🎯 *Track:* ${track}\n` : ''}🕒 *Time:* ${formattedTime}\n\n⚡ *Hacker Quick-Guide:*\n📶 *WiFi:* DIT_HACKSERIES_GUEST (Pass: HackSeries@2026)\n👕 *Swag & Food Kit:* Collect at Desk 2\n🎟️ *Live Pass & Schedule:* ${passUrl}\n\nLead Operations: *Aditya Renake* (+91 9890829874)\n_ACES • Dept. of Computer Engineering, DIT Pune_`;
+  return `🎉 *Welcome to Eventra 2026!* ✅\n\nHey *${name}*, your gate entry pass has been verified at Dr. D. Y. Patil Institute of Technology (DIT), Pune!\n\n🎫 *Pass ID:* ${uniqueId}\n🎟️ *Tier:* ${ticketType || 'Hacker Pass'}\n${teamName ? `👥 *Team:* ${teamName}\n` : ''}${track ? `🎯 *Track:* ${track}\n` : ''}🕒 *Time:* ${formattedTime}\n\n⚡ *Hacker Quick-Guide:*\n📶 *WiFi:* DIT_HACKSERIES_GUEST (Pass: Eventra@2026)\n👕 *Swag & Food Kit:* Collect at Desk 2\n🎟️ *Live Pass & Schedule:* ${passUrl}\n\nLead Operations: *Aditya Renake* (+91 9890829874)\n_ACES • Dept. of Computer Engineering, DIT Pune_`;
 };
 
 /**
@@ -106,7 +106,7 @@ export const sendAutoCheckinMessage = async (registrant) => {
         },
         body: JSON.stringify({
           route: 'q',
-          message: `Welcome to HackSeries 2026! Hey ${registrant.name}, your pass (${registrant.uniqueId}) is checked in at DIT Pune. View pass: ${clientUrl}/pass/${registrant.uniqueId}`,
+          message: `Welcome to Eventra 2026! Hey ${registrant.name}, your pass (${registrant.uniqueId}) is checked in at DIT Pune. View pass: ${clientUrl}/pass/${registrant.uniqueId}`,
           language: 'english',
           flash: 0,
           numbers: smsPhone,
@@ -142,10 +142,10 @@ export const buildPassWhatsAppMessage = ({
   ticketType,
   teamName,
   track,
-  clientUrl = 'https://hackseries-2026.vercel.app',
+  clientUrl = 'https://eventra-2026.vercel.app',
 }) => {
   const passUrl = `${clientUrl}/pass/${uniqueId}`;
-  return `🎫 *Official Entry Pass • HackSeries 2026* ✅\n\nHey *${name}*, your registration has been VERIFIED! Here is your official entry pass for HackSeries 2026 at Dr. D. Y. Patil Institute of Technology (DIT), Pune.\n\n🎟️ *Pass ID:* ${uniqueId}\n🏷️ *Ticket Tier:* ${ticketType || 'Hacker Pass'}\n${teamName ? `👥 *Team:* ${teamName}\n` : ''}${track ? `🎯 *Track:* ${track}\n` : ''}\n📱 *Your Live Digital Pass & Dynamic QR:* \n👉 ${passUrl}\n\n⚠️ *Gate Entry Instructions:*\n• Present the QR code on your phone at Gate 1 for express check-in.\n• Carry a valid College Photo ID.\n\nLead Operations: *Aditya Renake* (+91 9890829874)\n_ACES • Dept. of Computer Engineering, DIT Pune_`;
+  return `🎫 *Official Entry Pass • Eventra 2026* ✅\n\nHey *${name}*, your registration has been VERIFIED! Here is your official entry pass for Eventra 2026 at Dr. D. Y. Patil Institute of Technology (DIT), Pune.\n\n🎟️ *Pass ID:* ${uniqueId}\n🏷️ *Ticket Tier:* ${ticketType || 'Hacker Pass'}\n${teamName ? `👥 *Team:* ${teamName}\n` : ''}${track ? `🎯 *Track:* ${track}\n` : ''}\n📱 *Your Live Digital Pass & Dynamic QR:* \n👉 ${passUrl}\n\n⚠️ *Gate Entry Instructions:*\n• Present the QR code on your phone at Gate 1 for express check-in.\n• Carry a valid College Photo ID.\n\nLead Operations: *Aditya Renake* (+91 9890829874)\n_ACES • Dept. of Computer Engineering, DIT Pune_`;
 };
 
 /**
@@ -158,7 +158,7 @@ export const sendAutoPassWhatsApp = async (registrant) => {
     return { success: false, reason: 'NO_PHONE' };
   }
 
-  const clientUrl = process.env.CLIENT_URL || 'https://hackseries-2026.vercel.app';
+  const clientUrl = process.env.CLIENT_URL || 'https://eventra-2026.vercel.app';
   const textMessage = buildPassWhatsAppMessage({
     name: registrant.name,
     uniqueId: registrant.uniqueId,
@@ -204,7 +204,7 @@ export const sendAutoPassWhatsApp = async (registrant) => {
         },
         body: JSON.stringify({
           route: 'q',
-          message: `HackSeries 2026: Hey ${registrant.name}, your verified pass (${registrant.uniqueId}) is ready! View your QR pass: ${clientUrl}/pass/${registrant.uniqueId}`,
+          message: `Eventra 2026: Hey ${registrant.name}, your verified pass (${registrant.uniqueId}) is ready! View your QR pass: ${clientUrl}/pass/${registrant.uniqueId}`,
           language: 'english',
           flash: 0,
           numbers: smsPhone,

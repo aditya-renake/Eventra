@@ -73,7 +73,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
 
   const handleSendWhatsApp = () => {
     const passUrl = publicPassUrl;
-    const message = `🎟️ *HackSeries 2026 Digital Entry Pass*\n\n` +
+    const message = `🎟️ *Eventra 2026 Digital Entry Pass*\n\n` +
       `👤 *Attendee:* ${registrant.name}\n` +
       `🎫 *Pass ID:* ${registrant.uniqueId}\n` +
       `🎟️ *Ticket Type:* ${registrant.ticketType}\n` +
@@ -99,7 +99,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
 
   const handleDownloadQR = () => {
     const link = document.createElement('a');
-    link.download = `HackSeries2026-Pass-${registrant.uniqueId}.png`;
+    link.download = `Eventra2026-Pass-${registrant.uniqueId}.png`;
     link.href = registrant.qrCodeDataUrl;
     link.click();
   };

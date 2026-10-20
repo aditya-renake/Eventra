@@ -57,7 +57,7 @@ export const SuperAdminModal = ({
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
 
   // Event Details State
-  const [eventName, setEventName] = useState(eventConfig?.eventName || 'HackSeries 2026');
+  const [eventName, setEventName] = useState(eventConfig?.eventName || 'Eventra 2026');
   const [eventTagline, setEventTagline] = useState(eventConfig?.eventTagline || 'Presented by ACES — Dept. of Computer Engineering, Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)');
   const [eventDate, setEventDate] = useState(eventConfig?.eventDate || 'October 16 - 18, 2026');
   const [eventTime, setEventTime] = useState(eventConfig?.eventTime || '09:00 AM IST (Gate Check-in starts 07:30 AM)');
@@ -74,7 +74,7 @@ export const SuperAdminModal = ({
   const [vipPrice, setVipPrice] = useState(eventConfig?.ticketPrices?.['VIP Delegate'] ?? 5);
   const [judgePrice, setJudgePrice] = useState(eventConfig?.ticketPrices?.['Judge / Mentor'] ?? 5);
   const [upiId, setUpiId] = useState(eventConfig?.upiId || 'tigeradi1504-1@okicici');
-  const [upiPayeeName, setUpiPayeeName] = useState(eventConfig?.upiPayeeName || 'HackSeries 2026');
+  const [upiPayeeName, setUpiPayeeName] = useState(eventConfig?.upiPayeeName || 'Eventra 2026');
   const [razorpayKeyId, setRazorpayKeyId] = useState(eventConfig?.razorpayKeyId || '');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState(eventConfig?.razorpayKeySecret || '');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -221,7 +221,7 @@ export const SuperAdminModal = ({
       setIsSavingConfig(true);
       await api.event.updateConfig({
         // Event Branding & Logistics
-        eventName: eventName ? eventName.trim() : 'HackSeries 2026',
+        eventName: eventName ? eventName.trim() : 'Eventra 2026',
         eventTagline: eventTagline ? eventTagline.trim() : '',
         eventDate: eventDate ? eventDate.trim() : 'October 16 - 18, 2026',
         eventTime: eventTime ? eventTime.trim() : '09:00 AM IST',
@@ -236,7 +236,7 @@ export const SuperAdminModal = ({
 
         // Payment Gateway & Direct UPI Details
         upiId: upiId ? upiId.trim() : 'tigeradi1504-1@okicici',
-        upiPayeeName: upiPayeeName ? upiPayeeName.trim() : 'HackSeries 2026',
+        upiPayeeName: upiPayeeName ? upiPayeeName.trim() : 'Eventra 2026',
         razorpayKeyId: razorpayKeyId ? razorpayKeyId.trim() : '',
         razorpayKeySecret: razorpayKeySecret ? razorpayKeySecret.trim() : '',
 
@@ -322,7 +322,7 @@ export const SuperAdminModal = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `HackSeries2026_Full_Database_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `Eventra2026_Full_Database_Backup_${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -444,7 +444,7 @@ export const SuperAdminModal = ({
                     {telemetry?.status || 'ONLINE & HEALTHY'}
                   </span>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Google Cloud Project: <strong style={{ color: '#fff' }}>{telemetry?.projectId || 'hackseries-2026'}</strong>
+                    Google Cloud Project: <strong style={{ color: '#fff' }}>{telemetry?.projectId || 'eventra-2026'}</strong>
                   </span>
                 </div>
 
@@ -584,7 +584,7 @@ export const SuperAdminModal = ({
                       className="input" 
                       value={eventName} 
                       onChange={(e) => setEventName(e.target.value)} 
-                      placeholder="HackSeries 2026"
+                      placeholder="Eventra 2026"
                       style={{ width: '100%' }}
                     />
                   </div>
@@ -887,7 +887,7 @@ export const SuperAdminModal = ({
                           className="input" 
                           value={upiPayeeName} 
                           onChange={(e) => setUpiPayeeName(e.target.value)} 
-                          placeholder="HackSeries 2026"
+                          placeholder="Eventra 2026"
                           style={{ width: '100%' }}
                         />
                       </div>
@@ -1147,7 +1147,7 @@ export const SuperAdminModal = ({
                     <Server size={13} /> CLOUD DATABASE
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginTop: '4px' }}>Google Cloud Firestore</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Project: hackseries-2026 (Live)</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Project: eventra-2026 (Live)</div>
                 </div>
 
                 <div style={{ background: '#090d18', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>

@@ -210,7 +210,7 @@ export const RegistrantTable = ({
   // Delete attendee
   const handleDelete = async (id, name) => {
     sounds.playClick();
-    if (!window.confirm(`Are you sure you want to remove ${name} from HackSeries 2026?`)) return;
+    if (!window.confirm(`Are you sure you want to remove ${name} from Eventra 2026?`)) return;
     try {
       await api.registrants.delete(id);
       sounds.playWarning();

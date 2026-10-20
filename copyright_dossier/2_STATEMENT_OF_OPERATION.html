@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>2 STATEMENT OF OPERATION</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #111;
+    line-height: 1.5;
+    padding: 30px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1, h2, h3 {
+    color: #0b192c;
+    border-bottom: 2px solid #eaeaea;
+    padding-bottom: 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 13px;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f4f6f8;
+  }
+  pre {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 11px;
+    overflow-x: auto;
+    page-break-inside: avoid;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  blockquote {
+    border-left: 4px solid #00f0ff;
+    padding-left: 14px;
+    color: #475569;
+    font-style: italic;
+  }
+  @media print {
+    body { padding: 0; }
+    pre { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<h1>STATEMENT OF OPERATION & TECHNICAL SPECIFICATION</h1>
+<h2>For Registration of Computer Software under Copyright Act, 1957</h2>
+<p><strong>Title of Work:</strong> Eventra 2026: Zero-Tamper Cryptographic QR Pass Issuance, Attendee Intake, and Gate Check-in Operating System  </p>
+<p><strong>Author & Copyright Owner:</strong> Aditya Renake  </p>
+<p><strong>Jurisdiction:</strong> Copyright Office, Government of India  </p>
+<p>---</p>
+<h3>1. ABSTRACT & PURPOSE</h3>
+<p>The computer program comprises a distributed full-stack software system architected to manage enterprise-scale technical hackathon operations. The system eliminates identity spoofing, credential fabrication, and race-condition gate entry through:</p>
+<p>1. Deterministic HMAC-SHA256 digital signature computation embedded into dynamic 2D barcodes (QR passes).</p>
+<p>2. Constant-time cryptographic verification at physical entry points.</p>
+<p>3. Automated payment escrow and order reconciliation via payment gateway hooks.</p>
+<p>4. Real-time form intake transformation via cloud database synchronization.</p>
+<p>5. In-browser camera visual gate check-in console with sub-100ms verification latencies.</p>
+<p>---</p>
+<h3>2. ARCHITECTURAL SUBSYSTEMS & MODULE BREAKDOWN</h3>
+<pre>
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          CLIENT APPLICATION TIER                        │
+│  ┌───────────────────────┐  ┌──────────────────────┐  ┌──────────────┐  │
+│  │ Public Registration   │  │ Mobile Pass Viewer   │  │ Gate Scanner │  │
+│  │ (React / Vite)        │  │ (Holographic Canvas) │  │ (Camera/QR)  │  │
+│  └───────────┬───────────┘  └──────────┬───────────┘  └──────┬───────┘  │
+└──────────────┼─────────────────────────┼─────────────────────┼──────────┘
+               │                         │                     │
+               ▼                         ▼                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        API ROUTER &amp; SECURITY GATEWAY                    │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ Express Pipeline, CORS Policy, Rate Limiting, JSON Body Parsing   │  │
+│  └─────────────────────────────────┬─────────────────────────────────┘  │
+└────────────────────────────────────┼────────────────────────────────────┘
+                                     │
+       ┌─────────────────────────────┼─────────────────────────────┐
+       ▼                             ▼                             ▼
+┌──────────────┐              ┌──────────────┐              ┌──────────────┐
+│  Auth Module │              │ Payment Core │              │ Checkin Core │
+│ (JWT Signing)│              │ (HMAC Verify)│              │ (Timing-Safe)│
+└──────┬───────┘              └──────┬───────┘              └──────┬───────┘
+       │                             │                             │
+       ▼                             ▼                             ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         PERSISTENCE &amp; NOTIFICATION                      │
+│  ┌────────────────────────────────┐  ┌───────────────────────────────┐  │
+│  │ Document Database (Firestore)  │  │ Outbound Dispatch (Nodemailer)│  │
+│  └────────────────────────────────┘  └───────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p>#### Module 1: Cryptographic QR Signature Engine (`qrService.js`)</p>
+<p>- <strong>Mathematical Function:</strong> Computes a truncated 16-hex-character Hash-Based Message Authentication Code (HMAC) using the SHA-256 cryptographic hash function over a concatenated canonical payload:</p>
+<p>  $$\text{Payload} = \text{UniqueId} + \text{"::"} + \text{AttendeeEmail} + \text{"::"} + \text{TicketTier}$$</p>
+<p>  $$\text{Signature} = \text{Truncate}_{16}(\text{HMAC-SHA256}(\text{SecretKey}, \text{Payload}))$$</p>
+<p>- <strong>Encoding:</strong> Formats the generated signature into the standardized canonical QR token format `HS26.v1.<UniqueId>.<Signature>`.</p>
+<p>- <strong>Security:</strong> Renders passes immune to offline forgery, tampering, and unauthorized elevation of privileges.</p>
+<p>#### Module 2: Timing-Safe Verification & Gate Check-in (`checkinController.js`)</p>
+<p>- <strong>Idempotent State Machine:</strong> Validates scanned pass tokens using Node.js `crypto.timingSafeEqual()`, eliminating side-channel timing attacks.</p>
+<p>- <strong>Atomic Transition:</strong> Transitions the registrant record from `CHECKED_IN: false` to `CHECKED_IN: true` with sub-millisecond timestamps, while raising instantaneous `ALREADY_CHECKED_IN` security warnings if a duplicate pass attempt is detected.</p>
+<p>#### Module 3: Payment Gateway Order & Signature Reconciliation (`paymentController.js`)</p>
+<p>- <strong>Two-Phase Commit:</strong></p>
+<p>  - Phase 1: Initiates a localized order instance, synchronizing paise denomination with the Razorpay API.</p>
+<p>  - Phase 2: Intercepts client return credentials (`razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`) and verifies authenticity against the server's cryptographic private key before writing to the database.</p>
+<p>#### Module 4: Cloud Database Persistence Layer (`registrantRepo.js`, `staffRepo.js`)</p>
+<p>- Provides unified CRUD operations, indexing, and transactional guarantees across distributed Google Cloud Firestore documents, with automatic fallback modes for isolated test runners.</p>
+<p>#### Module 5: Client Presentation Layer (`RegistrationPage.jsx`, `DigitalPassPage.jsx`, `ScannerPage.jsx`)</p>
+<p>- Built using React 18, utilizing the HTML5 Canvas API for holographic pass visual styling and `html5-qrcode` for multi-frame barcode scanning via webcam/mobile camera.</p>
+<p>---</p>
+<h3>3. HARDWARE & OPERATING ENVIRONMENT</h3>
+<p>- <strong>Target Processors:</strong> x86_64, ARM64 (Apple Silicon, AWS Graviton).</p>
+<p>- <strong>Minimum Memory (RAM):</strong> 512 MB (Optimal: 2 GB).</p>
+<p>- <strong>Supported OS:</strong> Linux (Ubuntu 20.04+, Debian 11+), macOS 12+, Windows 10/11, Cloud Serverless (AWS Lambda, Vercel Functions).</p>
+<p>- <strong>Execution Engine:</strong> Node.js v18.0.0 or higher.</p>
+<p>- <strong>Client Requirements:</strong> Any modern ECMAScript 2020+ compatible web browser (Google Chrome, Mozilla Firefox, Safari, Microsoft Edge) supporting HTML5 Camera MediaStream API.</p>
+<p>---</p>
+<h3>4. ORIGINALITY & AUTHORSHIP STATEMENT</h3>
+<p>This computer program was conceived, structured, designed, and authored entirely as an original work by <strong>Aditya Renake</strong>. It contains original program algorithms, data schemas, and user interfaces and does not violate or infringe upon any pre-existing copyright.</p>
+</body>
+</html>

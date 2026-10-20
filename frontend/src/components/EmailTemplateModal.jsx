@@ -3,7 +3,7 @@ import { X, Mail, Eye, Save, ExternalLink, Sparkles, Check } from 'lucide-react'
 import { api } from '../services/api';
 
 export const EmailTemplateModal = ({ config, onClose, onShowToast, onSaveConfig }) => {
-  const [subject, setSubject] = useState(config?.emailSubjectTemplate || '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}');
+  const [subject, setSubject] = useState(config?.emailSubjectTemplate || '🎟️ Your Official Entry Pass for Eventra 2026 — {{name}}');
   const [notice, setNotice] = useState(config?.emailBodyNotice || 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.');
   const [activeTab, setActiveTab] = useState('editor');
   const [isSaving, setIsSaving] = useState(false);

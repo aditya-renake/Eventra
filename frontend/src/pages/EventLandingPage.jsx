@@ -48,7 +48,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
 
   const googleFormUrl = eventConfig?.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6';
   const isNativePaymentMode = eventConfig?.registrationMode === 'native_payment';
-  const eventName = eventConfig?.eventName || 'HackSeries 2026';
+  const eventName = eventConfig?.eventName || 'Eventra 2026';
 
   const handleHeroPointerMove = (event) => {
     if (event.pointerType === 'touch') return;
@@ -175,7 +175,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
     if (!pass) return;
     sounds.playClick();
     const passUrl = `${window.location.origin}/pass/${pass.uniqueId}`;
-    const message = `🎟️ *HackSeries 2026 Digital Entry Pass*\n\n` +
+    const message = `🎟️ *Eventra 2026 Digital Entry Pass*\n\n` +
       `👤 *Attendee:* ${pass.name}\n` +
       `🎫 *Pass ID:* ${pass.uniqueId}\n` +
       `🎟️ *Ticket Type:* ${pass.ticketType}\n` +
@@ -203,7 +203,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
     if (!pass?.qrCodeDataUrl) return;
     sounds.playClick();
     const link = document.createElement('a');
-    link.download = `HackSeries2026-${pass.uniqueId}.png`;
+    link.download = `Eventra2026-${pass.uniqueId}.png`;
     link.href = pass.qrCodeDataUrl;
     link.click();
   };
@@ -266,7 +266,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
         </div>
       </section>
 
-      <div className="event-proof-strip" aria-label="HackSeries at a glance">
+      <div className="event-proof-strip" aria-label="Eventra at a glance">
         <div><strong>48<span>h</span></strong><small>to bring an idea to life</small></div>
         <div><strong>₹15L<span>+</span></strong><small>in prizes to chase</small></div>
         <div><strong>5</strong><small>tracks to explore</small></div>
@@ -412,17 +412,17 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
         </div>
       </section>
 
-      {/* About HackSeries & DIT Pune */}
+      {/* About Eventra & DIT Pune */}
       <section id="about-section" style={{ margin: '0 0 60px 0', position: 'relative', zIndex: 1 }}>
         <div className="glass-card" style={{ padding: '36px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px', alignItems: 'center' }}>
             <div>
               <span className="badge badge-dyp" style={{ marginBottom: '10px' }}>ABOUT THE HACKATHON</span>
               <h2 style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.5px', marginBottom: '12px' }}>
-                HackSeries 2026 — 48-Hour Innovation Arena
+                Eventra 2026 — 48-Hour Innovation Arena
               </h2>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                HackSeries 2026 is India’s flagship national 48-hour student hackathon hosted at <strong>Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune (DYPDPU)</strong>. Designed for collegiate developers, AI practitioners, cybersecurity enthusiasts, and hardware builders to turn ambitious ideas into production-ready software.
+                Eventra 2026 is India’s flagship national 48-hour student hackathon hosted at <strong>Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune (DYPDPU)</strong>. Designed for collegiate developers, AI practitioners, cybersecurity enthusiasts, and hardware builders to turn ambitious ideas into production-ready software.
               </p>
               <p style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: 1.5 }}>
                 Hackers receive high-density compute lab access, gigabit internet, uninterrupted power backup, meals, energy lounges, and guidance from industry engineering mentors.
@@ -566,7 +566,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
             style={{ height: '24px', width: 'auto' }}
           />
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            © 2026 HackSeries • ACES, Dept. of Computer Engineering, DIT Pune (DYPDPU)
+            © 2026 Eventra • ACES, Dept. of Computer Engineering, DIT Pune (DYPDPU)
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-muted)' }}>

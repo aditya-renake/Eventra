@@ -1,7 +1,7 @@
 {
-  "name": "hackseries-2026",
+  "name": "eventra-2026",
   "version": "1.0.0",
-  "description": "HackSeries 2026 - Full-Stack Event Registration, QR Pass, and Check-in System ready for Vercel deployment",
+  "description": "Eventra 2026 - Full-Stack Event Registration, QR Pass, and Check-in System ready for Vercel deployment",
   "type": "module",
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
