@@ -127,3 +127,44 @@ export const generateQRCodeBuffer = async (payload) => {
     throw error;
   }
 };
+
+/**
+ * Generates QR Code and uploads to Cloudinary CDN for instant, lightweight access.
+ * Falls back to local Base64 Data URL if Cloudinary is unavailable.
+ */
+export const generatePassQRCode = async (payload, uniqueId) => {
+  try {
+    const buffer = await generateQRCodeBuffer(payload);
+    let cdnUrl = null;
+
+    try {
+      const { uploadQRCodeToCloudinary } = await import('./cloudinaryService.js');
+      cdnUrl = await uploadQRCodeToCloudinary(buffer, uniqueId);
+    } catch (e) {
+      console.warn('⚠️ Cloudinary upload warning, falling back to data URL:', e.message);
+    }
+
+    if (cdnUrl) {
+      return {
+        qrCodeUrl: cdnUrl,
+        qrCodeDataUrl: cdnUrl,
+        buffer,
+      };
+    }
+
+    const dataUrl = await generateQRCodeDataUrl(payload);
+    return {
+      qrCodeUrl: null,
+      qrCodeDataUrl: dataUrl,
+      buffer,
+    };
+  } catch (err) {
+    console.error('Error in generatePassQRCode:', err);
+    const dataUrl = await generateQRCodeDataUrl(payload);
+    return {
+      qrCodeUrl: null,
+      qrCodeDataUrl: dataUrl,
+    };
+  }
+};
+

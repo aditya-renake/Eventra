@@ -38,6 +38,22 @@ export const login = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access permanently revoked by Lead Operations.' });
     }
 
+    // 1. Attempt Supabase Auth login
+    try {
+      const { loginWithSupabase } = await import('../services/supabaseAuthService.js');
+      const supabaseResult = await loginWithSupabase(rawIdentifier, rawPassword);
+      if (supabaseResult.success && supabaseResult.token) {
+        return res.json({
+          success: true,
+          message: 'Login successful via Supabase Auth',
+          token: supabaseResult.token,
+          user: supabaseResult.user,
+        });
+      }
+    } catch (supaErr) {
+      console.warn('⚠️ Supabase login attempt notice:', supaErr.message);
+    }
+
     let user = await staffRepo.findByIdentifier(rawIdentifier);
 
     // If user not found in DB, check hardcoded default admins to auto-provision

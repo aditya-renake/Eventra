@@ -17,6 +17,19 @@ export const requireAuth = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Authentication token required.' });
     }
 
+    // 1. Try Supabase Auth verification
+    try {
+      const { verifySupabaseToken } = await import('../services/supabaseAuthService.js');
+      const supabaseUser = await verifySupabaseToken(token);
+      if (supabaseUser) {
+        req.user = supabaseUser;
+        return next();
+      }
+    } catch (e) {
+      // Supabase verification quiet fallback
+    }
+
+    // 2. Legacy / Custom JWT verification
     const decoded = jwt.verify(token, JWT_SECRET);
 
     let user = await staffRepo.findByIdentifier(decoded.userId || decoded.username);

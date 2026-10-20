@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
 import { createOrder, verifyPaymentSignature } from '../services/paymentService.js';
-import { generatePassSignature, createQRPayload, generateQRCodeDataUrl } from '../services/qrService.js';
+import { generatePassSignature, createQRPayload, generateQRCodeDataUrl, generatePassQRCode } from '../services/qrService.js';
 import { sendPassEmail, sendRegistrationReceivedEmail } from '../services/emailService.js';
 import { sendAutoPassWhatsApp } from '../services/messagingService.js';
 
@@ -263,7 +263,7 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+    const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
@@ -278,6 +278,7 @@ export const verifyAndCompleteRegistration = async (req, res) => {
       formResponses: participantData.formResponses || {},
       qrPayload,
       qrSignature: signature,
+      qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
       qrCodeDataUrl,
       verified: true, // Automatically verified upon confirmed payment
       verificationStatus: 'Verified',

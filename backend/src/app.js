@@ -32,6 +32,7 @@ initFirebase();
 
 // Asynchronously ensure staff users exist in background without blocking requests
 staffRepo.seedDefaultAdmin().catch(() => {});
+import('./services/supabaseAuthService.js').then((m) => m.seedSupabaseStaffUsers().catch(() => {}));
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
