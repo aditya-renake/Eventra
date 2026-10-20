@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * DIGITAL ENTRY PASS PAGE (DigitalPassPage.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Publicly viewable ticket credential page for registered attendees.
+ *   Renders an interactive, holographic event badge with verified cryptographic
+ *   QR codes for venue admission.
+ *
+ * Key Capabilities:
+ *   - Fetches live attendee data using public token / Unique ID without requiring auth.
+ *   - Displays Cloudinary CDN-cached QR code for fast rendering on mobile networks.
+ *   - Supports instant print formatting, pass download, and WhatsApp link sharing.
+ *   - Dynamically reflects gate check-in status (Pending vs. Verified Entry).
+ * ============================================================================
+ */
+
 import React, { useEffect, useState } from 'react';
 import { 
   ShieldCheck, 

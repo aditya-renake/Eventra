@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * PUBLIC EVENT SHOWCASE & LANDING PAGE (EventLandingPage.jsx)
+ * ============================================================================
+ * Purpose:
+ *   The primary landing experience for prospective participants, sponsors, and
+ *   mentors. Highlights event tracks, venue info, countdown timer, prizes,
+ *   photo memories, and direct registration entry points.
+ *
+ * Key Capabilities:
+ *   - 3D interactive gyroscope/mouse tilt hero pass preview.
+ *   - Quick pass lookup bar (find and view an existing pass by Email or Pass ID).
+ *   - Embedded Events Discovery Catalog allowing direct filtering and registration.
+ *   - Live event configuration sync (dates, venue, ticket availability).
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { 
   ExternalLink, 

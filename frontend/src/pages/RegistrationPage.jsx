@@ -1,3 +1,21 @@
+/**
+ * ============================================================================
+ * ATTENDEE REGISTRATION & CHECKOUT PAGE (RegistrationPage.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Guides attendees through a multi-step registration workflow:
+ *     Step 1: Ticket Tier & Track Selection (with real-time price preview).
+ *     Step 2: Attendee Credentials (Name, Email, College, Phone, Team Name).
+ *     Step 3: Secure Checkout (Razorpay Gateway / direct UPI UTR entry).
+ *
+ * Key Capabilities:
+ *   - Auto-fills event context when an event is pre-selected from the catalog.
+ *   - Fetches live pricing rules and payment flags dynamically from backend.
+ *   - Handles Razorpay checkout modal popups and signature verification.
+ *   - Provides instant recovery and automatic pass minting upon payment success.
+ * ============================================================================
+ */
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,

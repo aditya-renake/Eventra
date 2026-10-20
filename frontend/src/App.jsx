@@ -1,3 +1,22 @@
+/**
+ * ============================================================================
+ * ROOT APPLICATION & ROUTING COORDINATOR (App.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Main React application component serving as the single-page view router,
+ *   authentication synchronizer, global toast notification dispatcher, and
+ *   state coordinator between event selection, registration, and pass displays.
+ *
+ * Views Managed:
+ *   - 'landing'      : Event landing page with countdown, hero, tracks, and gallery.
+ *   - 'register'     : 3-step registration form with Razorpay / UPI checkout modal.
+ *   - 'pass'         : Real-time cryptographic digital ticket preview and download.
+ *   - 'dashboard'    : Administrative attendee management table, stats, and tools.
+ *   - 'scanner'      : High-throughput camera scanner for gate entry verification.
+ *   - 'login'        : Staff and organizer authentication portal.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { InteractiveBackground } from './components/InteractiveBackground';
