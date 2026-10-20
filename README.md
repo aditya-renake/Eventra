@@ -223,5 +223,17 @@ hackseries/
 │   └── package.json
 │
 ├── package.json
+├── LICENSE
 └── README.md
 ```
+
+---
+
+## ⚖️ Intellectual Property & Copyright Notice
+
+**Copyright (c) 2026 Aditya Renake. All Rights Reserved.**
+
+This platform, software architecture, backend engines, frontend interfaces, and cryptographic validation routines are the exclusive intellectual property of **Aditya Renake**. 
+
+Unauthorized copying, distribution, modification, reverse engineering, sublicensing, or deployment of this software is strictly prohibited under the **Copyright Act, 1957 (Government of India)** and international copyright treaties (Berne Convention).
+
