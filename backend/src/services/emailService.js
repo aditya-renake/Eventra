@@ -140,6 +140,7 @@ export const buildPassEmailHtml = ({
   eventVenue,
   passUrl,
   notice,
+  qrCodeUrl,
 }) => {
   const badgeColor =
     ticketType === 'VIP Pass'
@@ -346,7 +347,7 @@ export const buildPassEmailHtml = ({
         <div class="ticket-id">PASS ID: ${uniqueId}</div>
 
         <div class="qr-container">
-          <img src="cid:hackpassqr" alt="HackSeries Entry QR" class="qr-image" />
+          <img src="${qrCodeUrl || 'cid:hackpassqr'}" alt="HackSeries Entry QR" class="qr-image" />
         </div>
 
         <div class="security-notice">
@@ -418,18 +419,21 @@ export const sendPassEmail = async (registrant, eventConfig = {}) => {
 
   const qrBuffer = await generateQRCodeBuffer(registrant.qrPayload);
 
+  const effectiveEventName = registrant.formResponses?.eventName || eventName;
+
   const html = buildPassEmailHtml({
     attendeeName: registrant.name,
     ticketType: registrant.ticketType,
     uniqueId: registrant.uniqueId,
     teamName: registrant.teamName,
     track: registrant.track,
-    eventName,
+    eventName: effectiveEventName,
     eventDate,
     eventTime,
     eventVenue,
     passUrl,
     notice: eventConfig.emailBodyNotice,
+    qrCodeUrl: registrant.qrCodeUrl,
   });
 
   const subject = (eventConfig.emailSubjectTemplate || '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}')
