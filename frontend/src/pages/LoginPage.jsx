@@ -68,6 +68,14 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
     if (e) e.preventDefault();
     setErrorMessage('');
 
+    const cleanUsername = name.trim();
+    if (!cleanUsername) {
+      const msg = 'Please enter your desired username / display name.';
+      setErrorMessage(msg);
+      onShowToast({ type: 'warning', title: 'Username Required', message: msg });
+      return;
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail.includes('@')) {
       const msg = 'Please enter a valid email address.';
@@ -90,7 +98,7 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
 
     try {
       setIsLoading(true);
-      const data = await api.auth.registerOwner(cleanEmail, password, ownerSecret.trim(), name.trim());
+      const data = await api.auth.registerOwner(cleanEmail, password, ownerSecret.trim(), cleanUsername);
       const displayName = data.user.username || data.user.name || cleanEmail.split('@')[0];
       onShowToast({
         type: 'success',
@@ -210,10 +218,33 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
           /* ================================================================ */
           <form onSubmit={handleRegisterOwner} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             
-            {/* Option 1: Email */}
+            {/* Option 1: Desired Username */}
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#f7d070', textTransform: 'uppercase', marginBottom: '6px' }}>
-                1. Owner Email Address
+                1. Desired Owner Username
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  className="input-control"
+                  placeholder="Enter your name / username (e.g. Raj Singh)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={{ paddingLeft: '38px', borderColor: 'rgba(247, 208, 112, 0.4)' }}
+                  autoComplete="name"
+                  required
+                />
+                <UserCheck size={16} color="#f7d070" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
+                Will be displayed as your identity on the Operations Dashboard.
+              </span>
+            </div>
+
+            {/* Option 2: Email */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#f7d070', textTransform: 'uppercase', marginBottom: '6px' }}>
+                2. Owner Email Address
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -230,10 +261,10 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
               </div>
             </div>
 
-            {/* Option 2: Desired Password */}
+            {/* Option 3: Desired Password */}
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#f7d070', textTransform: 'uppercase', marginBottom: '6px' }}>
-                2. Set Account Password
+                3. Set Account Password
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -250,10 +281,10 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
               </div>
             </div>
 
-            {/* Option 3: Master Owner Passcode */}
+            {/* Option 4: Master Owner Passcode */}
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#fca5a5', textTransform: 'uppercase', marginBottom: '6px' }}>
-                3. Master Owner Secret Key
+                4. Master Owner Secret Key
               </label>
               <div style={{ position: 'relative' }}>
                 <input
