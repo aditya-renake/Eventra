@@ -58,6 +58,7 @@ export const createQRPayload = (uniqueId, email, ticketType) => {
  * @param {object} registrant - Matched registrant database record from Supabase
  * @returns {{ valid: boolean, uniqueId?: string, verifiedCryptographically?: boolean, reason?: string, forged?: boolean }}
  */
+export const verifyQRPayload = (scannedString, registrant = null) => {
   if (!scannedString || typeof scannedString !== 'string') {
     return { valid: false, reason: 'Invalid or empty QR payload' };
   }

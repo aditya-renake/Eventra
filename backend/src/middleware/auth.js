@@ -18,6 +18,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'hackseries_2026_jwt_super_secret_k
 /**
  * Authentication Gatekeeper: Verifies token existence, validates signature, and attaches user to `req.user`.
  */
+export const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     let token = null;
