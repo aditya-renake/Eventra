@@ -9,11 +9,20 @@ let transporter = null;
 export const getTransporter = async () => {
   if (transporter) return transporter;
 
-  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
-  const sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim();
-  const customHost = (process.env.SMTP_HOST || '').trim();
+  let resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  let sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim();
+  let customHost = (process.env.SMTP_HOST || '').trim();
   let user = (process.env.SMTP_USER || 'tigeradi1504@gmail.com').trim();
   let pass = (process.env.SMTP_PASS || '').trim();
+
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const cfg = await configRepo.getConfig();
+    if (cfg?.smtpUser) user = cfg.smtpUser.trim();
+    if (cfg?.smtpPass) pass = cfg.smtpPass.trim();
+    if (cfg?.smtpHost) customHost = cfg.smtpHost.trim();
+    if (cfg?.resendApiKey) resendApiKey = cfg.resendApiKey.trim();
+  } catch (e) {}
 
   // 1. Auto-detect Resend
   if (resendApiKey || pass.startsWith('re_') || customHost.includes('resend.com') || user.toLowerCase() === 'resend') {

@@ -70,17 +70,21 @@ export const registrantRepo = {
     if (!email) return null;
     const cleanEmail = email.toLowerCase().trim();
 
-    // Check in-memory cache first if warm
+    // Check in-memory cache first if warm (returning newest)
     if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
-      const cached = memoryCache.find((r) => String(r.email).toLowerCase().trim() === cleanEmail);
-      if (cached) return cached;
+      const matches = memoryCache.filter((r) => String(r.email).toLowerCase().trim() === cleanEmail);
+      if (matches.length > 0) {
+        matches.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return matches[0];
+      }
     }
 
     const collection = this.getCollection();
-    const snapshot = await collection.where('email', '==', cleanEmail).limit(1).get();
+    const snapshot = await collection.where('email', '==', cleanEmail).get();
     if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      return { _id: doc.id, ...doc.data() };
+      const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+      items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      return items[0];
     }
     return null;
   },
@@ -96,6 +100,55 @@ export const registrantRepo = {
       return this.findByEmail(cleanQuery);
     }
     return this.findByUniqueId(cleanQuery);
+  },
+
+  /**
+   * Find registrant by UPI UTR / Transaction Reference Number
+   */
+  async findByUtr(utrNumber) {
+    if (!utrNumber) return null;
+    const cleanUtr = String(utrNumber).trim();
+
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      const cached = memoryCache.find((r) => r.utrNumber && String(r.utrNumber).trim().toUpperCase() === cleanUtr.toUpperCase());
+      if (cached) return cached;
+    }
+
+    const collection = this.getCollection();
+    const snapshot = await collection.where('utrNumber', '==', cleanUtr).limit(1).get();
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    return null;
+  },
+
+  /**
+   * Find registrant by Razorpay Order ID or Payment ID
+   */
+  async findByOrderId(orderId) {
+    if (!orderId) return null;
+    const cleanOrder = String(orderId).trim();
+
+    if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      const cached = memoryCache.find(
+        (r) => (r.orderId && r.orderId === cleanOrder) || (r.paymentId && r.paymentId === cleanOrder)
+      );
+      if (cached) return cached;
+    }
+
+    const collection = this.getCollection();
+    const snap1 = await collection.where('orderId', '==', cleanOrder).limit(1).get();
+    if (!snap1.empty) {
+      const doc = snap1.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    const snap2 = await collection.where('paymentId', '==', cleanOrder).limit(1).get();
+    if (!snap2.empty) {
+      const doc = snap2.docs[0];
+      return { _id: doc.id, ...doc.data() };
+    }
+    return null;
   },
 
   /**

@@ -6,6 +6,7 @@ import { DigitalPassPage } from './pages/DigitalPassPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ScannerPage } from './pages/ScannerPage';
 import { LoginPage } from './pages/LoginPage';
+import { RegistrationPage } from './pages/RegistrationPage';
 import { api } from './services/api';
 import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'lucide-react';
 
@@ -55,6 +56,8 @@ export function App() {
         } else {
           setCurrentView('login');
         }
+      } else if (path === '/register' || hash === '#register' || hash === '#/register') {
+        setCurrentView('register');
       } else if (path === '/' && (!hash || hash === '#' || hash === '#/')) {
         setCurrentView('landing');
       }
@@ -113,7 +116,7 @@ export function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className={`app-theme-light ${currentView === 'register' ? 'app-registration-light' : ''}`} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* High-Impact Interactive Ambient Floating Background Everywhere */}
       <InteractiveBackground />
       
@@ -134,10 +137,24 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1 }}>
+      <main className={`app-view app-view-${currentView}`} style={{ flex: 1 }}>
         {currentView === 'landing' && (
           <EventLandingPage
             onNavigateToPass={handleNavigateToPass}
+            onNavigateToRegister={() => {
+              window.location.hash = '#register';
+              setCurrentView('register');
+            }}
+            onShowToast={handleShowToast}
+          />
+        )}
+
+        {currentView === 'register' && (
+          <RegistrationPage
+            onRegistrationSuccess={(passId) => {
+              handleNavigateToPass(passId);
+            }}
+            onBackToLanding={handleBackToLanding}
             onShowToast={handleShowToast}
           />
         )}

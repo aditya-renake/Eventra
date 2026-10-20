@@ -27,13 +27,13 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, color = 'emerald'
   const theme = colorMap[color] || colorMap.emerald;
 
   return (
-    <div className="glass-card" style={{ padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
+    <div className="glass-card stat-card" style={{ padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
         <div>
           <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             {title}
           </span>
-          <div style={{ fontSize: '28px', fontWeight: '900', color: '#ffffff', marginTop: '4px', letterSpacing: '-0.5px' }}>
+          <div className="stat-card-value" style={{ fontSize: '28px', fontWeight: '900', color: '#ffffff', marginTop: '4px', letterSpacing: '-0.5px' }}>
             {value}
           </div>
         </div>

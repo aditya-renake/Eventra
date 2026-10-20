@@ -83,6 +83,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
           {categories.map((cat) => (
             <button
               key={cat.id}
+              className={`event-category-chip ${activeCategory === cat.id ? 'is-active' : ''}`}
               onClick={() => {
                 sounds.playClick();
                 setActiveCategory(cat.id);
@@ -110,6 +111,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
           <Search size={15} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
+            className="event-search-input"
             placeholder="Search events, bootcamps..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -193,6 +195,21 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                     >
                       {ev.category}
                     </span>
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: '900',
+                        textTransform: 'uppercase',
+                        background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+                        color: '#030712',
+                        boxShadow: '0 0 10px rgba(34, 211, 238, 0.4)',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {ev.feeDisplay || '₹5 Pass'}
+                    </span>
                   </div>
                 </div>
 
@@ -226,7 +243,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                   {/* Action Buttons */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                     <a
-                      href={ev.googleFormUrl || 'https://forms.gle/U24ip7E6NqtbZkiT9'}
+                      href={ev.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6'}
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => sounds.playClick()}

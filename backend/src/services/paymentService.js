@@ -1,0 +1,126 @@
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+let razorpayInstance = null;
+
+let currentClientKey = null;
+
+/**
+ * Lazily instantiate Razorpay client if credentials are configured
+ */
+export const getRazorpayClient = async () => {
+  let keyId = process.env.RAZORPAY_KEY_ID;
+  let keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const cfg = await configRepo.getConfig();
+    if (cfg?.razorpayKeyId) keyId = cfg.razorpayKeyId.trim();
+    if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
+  } catch (e) {
+    // fallback to env
+  }
+
+  if (!keyId || !keySecret) {
+    return null;
+  }
+
+  const credentialsHash = `${keyId}:${keySecret}`;
+  if (!razorpayInstance || currentClientKey !== credentialsHash) {
+    try {
+      const { default: Razorpay } = await import('razorpay');
+      razorpayInstance = new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+      });
+      currentClientKey = credentialsHash;
+      console.log('💳 Razorpay Payment Gateway client initialized with active keys.');
+    } catch (err) {
+      console.warn('⚠️ Razorpay SDK load notice:', err.message);
+      return null;
+    }
+  }
+
+  return { client: razorpayInstance, keyId };
+};
+
+/**
+ * Create a new payment order
+ */
+export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {} }) => {
+  const clientData = await getRazorpayClient();
+  const client = clientData?.client;
+  const keyId = clientData?.keyId || process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_mode';
+  const amountInPaise = Math.round(Number(amount) * 100);
+
+  // If Razorpay credentials are not set (e.g. Test / Demo mode)
+  if (!client) {
+    console.log(`ℹ️ [PAYMENT] Initializing Razorpay direct checkout (₹${amount})`);
+    return {
+      id: null,
+      orderId: null,
+      amount: amountInPaise,
+      currency,
+      receipt,
+      isMock: true,
+      keyId,
+    };
+  }
+
+  try {
+    const order = await client.orders.create({
+      amount: amountInPaise,
+      currency,
+      receipt,
+      notes,
+    });
+
+    return {
+      ...order,
+      orderId: order.id,
+      isMock: false,
+      keyId,
+    };
+  } catch (err) {
+    console.warn('⚠️ [Razorpay] orders.create failed:', err.message);
+    return {
+      id: null,
+      orderId: null,
+      amount: amountInPaise,
+      currency,
+      receipt,
+      isMock: true,
+      keyId,
+    };
+  }
+};
+
+/**
+ * Cryptographic HMAC SHA256 Signature Verification
+ */
+export const verifyPaymentSignature = async ({ orderId, paymentId, signature }) => {
+  let keySecret = process.env.RAZORPAY_KEY_SECRET;
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    const cfg = await configRepo.getConfig();
+    if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
+  } catch (e) {}
+
+  if (!orderId || !paymentId || !signature) {
+    return false;
+  }
+
+  if (!keySecret) {
+    console.error('❌ [Razorpay] Verification failed: RAZORPAY_KEY_SECRET is not configured.');
+    return false;
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+
+  return expectedSignature === signature;
+};

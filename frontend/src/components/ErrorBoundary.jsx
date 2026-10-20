@@ -38,9 +38,21 @@ export class ErrorBoundary extends React.Component {
           }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚡</div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px' }}>Application Recovery</h2>
-            <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
               The portal encountered an unexpected state. Click below to reload cleanly.
             </p>
+
+            {this.state.error && (
+              <details style={{ textAlign: 'left', marginBottom: '20px', background: 'rgba(0, 0, 0, 0.4)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <summary style={{ cursor: 'pointer', color: '#f87171', fontSize: '12px', fontWeight: '700' }}>
+                  Error Details: {this.state.error.message || String(this.state.error)}
+                </summary>
+                <pre style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8', whiteSpace: 'pre-wrap', maxHeight: '160px', overflowY: 'auto', fontFamily: 'monospace' }}>
+                  {this.state.error.stack || this.state.error.toString()}
+                </pre>
+              </details>
+            )}
+
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
                 onClick={() => {

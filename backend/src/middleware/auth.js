@@ -6,11 +6,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'hackseries_2026_jwt_super_secret_k
 export const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query?.token) {
+      token = req.query.token;
+    }
+
+    if (!token) {
       return res.status(401).json({ success: false, message: 'Authentication token required.' });
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
     let user = await staffRepo.findByIdentifier(decoded.userId || decoded.username);

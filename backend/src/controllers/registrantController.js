@@ -231,10 +231,7 @@ export const createRegistrant = async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const existing = await registrantRepo.findByEmail(cleanEmail);
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'A hacker is already registered with this email address.' });
-    }
+    // Duplicate registrations are allowed for now
 
     const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
     const uniqueId = `HS26-${rawUuid}`;

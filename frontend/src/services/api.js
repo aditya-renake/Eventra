@@ -159,6 +159,26 @@ export const api = {
         body: JSON.stringify(formData),
       });
     },
+    exportCSVUrl() {
+      const token = localStorage.getItem('hs26_auth_token');
+      return `/api/registrants/export/csv?token=${encodeURIComponent(token || '')}`;
+    },
+    async downloadCSV() {
+      const token = localStorage.getItem('hs26_auth_token');
+      const response = await fetch('/api/registrants/export/csv', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error('Failed to export CSV. Please ensure you are logged in.');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hackseries-2026-registrants.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
   },
 
   checkin: {
@@ -204,6 +224,33 @@ export const api = {
     },
     async getDatabaseTelemetry() {
       return request('/event/telemetry');
+    },
+  },
+
+  payment: {
+    async createOrder(participantData) {
+      return request('/payment/create-order', {
+        method: 'POST',
+        body: JSON.stringify(participantData),
+      });
+    },
+    async verifyPayment(verificationData) {
+      return request('/payment/verify-payment', {
+        method: 'POST',
+        body: JSON.stringify(verificationData),
+      });
+    },
+    async checkOrderStatus(orderId, participantData = {}) {
+      return request('/payment/check-order', {
+        method: 'POST',
+        body: JSON.stringify({ order_id: orderId, participantData }),
+      });
+    },
+    async verifyUpiPayment(payload) {
+      return request('/payment/verify-upi', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
     },
   },
 };

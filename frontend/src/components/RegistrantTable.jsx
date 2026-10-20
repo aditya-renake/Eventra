@@ -246,11 +246,12 @@ export const RegistrantTable = ({
   };
 
   return (
-    <div className="glass-panel" style={{ overflow: 'hidden', position: 'relative' }}>
+    <div className="glass-panel registrant-table-shell" style={{ overflow: 'hidden', position: 'relative' }}>
       
       {/* Sleek Floating Bulk Action Bar */}
       {selectedIds.length > 0 && (
         <div
+          className="registrant-bulk-bar"
           style={{
             background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
             borderBottom: '1px solid rgba(34, 197, 94, 0.35)',
@@ -676,6 +677,7 @@ export const RegistrantTable = ({
       {/* Floating Action Bar for Selected Attendees */}
       {selectedIds.length > 0 && (
         <div 
+          className="registrant-selection-bar"
           style={{
             position: 'sticky',
             bottom: '0',

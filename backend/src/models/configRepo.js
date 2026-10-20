@@ -10,7 +10,20 @@ const DEFAULT_CONFIG = {
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune - 411018',
   organizerEmail: 'tigeradi1504@gmail.com',
   organizerName: 'ACES (Association of Computer Engineering Students), DIT Pune',
-  googleFormUrl: 'https://forms.gle/U24ip7E6NqtbZkiT9',
+  googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
+  registrationMode: 'native_payment', // 'native_payment' (direct in-app registration + payment) or 'google_form'
+  enablePaymentGateway: true, // Enabled: Razorpay and direct payments active
+  ticketPrices: {
+    'Hacker Pass': 5,
+    'Student Pass': 5,
+    'VIP Delegate': 5,
+    'Judge / Mentor': 5,
+  },
+  currency: 'INR',
+  upiId: 'tigeradi1504-1@okicici',
+  upiPayeeName: 'HackSeries 2026',
+  smtpUser: 'tigeradi1504@gmail.com',
+  smtpPass: '',
   emailSubjectTemplate: '🎟️ Your Official Entry Pass for HackSeries 2026 — {{name}}',
   emailBodyNotice: 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.',
   createdAt: new Date().toISOString(),
@@ -32,7 +45,19 @@ export const configRepo = {
       const doc = await collection.doc(CONFIG_DOC_ID).get();
 
       if (doc.exists) {
-        return doc.data();
+        const data = doc.data();
+        return {
+          ...DEFAULT_CONFIG,
+          ...data,
+          registrationMode: data.registrationMode || 'native_payment',
+          enablePaymentGateway: data.enablePaymentGateway !== undefined ? data.enablePaymentGateway : true,
+          ticketPrices: {
+            'Hacker Pass': data.ticketPrices?.['Hacker Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Hacker Pass'])) ? Number(data.ticketPrices['Hacker Pass']) : 5,
+            'Student Pass': data.ticketPrices?.['Student Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Student Pass'])) ? Number(data.ticketPrices['Student Pass']) : 5,
+            'VIP Delegate': data.ticketPrices?.['VIP Delegate'] !== undefined && !isNaN(Number(data.ticketPrices?.['VIP Delegate'])) ? Number(data.ticketPrices['VIP Delegate']) : 5,
+            'Judge / Mentor': data.ticketPrices?.['Judge / Mentor'] !== undefined && !isNaN(Number(data.ticketPrices?.['Judge / Mentor'])) ? Number(data.ticketPrices['Judge / Mentor']) : 5,
+          },
+        };
       }
 
       await collection.doc(CONFIG_DOC_ID).set(DEFAULT_CONFIG);
@@ -56,6 +81,40 @@ export const configRepo = {
     };
 
     await collection.doc(CONFIG_DOC_ID).set(merged, { merge: true });
+
+    // Also synchronize the flagship event catalog record
+    try {
+      const { eventRepo, DEFAULT_EVENTS } = await import('./eventRepo.js');
+      if (DEFAULT_EVENTS && DEFAULT_EVENTS[0]) {
+        DEFAULT_EVENTS[0].name = merged.eventName || DEFAULT_EVENTS[0].name;
+        DEFAULT_EVENTS[0].tagline = merged.eventTagline || DEFAULT_EVENTS[0].tagline;
+        DEFAULT_EVENTS[0].dateDisplay = merged.eventDate || DEFAULT_EVENTS[0].dateDisplay;
+        DEFAULT_EVENTS[0].timeDisplay = merged.eventTime || DEFAULT_EVENTS[0].timeDisplay;
+        DEFAULT_EVENTS[0].venue = merged.eventVenue || DEFAULT_EVENTS[0].venue;
+        DEFAULT_EVENTS[0].organizerName = merged.organizerName || DEFAULT_EVENTS[0].organizerName;
+        DEFAULT_EVENTS[0].organizerEmail = merged.organizerEmail || DEFAULT_EVENTS[0].organizerEmail;
+        DEFAULT_EVENTS[0].googleFormUrl = merged.googleFormUrl || DEFAULT_EVENTS[0].googleFormUrl;
+        if (merged.ticketPrices?.['Hacker Pass'] !== undefined) {
+          DEFAULT_EVENTS[0].entryFee = Number(merged.ticketPrices['Hacker Pass']);
+          DEFAULT_EVENTS[0].feeDisplay = `₹${merged.ticketPrices['Hacker Pass']} Entry Pass`;
+        }
+      }
+      await eventRepo.update('hackseries-2026', {
+        name: merged.eventName,
+        tagline: merged.eventTagline,
+        dateDisplay: merged.eventDate,
+        timeDisplay: merged.eventTime,
+        venue: merged.eventVenue,
+        organizerName: merged.organizerName,
+        organizerEmail: merged.organizerEmail,
+        googleFormUrl: merged.googleFormUrl,
+        entryFee: merged.ticketPrices?.['Hacker Pass'] ?? 1,
+        feeDisplay: `₹${merged.ticketPrices?.['Hacker Pass'] ?? 1} Entry Pass`,
+      });
+    } catch (e) {
+      // quiet fallback
+    }
+
     return merged;
   },
 };
