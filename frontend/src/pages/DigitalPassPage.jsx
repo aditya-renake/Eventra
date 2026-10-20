@@ -128,10 +128,10 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <DYPDPULogo height={22} />
+              <img src="/eventra-logo.png" alt="Eventra" style={{ height: '26px', width: 'auto', display: 'block', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '6px' }} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>HACKSERIES 2026</span>
+                  <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
                   <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>DIT PUNE</span>
                 </div>
                 <div style={{ fontSize: '9px', color: '#d1a550', fontWeight: '800', marginTop: '1px' }}>DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY (DYPDPU)</div>

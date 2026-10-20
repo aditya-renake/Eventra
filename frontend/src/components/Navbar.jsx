@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { QrCode, LayoutDashboard, Globe, LogOut, Lock, Menu, X, ShieldCheck, Crown } from 'lucide-react';
-import { DYPDPULogo } from './CollegeLogos';
 
 export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,18 +13,20 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
     <div className="floating-nav-container">
       <header className="floating-nav-pill">
         
-        {/* Left: Emblem Logo */}
-        <div 
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', paddingRight: '8px', borderRight: '1px solid rgba(255, 255, 255, 0.15)' }} 
+        {/* Eventra brand */}
+        <button
+          type="button"
+          className="eventra-brand"
           onClick={() => handleNavClick('landing')}
-          title="Dr. D. Y. Patil Institute of Technology (DYPDPU) - ACES"
+          title="Eventra home"
+          aria-label="Eventra home"
         >
           <img
-            src="/dypdpu-logo.png"
-            alt="DYP DPU"
-            style={{ height: '22px', width: 'auto', display: 'block' }}
+            src="/eventra-logo.png"
+            alt="Eventra"
+            style={{ height: '32px', width: 'auto', display: 'block' }}
           />
-        </div>
+        </button>
 
         {/* Navigation Tabs */}
         <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

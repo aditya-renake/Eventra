@@ -330,6 +330,9 @@ export const buildPassEmailHtml = ({
 <body>
   <div class="wrapper">
     <div class="header">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <img src="https://eventra-2026.vercel.app/eventra-logo.png" alt="Eventra" style="height: 38px; width: auto; background: rgba(255, 255, 255, 0.95); padding: 5px 14px; border-radius: 8px; display: inline-block;" />
+      </div>
       <div class="college-sub">🏛️ DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY, PIMPRI, PUNE (DYPDPU)</div>
       <h1>⚡ ${eventName}</h1>
       <p>Presented by ACES — Dept. of Computer Engineering</p>
@@ -568,6 +571,9 @@ export const buildCheckinConfirmationEmailHtml = ({
     
     <!-- Header -->
     <div class="header">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <img src="https://eventra-2026.vercel.app/eventra-logo.png" alt="Eventra" style="height: 36px; width: auto; background: rgba(255, 255, 255, 0.95); padding: 4px 12px; border-radius: 8px; display: inline-block;" />
+      </div>
       <div class="tag">GATE ACCESS VERIFIED ✅</div>
       <h1 class="h1">You Are Checked In!</h1>
       <p class="subtitle">Welcome to ${eventName} • ACES, DIT Pune</p>
@@ -749,6 +755,9 @@ export const buildRegistrationReceivedEmailHtml = ({
 
     <!-- Header Banner -->
     <div style="background: linear-gradient(135deg, #7a1518 0%, #b22b2f 50%, #d1a550 100%); padding: 32px 24px; text-align: center; border-bottom: 2px solid #f7d070;">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <img src="https://eventra-2026.vercel.app/eventra-logo.png" alt="Eventra" style="height: 36px; width: auto; background: rgba(255, 255, 255, 0.95); padding: 4px 12px; border-radius: 8px; display: inline-block;" />
+      </div>
       <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.15em; color: #f7d070; text-transform: uppercase; margin-bottom: 6px;">
         ACES • DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY
       </div>

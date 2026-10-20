@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 238 64" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Eventra</title>
+  <defs>
+    <linearGradient id="eventra-accent" x1="153" y1="51" x2="195" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A58DFF"/>
+      <stop offset="1" stop-color="#596EE6"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="#EEF0FF"/>
+  <path d="M17 20h33v23H17a5 5 0 0 0 0-10v-3a5 5 0 0 0 0-10Z" transform="rotate(-7 33 31.5)" fill="#A8B4FF"/>
+  <path d="M14 25h36v23H14a5 5 0 0 0 0-10v-3a5 5 0 0 0 0-10Z" fill="#596EE6"/>
+  <path d="M32 27v17" stroke="#DDE3FF" stroke-width="2" stroke-dasharray="3 3"/>
+  <path d="m24 32 2.1 4.1 4.6.7-3.3 3.2.8 4.6-4.2-2.2-4.1 2.2.8-4.6-3.4-3.2 4.7-.7 2-4.1Z" fill="#FFF"/>
+  <text x="72" y="42.5" font-family="'Plus Jakarta Sans', Inter, system-ui, sans-serif" font-size="30" font-weight="800" letter-spacing="-1.15">
+    <tspan fill="#29304A">Event</tspan><tspan fill="url(#eventra-accent)" font-style="italic">ra</tspan>
+  </text>
+  <path d="M154 49.5c12.5 3.2 26.2 2.6 39-2.3" stroke="url(#eventra-accent)" stroke-width="2.1" stroke-linecap="round"/>
+</svg>

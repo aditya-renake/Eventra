@@ -561,6 +561,12 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img
+            src="/eventra-logo.png"
+            alt="Eventra"
+            style={{ height: '24px', width: 'auto', display: 'block' }}
+          />
+          <span style={{ height: '18px', width: '1px', background: 'rgba(255, 255, 255, 0.15)' }} />
+          <img
             src="/dypdpu-logo.png"
             alt="DYP DPU"
             style={{ height: '24px', width: 'auto' }}

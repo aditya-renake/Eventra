@@ -60,6 +60,11 @@ export const ScannerPage = ({ onShowToast }) => {
       
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <img 
+          src="/eventra-logo.png" 
+          alt="Eventra" 
+          style={{ height: '38px', width: 'auto', margin: '0 auto 14px auto', display: 'block', background: 'rgba(255, 255, 255, 0.08)', padding: '4px 12px', borderRadius: '8px' }} 
+        />
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, rgba(178, 43, 47, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '999px', padding: '4px 16px', fontSize: '11px', color: '#f7d070', fontWeight: '800', marginBottom: '12px' }}>
           <QrCode size={13} color="#22d3ee" /> DIT PUNE GATE ENTRY SCANNER • ACES OPS
         </div>

@@ -189,7 +189,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         currency: orderRes?.currency || 'INR',
         name: eventConfig.eventName || 'Eventra 2026',
         description: `${formData.ticketType} Entry Pass (₹${amountDue})`,
-        image: `${window.location.origin}/dypdpu-logo.png`,
+        image: `${window.location.origin}/eventra-icon.png`,
         prefill: {
           name: formData.name,
           email: formData.email,
@@ -340,6 +340,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           <ArrowLeft size={16} /> <span>Back to event</span>
         </button>
         <div className="registration-brand">
+          <img src="/eventra-logo.png" alt="Eventra" style={{ height: '30px', width: 'auto' }} />
+          <span />
           <img src="/dypdpu-logo.png" alt="Dr. D. Y. Patil Vidyapeeth" />
           <span />
           <div><strong>ACES</strong><small>DIT Pune</small></div>
