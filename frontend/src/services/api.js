@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * FRONTEND API CLIENT SERVICE
+ * ============================================================================
+ * Purpose:
+ *   Centralized HTTP transport layer communicating with the Express backend.
+ *   Provides modular domain methods for authentication, event management,
+ *   attendee administration, gate check-in scanning, and payment operations.
+ *
+ * Architecture:
+ *   - Automatically attaches JWT Bearer token from localStorage to authenticated calls.
+ *   - Organizes endpoints by resource:
+ *       • api.auth        : Login, logout, session persistence, user role extraction.
+ *       • api.events      : Multi-event catalog, event creation, pricing config.
+ *       • api.registrants : Attendee list, filtering, CSV export/import, approval.
+ *       • api.checkin     : Cryptographic QR scan verification, status, recent scans.
+ *       • api.email       : Single and batch pass email triggers.
+ *       • api.payments    : Razorpay order initialization, signature verification.
+ * ============================================================================
+ */
+
 const API_BASE = '/api';
 
 /**
@@ -224,6 +245,57 @@ export const api = {
     },
     async getDatabaseTelemetry() {
       return request('/event/telemetry');
+    },
+  },
+
+  events: {
+    async getAll() {
+      return request('/events');
+    },
+    async getById(id) {
+      return request(`/events/${id}`);
+    },
+    async create(eventData) {
+      return request('/events', {
+        method: 'POST',
+        body: JSON.stringify(eventData),
+      });
+    },
+    async update(id, eventData) {
+      return request(`/events/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(eventData),
+      });
+    },
+    async delete(id) {
+      return request(`/events/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    async getStaff() {
+      return request('/events/admin/staff');
+    },
+    async createStaff(staffData) {
+      return request('/events/admin/staff', {
+        method: 'POST',
+        body: JSON.stringify(staffData),
+      });
+    },
+    async updateStaff(username, updates) {
+      return request(`/events/admin/staff/${username}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+    },
+    async deleteStaff(username) {
+      return request(`/events/admin/staff/${username}`, {
+        method: 'DELETE',
+      });
+    },
+    async purgeStaffExceptOwner() {
+      return request('/events/admin/staff-purge/all-except-owner', {
+        method: 'DELETE',
+      });
     },
   },
 

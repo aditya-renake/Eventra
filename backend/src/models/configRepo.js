@@ -1,7 +1,22 @@
-import { getFirestore } from '../config/firebase.js';
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Global Event Configuration Repository
+ * ==============================================================================
+ * Purpose:
+ *   Manages live administrative settings stored in Supabase Postgres `event_config`.
+ *   Controls ticket pricing, active payment gateway toggles, Razorpay API credentials,
+ *   event metadata (venue, dates, host college), and email templates.
+ * ==============================================================================
+ */
 
+import { getSupabaseAdmin, isSupabaseConfigured } from '../config/supabase.js';
+
+// Primary configuration document identifier
 const CONFIG_DOC_ID = 'main_event_2026';
 
+/**
+ * Baseline default configuration for the event.
+ */
 const DEFAULT_CONFIG = {
   eventName: 'HackSeries 2026',
   eventTagline: 'Presented by ACES — Dept. of Computer Engineering, Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)',
@@ -11,8 +26,8 @@ const DEFAULT_CONFIG = {
   organizerEmail: 'tigeradi1504@gmail.com',
   organizerName: 'ACES (Association of Computer Engineering Students), DIT Pune',
   googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
-  registrationMode: 'native_payment', // 'native_payment' (direct in-app registration + payment) or 'google_form'
-  enablePaymentGateway: true, // Enabled: Razorpay and direct payments active
+  registrationMode: 'native_payment',
+  enablePaymentGateway: true,
   ticketPrices: {
     'Hacker Pass': 5,
     'Student Pass': 5,
@@ -30,75 +45,117 @@ const DEFAULT_CONFIG = {
   updatedAt: new Date().toISOString(),
 };
 
-export const configRepo = {
-  getCollection() {
-    const db = getFirestore();
-    return db.collection('event_config');
-  },
+// In-memory fallback if Supabase is offline
+let memoryConfig = { ...DEFAULT_CONFIG };
 
+function rowToConfig(row) {
+  if (!row) return DEFAULT_CONFIG;
+  return {
+    ...DEFAULT_CONFIG,
+    eventName: row.event_name || DEFAULT_CONFIG.eventName,
+    eventTagline: row.event_tagline || DEFAULT_CONFIG.eventTagline,
+    eventDate: row.event_date || DEFAULT_CONFIG.eventDate,
+    eventTime: row.event_time || DEFAULT_CONFIG.eventTime,
+    eventVenue: row.event_venue || DEFAULT_CONFIG.eventVenue,
+    organizerEmail: row.organizer_email || DEFAULT_CONFIG.organizerEmail,
+    organizerName: row.organizer_name || DEFAULT_CONFIG.organizerName,
+    googleFormUrl: row.google_form_url || DEFAULT_CONFIG.googleFormUrl,
+    registrationMode: row.registration_mode || DEFAULT_CONFIG.registrationMode,
+    enablePaymentGateway: row.enable_payment_gateway !== undefined ? row.enable_payment_gateway : true,
+    ticketPrices: row.ticket_prices || DEFAULT_CONFIG.ticketPrices,
+    currency: row.currency || DEFAULT_CONFIG.currency,
+    upiId: row.upi_id || DEFAULT_CONFIG.upiId,
+    upiPayeeName: row.upi_payee_name || DEFAULT_CONFIG.upiPayeeName,
+    smtpUser: row.smtp_user || DEFAULT_CONFIG.smtpUser,
+    smtpPass: row.smtp_pass || DEFAULT_CONFIG.smtpPass,
+    emailSubjectTemplate: row.email_subject_template || DEFAULT_CONFIG.emailSubjectTemplate,
+    emailBodyNotice: row.email_body_notice || DEFAULT_CONFIG.emailBodyNotice,
+    createdAt: row.created_at || DEFAULT_CONFIG.createdAt,
+    updatedAt: row.updated_at || DEFAULT_CONFIG.updatedAt,
+  };
+}
+
+function configToRow(cfg) {
+  return {
+    id: CONFIG_DOC_ID,
+    event_name: cfg.eventName,
+    event_tagline: cfg.eventTagline,
+    event_date: cfg.eventDate,
+    event_time: cfg.eventTime,
+    event_venue: cfg.eventVenue,
+    organizer_email: cfg.organizerEmail,
+    organizer_name: cfg.organizerName,
+    google_form_url: cfg.googleFormUrl,
+    registration_mode: cfg.registrationMode,
+    enable_payment_gateway: cfg.enablePaymentGateway,
+    ticket_prices: cfg.ticketPrices,
+    currency: cfg.currency,
+    upi_id: cfg.upiId,
+    upi_payee_name: cfg.upiPayeeName,
+    smtp_user: cfg.smtpUser,
+    smtp_pass: cfg.smtpPass,
+    email_subject_template: cfg.emailSubjectTemplate,
+    email_body_notice: cfg.emailBodyNotice,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export const configRepo = {
   /**
    * Fetch current event configuration
    */
   async getConfig() {
-    try {
-      const collection = this.getCollection();
-      const doc = await collection.doc(CONFIG_DOC_ID).get();
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('event_config')
+          .select('*')
+          .eq('id', CONFIG_DOC_ID)
+          .maybeSingle();
 
-      if (doc.exists) {
-        const data = doc.data();
-        return {
-          ...DEFAULT_CONFIG,
-          ...data,
-          registrationMode: data.registrationMode || 'native_payment',
-          enablePaymentGateway: data.enablePaymentGateway !== undefined ? data.enablePaymentGateway : true,
-          ticketPrices: {
-            'Hacker Pass': data.ticketPrices?.['Hacker Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Hacker Pass'])) ? Number(data.ticketPrices['Hacker Pass']) : 5,
-            'Student Pass': data.ticketPrices?.['Student Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Student Pass'])) ? Number(data.ticketPrices['Student Pass']) : 5,
-            'VIP Delegate': data.ticketPrices?.['VIP Delegate'] !== undefined && !isNaN(Number(data.ticketPrices?.['VIP Delegate'])) ? Number(data.ticketPrices['VIP Delegate']) : 5,
-            'Judge / Mentor': data.ticketPrices?.['Judge / Mentor'] !== undefined && !isNaN(Number(data.ticketPrices?.['Judge / Mentor'])) ? Number(data.ticketPrices['Judge / Mentor']) : 5,
-          },
-        };
+        if (data && !error) {
+          memoryConfig = rowToConfig(data);
+          return memoryConfig;
+        }
+
+        // If not found, insert default
+        if (!data) {
+          await supabase.from('event_config').upsert(configToRow(DEFAULT_CONFIG));
+          return DEFAULT_CONFIG;
+        }
+      } catch (err) {
+        console.warn('[configRepo] Supabase getConfig notice, using memory fallback:', err.message);
       }
-
-      await collection.doc(CONFIG_DOC_ID).set(DEFAULT_CONFIG);
-      return DEFAULT_CONFIG;
-    } catch (e) {
-      console.warn('[configRepo] getConfig notice:', e.message);
-      return DEFAULT_CONFIG;
     }
+    return memoryConfig;
   },
 
   /**
    * Update event configuration
    */
   async updateConfig(updates) {
-    const collection = this.getCollection();
     const current = await this.getConfig();
     const merged = {
       ...current,
       ...updates,
       updatedAt: new Date().toISOString(),
     };
+    memoryConfig = merged;
 
-    await collection.doc(CONFIG_DOC_ID).set(merged, { merge: true });
-
-    // Also synchronize the flagship event catalog record
-    try {
-      const { eventRepo, DEFAULT_EVENTS } = await import('./eventRepo.js');
-      if (DEFAULT_EVENTS && DEFAULT_EVENTS[0]) {
-        DEFAULT_EVENTS[0].name = merged.eventName || DEFAULT_EVENTS[0].name;
-        DEFAULT_EVENTS[0].tagline = merged.eventTagline || DEFAULT_EVENTS[0].tagline;
-        DEFAULT_EVENTS[0].dateDisplay = merged.eventDate || DEFAULT_EVENTS[0].dateDisplay;
-        DEFAULT_EVENTS[0].timeDisplay = merged.eventTime || DEFAULT_EVENTS[0].timeDisplay;
-        DEFAULT_EVENTS[0].venue = merged.eventVenue || DEFAULT_EVENTS[0].venue;
-        DEFAULT_EVENTS[0].organizerName = merged.organizerName || DEFAULT_EVENTS[0].organizerName;
-        DEFAULT_EVENTS[0].organizerEmail = merged.organizerEmail || DEFAULT_EVENTS[0].organizerEmail;
-        DEFAULT_EVENTS[0].googleFormUrl = merged.googleFormUrl || DEFAULT_EVENTS[0].googleFormUrl;
-        if (merged.ticketPrices?.['Hacker Pass'] !== undefined) {
-          DEFAULT_EVENTS[0].entryFee = Number(merged.ticketPrices['Hacker Pass']);
-          DEFAULT_EVENTS[0].feeDisplay = `₹${merged.ticketPrices['Hacker Pass']} Entry Pass`;
-        }
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      try {
+        const row = configToRow(merged);
+        await supabase.from('event_config').upsert(row);
+      } catch (err) {
+        console.warn('[configRepo] Supabase updateConfig notice:', err.message);
       }
+    }
+
+    // Synchronize catalog record for flagship event
+    try {
+      const { eventRepo } = await import('./eventRepo.js');
       await eventRepo.update('hackseries-2026', {
         name: merged.eventName,
         tagline: merged.eventTagline,
@@ -108,8 +165,8 @@ export const configRepo = {
         organizerName: merged.organizerName,
         organizerEmail: merged.organizerEmail,
         googleFormUrl: merged.googleFormUrl,
-        entryFee: merged.ticketPrices?.['Hacker Pass'] ?? 1,
-        feeDisplay: `₹${merged.ticketPrices?.['Hacker Pass'] ?? 1} Entry Pass`,
+        entryFee: merged.ticketPrices?.['Hacker Pass'] ?? 5,
+        feeDisplay: `₹${merged.ticketPrices?.['Hacker Pass'] ?? 5} Entry Pass`,
       });
     } catch (e) {
       // quiet fallback

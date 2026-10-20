@@ -1,7 +1,24 @@
+/**
+ * ============================================================================
+ * REGISTRANT CONTROLLER
+ * ============================================================================
+ * Purpose:
+ *   Handles attendee record management, administrative CRUD operations, batch
+ *   CSV imports, search/filtering, and real-time pass preview generation.
+ *
+ * Key Responsibilities:
+ *   - getRegistrants: Filter, search, and paginate attendees with aggregated stats.
+ *   - handleWebhookSubmission: Ingest form submissions and sync row-status updates.
+ *   - createRegistrant: Admin or manual attendee creation with auto-generated unique ID.
+ *   - exportRegistrantsCSV: Stream attendee database to CSV for event logistics.
+ *   - getPublicPassPreview: Allow public ticket preview without requiring auth.
+ * ============================================================================
+ */
+
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
-import { createQRPayload, generatePassSignature, generateQRCodeDataUrl } from '../services/qrService.js';
+import { createQRPayload, generatePassSignature, generateQRCodeDataUrl, generatePassQRCode } from '../services/qrService.js';
 import { sendRegistrationReceivedEmail } from '../services/emailService.js';
 
 /**
@@ -166,7 +183,7 @@ export const handleWebhookSubmission = async (req, res) => {
     // Generate cryptographic anti-forgery HMAC signature
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+    const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
@@ -181,6 +198,7 @@ export const handleWebhookSubmission = async (req, res) => {
       formResponses,
       qrPayload,
       qrSignature: signature,
+      qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
       qrCodeDataUrl,
       verified: verified !== undefined ? verified : false,
       verificationStatus: verificationStatus || 'Not Verified',
@@ -238,7 +256,7 @@ export const createRegistrant = async (req, res) => {
 
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+    const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
     const registrant = await registrantRepo.create({
       uniqueId,
@@ -253,6 +271,7 @@ export const createRegistrant = async (req, res) => {
       formResponses: formResponses || {},
       qrPayload,
       qrSignature: signature,
+      qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
       qrCodeDataUrl,
       emailSent: false,
       checkedIn: false,
@@ -296,8 +315,13 @@ export const getPublicPass = async (req, res) => {
         teamName: registrant.teamName,
         track: registrant.track,
         institution: registrant.institution,
-        qrCodeDataUrl: registrant.qrCodeDataUrl,
+        qrCodeUrl: registrant.qrCodeUrl,
+        qrCodeDataUrl: registrant.qrCodeUrl || registrant.qrCodeDataUrl,
         qrPayload: registrant.qrPayload,
+        formResponses: registrant.formResponses || {},
+        paymentStatus: registrant.paymentStatus,
+        amountPaid: registrant.amountPaid,
+        verified: registrant.verified,
         checkedIn: registrant.checkedIn,
         checkedInAt: registrant.checkedInAt,
         createdAt: registrant.createdAt,
@@ -335,11 +359,12 @@ export const regenerateQR = async (req, res) => {
 
     const signature = generatePassSignature(registrant.uniqueId, registrant.email, registrant.ticketType);
     const qrPayload = createQRPayload(registrant.uniqueId, registrant.email, registrant.ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+    const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, registrant.uniqueId);
 
     const updated = await registrantRepo.update(registrant.uniqueId, {
       qrSignature: signature,
       qrPayload,
+      qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
       qrCodeDataUrl,
     });
 
@@ -531,7 +556,7 @@ export const bulkImportRegistrants = async (req, res) => {
         const ticketType = item.ticketType || 'Hacker Pass';
         const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
         const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-        const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+        const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
         const newAttendee = await registrantRepo.create({
           uniqueId,
@@ -546,6 +571,7 @@ export const bulkImportRegistrants = async (req, res) => {
           formResponses: item.formResponses || {},
           qrPayload,
           qrSignature: signature,
+          qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
           qrCodeDataUrl,
           verified: isVerified,
           verificationStatus: isVerified ? 'Verified' : 'Not Verified',

@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * EMAIL & MESSAGING DISPATCH CONTROLLER (emailController.js)
+ * ============================================================================
+ * Purpose:
+ *   Handles transactional pass delivery to verified attendees via dual parallel
+ *   channels (Email & WhatsApp), bulk email campaigns, and browser template previewing.
+ *
+ * Key Capabilities:
+ *   - Strict verification guard: Prevents sending passes to unverified registrations.
+ *   - Dual parallel dispatch: Simultaneously fires Nodemailer and WhatsApp alerts.
+ *   - Bulk sending queue with rate-limiting, success/failure metrics, and progress updates.
+ * ============================================================================
+ */
+
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
 import { sendPassEmail, sendBulkPassEmails, buildPassEmailHtml } from '../services/emailService.js';

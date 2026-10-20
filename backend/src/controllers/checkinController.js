@@ -1,3 +1,17 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Gate Scanner & Physical Check-in Controller
+ * ==============================================================================
+ * Purpose:
+ *   Handles physical gate entrance terminal check-ins:
+ *   1. Token Decoding: Parses the official token `HS26.v1.<uniqueId>.<signature>`.
+ *   2. Cryptographic Anti-Forgery: Validates signature using timing-safe buffer compare.
+ *   3. Idempotent Atomic State Mutation: Prevents double-entry using atomic checks.
+ *   4. Visual Proof Snapshot: Attaches 320px webcam frame taken at the scan moment.
+ *   5. Instant Confirmation: Dispatches welcome email and WhatsApp notification.
+ * ==============================================================================
+ */
+
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
 import { verifyQRPayload } from '../services/qrService.js';
@@ -6,6 +20,7 @@ import { sendAutoCheckinMessage } from '../services/messagingService.js';
 
 /**
  * Gate Check-In Scanner Processor with Zero Forged QR Code Verification
+ * POST /api/checkin/scan
  */
 export const scanCheckin = async (req, res) => {
   try {

@@ -1,3 +1,22 @@
+/**
+ * ============================================================================
+ * ROOT APPLICATION & ROUTING COORDINATOR (App.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Main React application component serving as the single-page view router,
+ *   authentication synchronizer, global toast notification dispatcher, and
+ *   state coordinator between event selection, registration, and pass displays.
+ *
+ * Views Managed:
+ *   - 'landing'      : Event landing page with countdown, hero, tracks, and gallery.
+ *   - 'register'     : 3-step registration form with Razorpay / UPI checkout modal.
+ *   - 'pass'         : Real-time cryptographic digital ticket preview and download.
+ *   - 'dashboard'    : Administrative attendee management table, stats, and tools.
+ *   - 'scanner'      : High-throughput camera scanner for gate entry verification.
+ *   - 'login'        : Staff and organizer authentication portal.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { InteractiveBackground } from './components/InteractiveBackground';
@@ -13,6 +32,7 @@ import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'l
 export function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [activePassId, setActivePassId] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [user, setUser] = useState(() => api.auth.getUser());
   const [toasts, setToasts] = useState([]);
 
@@ -141,7 +161,8 @@ export function App() {
         {currentView === 'landing' && (
           <EventLandingPage
             onNavigateToPass={handleNavigateToPass}
-            onNavigateToRegister={() => {
+            onNavigateToRegister={(event) => {
+              setSelectedEvent(event || null);
               window.location.hash = '#register';
               setCurrentView('register');
             }}
@@ -151,6 +172,8 @@ export function App() {
 
         {currentView === 'register' && (
           <RegistrationPage
+            selectedEvent={selectedEvent}
+            onSelectEvent={setSelectedEvent}
             onRegistrationSuccess={(passId) => {
               handleNavigateToPass(passId);
             }}

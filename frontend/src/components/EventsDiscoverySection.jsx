@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * EVENT DISCOVERY & CATALOG COMPONENT (EventsDiscoverySection.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Dynamic catalog showcase rendering all upcoming events, hackathons, and
+ *   workshops. Enables attendees to filter by category, search by keyword,
+ *   and click "Register Now" to seamlessly jump into in-app registration.
+ *
+ * Key Capabilities:
+ *   - Live catalog query from `/api/event` with local fallback dataset.
+ *   - Category pills (Hackathons, AI Bootcamps, Esports, Cultural).
+ *   - Direct callback `onSelectEvent(event)` wiring event details into checkout.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
@@ -242,11 +258,12 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
 
                   {/* Action Buttons */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <a
-                      href={ev.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6'}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => sounds.playClick()}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sounds.playClick();
+                        if (onSelectEvent) onSelectEvent(ev);
+                      }}
                       style={{
                         padding: '10px',
                         borderRadius: '10px',
@@ -254,18 +271,18 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                         color: '#ffffff',
                         fontWeight: '800',
                         fontSize: '12px',
-                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        border: '1px solid rgba(247, 208, 112, 0.4)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
-                        border: '1px solid rgba(247, 208, 112, 0.4)',
                         boxShadow: '0 4px 14px rgba(178, 43, 47, 0.35)',
                       }}
                     >
                       <span>Register</span>
                       <ArrowUpRight size={14} />
-                    </a>
+                    </button>
 
                     <a
                       href="#lookup-section"

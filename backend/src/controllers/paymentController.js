@@ -1,14 +1,36 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Payment & Pass Issuance Controller
+ * ==============================================================================
+ * Purpose:
+ *   Orchestrates native attendee registration, Razorpay order creation,
+ *   cryptographic HMAC signature verification, Cloudinary QR CDN uploads,
+ *   Supabase Postgres persistence, and automated ticket pass delivery.
+ * 
+ * Strict Pass Minting Rules:
+ *   - For ₹0 free tickets: Pass is generated immediately upon request.
+ *   - For paid tickets (₹5): ZERO registrant record or email is created until
+ *     the Razorpay payment signature is cryptographically confirmed.
+ * ==============================================================================
+ */
+
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
 import { createOrder, verifyPaymentSignature } from '../services/paymentService.js';
-import { generatePassSignature, createQRPayload, generateQRCodeDataUrl } from '../services/qrService.js';
+import { generatePassSignature, createQRPayload, generateQRCodeDataUrl, generatePassQRCode } from '../services/qrService.js';
 import { sendPassEmail, sendRegistrationReceivedEmail } from '../services/emailService.js';
 import { sendAutoPassWhatsApp } from '../services/messagingService.js';
 
 /**
  * 1. Initiate In-App Registration Order
  * POST /api/payment/create-order
+ * 
+ * Pipeline:
+ * - Validates required contact info (name, email).
+ * - Reads current tier pricing from database config (`event_config`).
+ * - Free Passes: Mints pass immediately, uploads QR to Cloudinary, sends email, returns 201.
+ * - Paid Passes: Creates official Razorpay order and returns client credentials.
  */
 export const initiateRegistrationOrder = async (req, res) => {
   try {
@@ -49,7 +71,10 @@ export const initiateRegistrationOrder = async (req, res) => {
       const uniqueId = `HS26-${rawUuid}`;
       const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
       const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-      const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+      const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
+
+      const effectiveEventId = req.body.eventId || 'hackseries-2026';
+      const effectiveEventName = req.body.eventName || 'HackSeries 2026';
 
       const newRegistrant = await registrantRepo.create({
         uniqueId,
@@ -61,9 +86,14 @@ export const initiateRegistrationOrder = async (req, res) => {
         track,
         githubUrl: githubUrl ? githubUrl.trim() : '',
         institution: institution ? institution.trim() : '',
-        formResponses,
+        formResponses: {
+          ...formResponses,
+          eventId: effectiveEventId,
+          eventName: effectiveEventName,
+        },
         qrPayload,
         qrSignature: signature,
+        qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
         qrCodeDataUrl,
         verified: true, // Direct verification for free passes
         verificationStatus: 'Verified',
@@ -114,6 +144,8 @@ export const initiateRegistrationOrder = async (req, res) => {
         email: cleanEmail,
         ticketType,
         track,
+        eventId: req.body.eventId || 'hackseries-2026',
+        eventName: req.body.eventName || 'HackSeries 2026',
       },
     });
 
@@ -263,7 +295,7 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+    const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
@@ -275,9 +307,14 @@ export const verifyAndCompleteRegistration = async (req, res) => {
       track: participantData.track || 'AI & Agentic Systems',
       githubUrl: participantData.githubUrl || '',
       institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
-      formResponses: participantData.formResponses || {},
+      formResponses: {
+        ...(participantData.formResponses || {}),
+        eventId: participantData.eventId || 'hackseries-2026',
+        eventName: participantData.eventName || 'HackSeries 2026',
+      },
       qrPayload,
       qrSignature: signature,
+      qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
       qrCodeDataUrl,
       verified: true, // Automatically verified upon confirmed payment
       verificationStatus: 'Verified',
@@ -434,7 +471,7 @@ export const checkOrderStatus = async (req, res) => {
     const uniqueId = `HS26-${rawUuid}`;
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+    const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
@@ -446,9 +483,14 @@ export const checkOrderStatus = async (req, res) => {
       track: participantData.track || 'AI & Agentic Systems',
       githubUrl: participantData.githubUrl || '',
       institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
-      formResponses: participantData.formResponses || {},
+      formResponses: {
+        ...(participantData.formResponses || {}),
+        eventId: participantData.eventId || successfulPayment?.notes?.eventId || 'hackseries-2026',
+        eventName: participantData.eventName || successfulPayment?.notes?.eventName || 'HackSeries 2026',
+      },
       qrPayload,
       qrSignature: signature,
+      qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
       qrCodeDataUrl,
       verified: true,
       verificationStatus: 'Verified',
@@ -507,7 +549,7 @@ export const handlePaymentWebhook = async (req, res) => {
             const uniqueId = `HS26-${rawUuid}`;
             const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
             const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-            const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
+            const { qrCodeUrl, qrCodeDataUrl } = await generatePassQRCode(qrPayload, uniqueId);
 
             const newRegistrant = await registrantRepo.create({
               uniqueId,
@@ -518,9 +560,13 @@ export const handlePaymentWebhook = async (req, res) => {
               teamName: payloadPayment.notes?.teamName || '',
               track: payloadPayment.notes?.track || 'AI & Agentic Systems',
               institution: 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
-              formResponses: {},
+              formResponses: {
+                eventId: payloadPayment.notes?.eventId || 'hackseries-2026',
+                eventName: payloadPayment.notes?.eventName || 'HackSeries 2026',
+              },
               qrPayload,
               qrSignature: signature,
+              qrCodeUrl: qrCodeUrl || qrCodeDataUrl,
               qrCodeDataUrl,
               verified: true,
               verificationStatus: 'Verified',

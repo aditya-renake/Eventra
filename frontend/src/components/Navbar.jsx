@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * FLOATING GLASSMORPHIC NAVIGATION BAR (Navbar.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Top-level navigation component providing quick access between public pages
+ *   (Event Showcase, Registration) and restricted staff portals (Scanner, Dashboard).
+ *
+ * Key Capabilities:
+ *   - Glassmorphic backdrop blur floating pill styling.
+ *   - Role-aware links: Reveals Scanner and Dashboard buttons when authenticated.
+ *   - Mobile responsive drawer with toggle animation.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { QrCode, LayoutDashboard, Globe, LogOut, Lock, Menu, X, ShieldCheck, Crown } from 'lucide-react';
 import { DYPDPULogo } from './CollegeLogos';

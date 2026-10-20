@@ -1,8 +1,23 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Authentication & Role-Based Access Middleware
+ * ==============================================================================
+ * Purpose:
+ *   Guards administrative endpoints and verifies incoming Bearer tokens:
+ *   1. Primary: Validates Supabase GoTrue JWT tokens via `verifySupabaseToken()`.
+ *   2. Fallback: Verifies HMAC-SHA256 custom JWTs for legacy/offline support.
+ *   3. Enforces Role Guards: `requireAdmin`, `requireScanner`, `requireRootOwner`.
+ * ==============================================================================
+ */
+
 import jwt from 'jsonwebtoken';
 import { staffRepo } from '../models/staffRepo.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hackseries_2026_jwt_super_secret_key_8899';
 
+/**
+ * Authentication Gatekeeper: Verifies token existence, validates signature, and attaches user to `req.user`.
+ */
 export const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -17,6 +32,19 @@ export const requireAuth = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Authentication token required.' });
     }
 
+    // 1. Try Supabase Auth verification
+    try {
+      const { verifySupabaseToken } = await import('../services/supabaseAuthService.js');
+      const supabaseUser = await verifySupabaseToken(token);
+      if (supabaseUser) {
+        req.user = supabaseUser;
+        return next();
+      }
+    } catch (e) {
+      // Supabase verification quiet fallback
+    }
+
+    // 2. Legacy / Custom JWT verification
     const decoded = jwt.verify(token, JWT_SECRET);
 
     let user = await staffRepo.findByIdentifier(decoded.userId || decoded.username);

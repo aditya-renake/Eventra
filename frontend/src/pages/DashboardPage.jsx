@@ -1,3 +1,23 @@
+/**
+ * ============================================================================
+ * ORGANIZER DASHBOARD & OPERATIONS HUB (DashboardPage.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Core administrative control panel for event organizers, super admins, and
+ *   coordinators. Provides real-time metrics, attendee database management,
+ *   mass communication tools, and platform settings.
+ *
+ * Key Capabilities:
+ *   - Real-time stat cards (Total attendees, Verified entries, Emails dispatched).
+ *   - Searchable, filterable, and paginated registrant table with bulk selections.
+ *   - Integration with administrative modals:
+ *       • Pass Preview, Bulk Email Dispatcher, HTML Template Editor.
+ *       • Excel/CSV Roster Importer & Webhook Integration Guide.
+ *       • Multi-Event Creator, Team & RBAC Manager, and Super Admin Config.
+ *   - Micro-caches state in sessionStorage for instant UI resumption.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 

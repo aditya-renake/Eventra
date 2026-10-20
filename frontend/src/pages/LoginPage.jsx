@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * ORGANIZER & STAFF LOGIN PORTAL (LoginPage.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Secure login portal providing authentication for event organizers, super
+ *   admins, and gate check-in volunteers.
+ *
+ * Key Capabilities:
+ *   - Authenticates against backend using Supabase Auth or staff table credentials.
+ *   - Automatically stores active JWT token and role payload in local storage.
+ *   - Provides visual status indicators, toast notifications, and role-based redirects.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';

@@ -1,6 +1,14 @@
 /**
- * Pure 0-dependency celebratory particle burst for QR Check-in Success
+ * ============================================================================
+ * CELEBRATORY CONFETTI PARTICLE BURST (confettiBurst.js)
+ * ============================================================================
+ * Purpose:
+ *   Lightweight, zero-dependency HTML5 Canvas particle explosion triggered on
+ *   successful gate check-ins and ticket purchase completions.
+ *   Self-cleans the canvas DOM element after the animation finishes.
+ * ============================================================================
  */
+
 export function triggerCelebration() {
   try {
     const canvas = document.createElement('canvas');

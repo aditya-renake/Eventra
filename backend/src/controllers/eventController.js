@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * EVENT & TEAM MANAGEMENT CONTROLLER (eventController.js)
+ * ============================================================================
+ * Purpose:
+ *   Handles multi-event catalog queries, event publishing, dynamic ticket pricing
+ *   and platform settings configuration, and administrative staff roster management.
+ *
+ * Key Capabilities:
+ *   - Edge CDN caching headers for high-concurrency public event listings.
+ *   - Atomic updates to platform pricing rules and UPI merchant details.
+ *   - CRUD operations for staff member accounts and RBAC role assignments.
+ * ============================================================================
+ */
+
 import { eventRepo } from '../models/eventRepo.js';
 import { staffRepo } from '../models/staffRepo.js';
 import { registrantRepo } from '../models/registrantRepo.js';

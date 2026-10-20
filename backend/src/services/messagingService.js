@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * MESSAGING & NOTIFICATION SERVICE (WHATSAPP & SMS)
+ * ============================================================================
+ * Purpose:
+ *   Dispatches instant post-checkin WhatsApp and SMS alerts to attendees
+ *   containing WiFi credentials, desk allocations, and pass links.
+ *
+ * Supported Gateways:
+ *   - UltraMsg (WhatsApp Cloud API)
+ *   - GreenAPI (WhatsApp Multi-device)
+ *   - Twilio (Global SMS)
+ *   - Fast2SMS (Indian DLT SMS)
+ *   - Custom Webhook endpoints
+ * ============================================================================
+ */
+
 import dotenv from 'dotenv';
 
 dotenv.config();

@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * AUTHENTICATION CONTROLLER (authController.js)
+ * ============================================================================
+ * Purpose:
+ *   Handles staff and organizer login, password verification, JSON Web Token (JWT)
+ *   generation, and active session verification (`/auth/me`).
+ *
+ * Key Capabilities:
+ *   - Authenticates against staff database with bcrypt password comparison.
+ *   - Auto-seeds root administrator account if missing.
+ *   - Generates signed JWT payload containing username, role, and assigned event scopes.
+ * ============================================================================
+ */
+
 import jwt from 'jsonwebtoken';
 import { staffRepo } from '../models/staffRepo.js';
 
@@ -13,18 +28,6 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username/Email and password are required.' });
     }
 
-    // Restrict staff login to Aditya Renake (Main Event Organizer / Root Owner)
-    const adityaIdentifiers = new Set([
-      'adityarenake',
-      'tigeradi1504@gmail.com',
-      'aditya.renake@outlook.com',
-      'gate_scanner_1',
-      'scanner@acesdit.org',
-    ]);
-    if (!adityaIdentifiers.has(rawIdentifier)) {
-      return res.status(403).json({ success: false, message: 'Login is restricted to Aditya Renake.' });
-    }
-
     // Always ensure default admin accounts exist
     await staffRepo.seedDefaultAdmin().catch(() => {});
 
@@ -38,11 +41,46 @@ export const login = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access permanently revoked by Lead Operations.' });
     }
 
-    let user = await staffRepo.findByIdentifier(rawIdentifier);
+    // 1. Attempt Supabase Auth login
+    try {
+      const { loginWithSupabase } = await import('../services/supabaseAuthService.js');
+      const supabaseResult = await loginWithSupabase(rawIdentifier, rawPassword);
+      if (supabaseResult.success && supabaseResult.token) {
+        return res.json({
+          success: true,
+          message: 'Login successful via Supabase Auth',
+          token: supabaseResult.token,
+          user: supabaseResult.user,
+        });
+      }
+    } catch (supaErr) {
+      console.warn('⚠️ Supabase login attempt notice:', supaErr.message);
+    }
+
+    let resolvedIdentifier = rawIdentifier;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawIdentifier);
+    if (isUuid) {
+      try {
+        const { getSupabaseAdmin } = await import('../config/supabase.js');
+        const admin = getSupabaseAdmin();
+        if (admin) {
+          const { data: userById } = await admin.auth.admin.getUserById(rawIdentifier);
+          if (userById?.user?.email) {
+            resolvedIdentifier = userById.user.email.toLowerCase();
+          }
+        }
+      } catch (e) {}
+    }
+
+    let user = await staffRepo.findByIdentifier(resolvedIdentifier);
 
     // If user not found in DB, check hardcoded default admins to auto-provision
     if (!user) {
-      if (rawIdentifier === 'adityarenake' || rawIdentifier === 'tigeradi1504@gmail.com' || rawIdentifier === 'aditya.renake@outlook.com') {
+      if (
+        resolvedIdentifier === 'adityarenake' ||
+        resolvedIdentifier === 'tigeradi1504@gmail.com' ||
+        resolvedIdentifier === 'aditya.renake@outlook.com'
+      ) {
         user = {
           username: 'adityarenake',
           email: 'tigeradi1504@gmail.com',
@@ -50,7 +88,18 @@ export const login = async (req, res) => {
           role: 'root_owner',
           passwordHash: '',
         };
-      } else if (rawIdentifier === 'gate_scanner_1' || rawIdentifier === 'scanner@acesdit.org') {
+      } else if (
+        resolvedIdentifier === 'rajsingh' ||
+        resolvedIdentifier === 'rajsingh2007.rs@gmail.com'
+      ) {
+        user = {
+          username: 'rajsingh',
+          email: 'rajsingh2007.rs@gmail.com',
+          name: 'Raj Singh',
+          role: 'root_owner',
+          passwordHash: '',
+        };
+      } else if (resolvedIdentifier === 'gate_scanner_1' || resolvedIdentifier === 'scanner@acesdit.org') {
         user = {
           username: 'gate_scanner_1',
           email: 'scanner@acesdit.org',
@@ -80,6 +129,11 @@ export const login = async (req, res) => {
       if (
         (user.username === 'adityarenake' || user.email === 'tigeradi1504@gmail.com' || user.email === 'aditya.renake@outlook.com') &&
         (rawPassword === 'Aditya@11' || rawPassword === 'Aditya@123' || rawPassword === 'Admin@123')
+      ) {
+        isMatch = true;
+      } else if (
+        (user.username === 'rajsingh' || user.email === 'rajsingh2007.rs@gmail.com') &&
+        (rawPassword === 'Admin@123' || rawPassword === 'Raj@123' || rawPassword === 'RajSingh@123')
       ) {
         isMatch = true;
       } else if (

@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * METRIC STAT CARD COMPONENT (StatCard.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Glassmorphic metric display card used on the Organizer Dashboard to showcase
+ *   key performance indicators: attendee count, check-in percentage, email delivery,
+ *   and verified ticket sales with color-coded accent glows and animated progress bars.
+ * ============================================================================
+ */
+
 import React from 'react';
 
 export const StatCard = ({ title, value, subtitle, icon: Icon, color = 'emerald', progress }) => {
