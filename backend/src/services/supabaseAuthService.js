@@ -42,17 +42,15 @@ const STAFF_MAPPING = {
     role: 'root_owner',
     defaultPassword: 'Aditya@11',
   },
-  'gate_scanner_1': {
-    email: 'scanner@acesdit.org',
-    name: 'Gate Scanner Volunteer 1',
-    role: 'scanner',
-    defaultPassword: 'Scanner@11',
+  'rajsingh2007.rs@gmail.com': {
+    email: 'rajsingh2007.rs@gmail.com',
+    name: 'Raj Singh',
+    role: 'root_owner',
   },
-  'scanner@acesdit.org': {
-    email: 'scanner@acesdit.org',
-    name: 'Gate Scanner Volunteer 1',
-    role: 'scanner',
-    defaultPassword: 'Scanner@11',
+  'rajsingh': {
+    email: 'rajsingh2007.rs@gmail.com',
+    name: 'Raj Singh',
+    role: 'root_owner',
   },
 };
 
@@ -82,11 +80,11 @@ export const seedSupabaseStaffUsers = async () => {
         role: 'root_owner',
       },
       {
-        email: 'scanner@acesdit.org',
-        password: 'Scanner@11',
-        name: 'Gate Scanner Volunteer 1',
-        username: 'gate_scanner_1',
-        role: 'scanner',
+        email: 'rajsingh2007.rs@gmail.com',
+        password: 'Admin@123',
+        name: 'Raj Singh',
+        username: 'rajsingh',
+        role: 'root_owner',
       },
     ];
 
@@ -142,8 +140,36 @@ export const loginWithSupabase = async (identifier, password) => {
   }
 
   const cleanId = String(identifier || '').toLowerCase().trim();
-  const mapping = STAFF_MAPPING[cleanId];
-  const targetEmail = mapping ? mapping.email : cleanId;
+  let mapping = STAFF_MAPPING[cleanId];
+  let targetEmail = mapping ? mapping.email : cleanId;
+
+  // 1. If identifier is a UUID (like the Supabase Auth user ID)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+  if (isUuid && admin) {
+    try {
+      const { data: userById } = await admin.auth.admin.getUserById(cleanId);
+      if (userById?.user?.email) {
+        targetEmail = userById.user.email.toLowerCase();
+        mapping = STAFF_MAPPING[targetEmail] || mapping;
+      }
+    } catch (e) {}
+  }
+
+  // 2. If identifier has no '@', search in Supabase auth users
+  if (!targetEmail.includes('@') && admin) {
+    try {
+      const { data: usersData } = await admin.auth.admin.listUsers({ page: 1, perPage: 100 });
+      const found = (usersData?.users || []).find((u) =>
+        u.email?.toLowerCase().startsWith(cleanId + '@') ||
+        u.app_metadata?.username?.toLowerCase() === cleanId ||
+        u.user_metadata?.username?.toLowerCase() === cleanId
+      );
+      if (found?.email) {
+        targetEmail = found.email.toLowerCase();
+        mapping = STAFF_MAPPING[targetEmail] || mapping;
+      }
+    } catch (e) {}
+  }
 
   // Attempt Supabase sign-in
   const { data, error } = await client.auth.signInWithPassword({
@@ -186,7 +212,28 @@ export const loginWithSupabase = async (identifier, password) => {
   }
 
   const user = data.user;
-  const role = user.app_metadata?.role || (mapping ? mapping.role : 'scanner');
+  const userEmail = user.email?.toLowerCase();
+  let role =
+    user.app_metadata?.role ||
+    (mapping
+      ? mapping.role
+      : userEmail === 'rajsingh2007.rs@gmail.com' || userEmail === 'tigeradi1504@gmail.com'
+      ? 'root_owner'
+      : 'admin');
+
+  // Auto-inject role into app_metadata if not present yet
+  if (!user.app_metadata?.role && admin) {
+    await admin.auth.admin
+      .updateUserById(user.id, {
+        app_metadata: {
+          ...user.app_metadata,
+          role,
+          username: user.app_metadata?.username || userEmail?.split('@')[0],
+          name: user.app_metadata?.name || user.user_metadata?.name || userEmail?.split('@')[0],
+        },
+      })
+      .catch(() => {});
+  }
 
   return {
     success: true,
@@ -194,9 +241,9 @@ export const loginWithSupabase = async (identifier, password) => {
     refreshToken: data.session.refresh_token,
     user: {
       id: user.id,
-      username: user.app_metadata?.username || cleanId,
+      username: user.app_metadata?.username || userEmail?.split('@')[0],
       email: user.email,
-      name: user.app_metadata?.name || user.user_metadata?.name || user.email.split('@')[0],
+      name: user.app_metadata?.name || user.user_metadata?.name || userEmail?.split('@')[0],
       role,
     },
   };
@@ -210,12 +257,21 @@ export const verifySupabaseToken = async (token) => {
   if (!admin || !token) return null;
 
   try {
-    const { data: { user }, error } = await admin.auth.getUser(token);
+    const {
+      data: { user },
+      error,
+    } = await admin.auth.getUser(token);
     if (error || !user) return null;
 
     const email = user.email?.toLowerCase();
     const mapping = STAFF_MAPPING[email] || STAFF_MAPPING[user.app_metadata?.username];
-    const role = user.app_metadata?.role || (mapping ? mapping.role : 'scanner');
+    const role =
+      user.app_metadata?.role ||
+      (mapping
+        ? mapping.role
+        : email === 'rajsingh2007.rs@gmail.com' || email === 'tigeradi1504@gmail.com'
+        ? 'root_owner'
+        : 'admin');
 
     return {
       id: user.id,

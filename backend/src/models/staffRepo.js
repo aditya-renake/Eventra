@@ -246,6 +246,13 @@ export const staffRepo = {
           role: 'root_owner',
         },
         {
+          username: 'rajsingh',
+          email: 'rajsingh2007.rs@gmail.com',
+          name: 'Raj Singh',
+          password: 'Admin@123',
+          role: 'root_owner',
+        },
+        {
           username: 'gate_scanner_1',
           email: 'scanner@acesdit.org',
           name: 'Gate Scanner Volunteer 1',
