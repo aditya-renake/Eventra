@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * AUTHENTICATION CONTROLLER (authController.js)
+ * ============================================================================
+ * Purpose:
+ *   Handles staff and organizer login, password verification, JSON Web Token (JWT)
+ *   generation, and active session verification (`/auth/me`).
+ *
+ * Key Capabilities:
+ *   - Authenticates against staff database with bcrypt password comparison.
+ *   - Auto-seeds root administrator account if missing.
+ *   - Generates signed JWT payload containing username, role, and assigned event scopes.
+ * ============================================================================
+ */
+
 import jwt from 'jsonwebtoken';
 import { staffRepo } from '../models/staffRepo.js';
 
