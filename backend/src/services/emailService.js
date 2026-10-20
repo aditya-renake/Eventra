@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * EMAIL DELIVERY SERVICE
+ * ============================================================================
+ * Purpose:
+ *   Handles transactional email delivery with dynamic provider detection
+ *   (Resend, SendGrid, Gmail, custom SMTP) and builds responsive HTML passes
+ *   with embedded QR codes and Apple Wallet / Calendar attachments.
+ *
+ * Key Capabilities:
+ *   - Auto-detects Resend, SendGrid, or Gmail based on API key prefix or host.
+ *   - Dynamically generates embedded CID QR code buffer for offline email rendering.
+ *   - Supports single dispatch, bulk queueing, and fallback retry mechanisms.
+ * ============================================================================
+ */
+
 import nodemailer from 'nodemailer';
 import { generateQRCodeBuffer } from './qrService.js';
 import dotenv from 'dotenv';
