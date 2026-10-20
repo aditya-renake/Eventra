@@ -231,9 +231,15 @@ hackseries/
 
 ## ⚖️ Intellectual Property & Copyright Notice
 
-**Copyright (c) 2026 Aditya Renake. All Rights Reserved.**
+**Copyright (c) 2026 Aditya Vinod Renake. All Rights Reserved.**
 
-This platform, software architecture, backend engines, frontend interfaces, and cryptographic validation routines are the exclusive intellectual property of **Aditya Renake**. 
+- **Work Title:** Eventra
+- **Official Diary Number:** `SW-49344/2026-CO`
+- **Filing Date:** 20/10/2026
+- **Copyright Office:** Government of India, Office of Controller General of Patents, Designs & Trade Marks (Central Branch)
+- **Sole Author & Owner:** Aditya Vinod Renake
+
+This platform, software architecture, backend engines, frontend interfaces, and cryptographic validation routines are the exclusive intellectual property of **Aditya Vinod Renake**. 
 
 Unauthorized copying, distribution, modification, reverse engineering, sublicensing, or deployment of this software is strictly prohibited under the **Copyright Act, 1957 (Government of India)** and international copyright treaties (Berne Convention).
 
