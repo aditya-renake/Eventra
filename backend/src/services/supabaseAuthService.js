@@ -1,5 +1,28 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Supabase Staff Authentication & Role Service
+ * ==============================================================================
+ * Purpose:
+ *   Manages operations staff identity and role-based access control (RBAC).
+ * 
+ * RBAC Hierarchy:
+ *   - `root_owner` (Aditya Renake): Complete unrestricted administrative control.
+ *     Immutable role that cannot be deleted or demoted.
+ *   - `admin` / `event_head`: Can view telemetry, manage registrants, create club events.
+ *   - `scanner`: Gate volunteer role restricted strictly to `/scanner` and scan validation.
+ * 
+ * Security Mechanics:
+ *   - Staff users are created in Supabase GoTrue with `email_confirm: true`.
+ *   - Role claims are embedded in JWT `app_metadata` (protected from user tampering).
+ *   - Incoming API requests provide `Authorization: Bearer <token>`, validated via `getUser()`.
+ * ==============================================================================
+ */
+
 import { getSupabaseAdmin, getSupabaseClient, isSupabaseConfigured } from '../config/supabase.js';
 
+/**
+ * Known default credentials mapping for platform bootstrap and local development.
+ */
 const STAFF_MAPPING = {
   'adityarenake': {
     email: 'tigeradi1504@gmail.com',
@@ -34,7 +57,8 @@ const STAFF_MAPPING = {
 };
 
 /**
- * Ensures standard staff users are provisioned in Supabase Auth with appropriate app_metadata roles
+ * Idempotently provisions initial staff accounts in Supabase Auth GoTrue.
+ * Injects `app_metadata.role` claims required by middleware security guards.
  */
 export const seedSupabaseStaffUsers = async () => {
   const admin = getSupabaseAdmin();

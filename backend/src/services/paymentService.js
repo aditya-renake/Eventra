@@ -1,14 +1,31 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Razorpay Payment Gateway Service
+ * ==============================================================================
+ * Purpose:
+ *   Handles server-side payment lifecycle for ticket orders:
+ *   1. Order Creation: Requests official Razorpay order IDs via REST API.
+ *   2. Cryptographic Signature Verification: Computes HMAC-SHA256 hash over
+ *      `${order_id}|${payment_id}` using `RAZORPAY_KEY_SECRET` to verify authenticity.
+ *   3. Sandbox Dev Mode: Gracefully allows local sandbox testing if keys are unset.
+ * ==============================================================================
+ */
+
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Cached singleton instance and credentials fingerprint
 let razorpayInstance = null;
-
 let currentClientKey = null;
 
 /**
- * Lazily instantiate Razorpay client if credentials are configured
+ * Lazily instantiates and caches the Razorpay SDK client.
+ * Dynamically prioritizes credentials configured in the database (`event_config`)
+ * before falling back to system environment variables.
+ * 
+ * @returns {Promise<{ client: any, keyId: string } | null>}
  */
 export const getRazorpayClient = async () => {
   let keyId = process.env.RAZORPAY_KEY_ID;
@@ -20,7 +37,7 @@ export const getRazorpayClient = async () => {
     if (cfg?.razorpayKeyId) keyId = cfg.razorpayKeyId.trim();
     if (cfg?.razorpayKeySecret) keySecret = cfg.razorpayKeySecret.trim();
   } catch (e) {
-    // fallback to env
+    // Fallback to environment variables
   }
 
   if (!keyId || !keySecret) {
