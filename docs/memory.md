@@ -109,3 +109,30 @@
 - Schema definitions and performance indexes are managed in [`supabase/schema.sql`](file:///c:/Users/rajsi/OneDrive/Desktop/Documents/raj/hackseries-2026/supabase/schema.sql).
 - If Supabase is ever unreachable offline, repositories maintain in-memory fallbacks to prevent runtime crashes.
 - If Cloudinary credentials are not supplied, pass generation falls back to local Base64 data URLs.
+
+---
+
+## 7. End-to-End Student Registration & Pass Issuance Flow
+
+```
+[Student Visits Site]
+       │
+       ▼
+[Selects Event from Discovery Hub / Hero]
+       │
+       ▼
+[Enters Info on In-App Registration Page] (No Google Sheets / External Forms)
+       │
+       ▼
+[Razorpay Checkout (₹5 or Free Pass)]
+       │
+       ▼
+[Cryptographic Pass Generation (HMAC-SHA256)]
+       │
+       ├─► [Uploads QR Image to Cloudinary CDN (`hackseries-2026/passes/`)]
+       ├─► [Stores Record & `qr_code_url` in Supabase Postgres `registrants` Table]
+       ├─► [Dispatches Official Email with Cloudinary QR Code Attachment]
+       │
+       ▼
+[Automatic Redirect to Live Digital Pass Page (`/pass/:uniqueId`)]
+```

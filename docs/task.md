@@ -67,11 +67,14 @@
 
 ## 3. Active & Upcoming Roadmap
 
-### 🔄 Milestone 7: Full Supabase Postgres Schema Migration (Planned)
-- [ ] Create declarative SQL schemas for `registrants`, `staff_users`, `club_events`, and `event_config`.
-- [ ] Configure Row Level Security (RLS) policies on Postgres tables.
-- [ ] Migrate `registrantRepo.js` from Firestore collections to Supabase Postgres queries.
-- [ ] Add real-time Supabase subscriptions for live check-in broadcast counters.
+### ✅ Milestone 7: Supabase Postgres Schema & Student Flow Overhaul
+- [x] Full database migration from Firestore to live Supabase Postgres tables (`registrants`, `club_events`, `event_config`, `staff_users`).
+- [x] Implemented Row Level Security (RLS) policies and performance indexes.
+- [x] Created `backend/src/models/registrantRepo.js` and repository suite with atomic transactions and caching.
+- [x] Replaced external Google Form redirects with native in-app registration and event selection.
+- [x] Connected dynamic event selection (`HackSeries 2026 Flagship`, `AI Bootcamp`, `Esports Arena`) with custom tracks, fees, and pass tiers.
+- [x] Unified Cloudinary CDN upload across all ticket creation flows (free pass, Razorpay checkout, recovery, webhook).
+- [x] Enhanced digital pass retrieval and pass email delivery with Cloudinary CDN QR code URLs and event metadata.
 
 ### 🔄 Milestone 8: Mobile Pass Enhancements (Planned)
 - [ ] Generate Apple Wallet `.pkpass` files for iPhone lock-screen passes.
