@@ -5,6 +5,10 @@ export const InteractiveBackground = () => {
   const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
+    // Check for prefers-reduced-motion
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mediaQuery.matches) return;
+
     const handleMouseMove = (e) => {
       setMousePos({ x: e.clientX, y: e.clientY });
       if (!isHovering) setIsHovering(true);
@@ -35,48 +39,43 @@ export const InteractiveBackground = () => {
       }}
       aria-hidden="true"
     >
-      {/* 1. Dynamic Cursor-Following Spotlight Glow */}
+      {/* 1. Dynamic Cursor-Following Spotlight Glow in Eventra Indigo & Lavender */}
       <div
         style={{
           position: 'absolute',
           left: 0,
           top: 0,
-          width: '750px',
-          height: '750px',
+          width: '720px',
+          height: '720px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(178, 43, 47, 0.18) 0%, rgba(209, 165, 80, 0.12) 35%, rgba(247, 208, 112, 0.05) 60%, transparent 80%)',
-          transform: `translate3d(${mousePos.x - 375}px, ${mousePos.y - 375}px, 0)`,
+          background: 'radial-gradient(circle, rgba(89, 110, 230, 0.08) 0%, rgba(168, 180, 255, 0.06) 40%, rgba(238, 240, 255, 0.03) 65%, transparent 80%)',
+          transform: `translate3d(${mousePos.x - 360}px, ${mousePos.y - 360}px, 0)`,
           transition: 'transform 0.08s ease-out, opacity 0.4s ease',
           opacity: isHovering ? 1 : 0,
-          filter: 'blur(30px)',
+          filter: 'blur(40px)',
           willChange: 'transform',
         }}
       />
 
-      {/* 2. Floating Ambient Glow Orbs */}
+      {/* 2. Floating Ambient Glow Orbs in Eventra Palette */}
       <div className="bg-floating-orb orb-1" />
       <div className="bg-floating-orb orb-2" />
       <div className="bg-floating-orb orb-3" />
-      <div className="bg-floating-orb orb-4" />
-      <div className="bg-floating-orb orb-5" />
 
-      {/* 3. Floating Cyber Particle Dots */}
+      {/* 3. Subtle Floating Brand Sparkles */}
       <div className="cyber-particles-container">
-        {[...Array(18)].map((_, i) => (
+        {[...Array(14)].map((_, i) => (
           <div
             key={i}
-            className={`cyber-floating-particle particle-${i % 6}`}
+            className={`cyber-floating-particle particle-${i % 3}`}
             style={{
-              left: `${(i * 5.8 + 4) % 96}%`,
-              animationDelay: `${(i * 0.7).toFixed(1)}s`,
-              animationDuration: `${12 + (i % 8) * 2}s`,
+              left: `${(i * 7.2 + 5) % 94}%`,
+              animationDelay: `${(i * 0.8).toFixed(1)}s`,
+              animationDuration: `${14 + (i % 6) * 2}s`,
             }}
           />
         ))}
       </div>
-
-      {/* 4. Subtle Animated Cyber Grid Scanline */}
-      <div className="bg-cyber-scanline" />
     </div>
   );
 };

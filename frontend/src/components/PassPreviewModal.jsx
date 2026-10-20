@@ -133,7 +133,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
               {/* Event Badge Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <img src="/eventra-logo.png" alt="Eventra" style={{ height: '24px', width: 'auto', display: 'block' }} />
+                  <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '26px', width: 'auto', display: 'block' }} />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
@@ -208,7 +208,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
               {/* Event Metadata Footer */}
               <div style={{ background: '#030712', borderRadius: '10px', padding: '12px 16px', border: '1px solid var(--border-subtle)', fontSize: '11px', color: 'var(--text-muted)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '4px' }}>
-                  <MapPin size={13} color="#b22b2f" style={{ marginTop: '2px', flexShrink: 0 }} /> Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune
+                  <MapPin size={13} color="#596EE6" style={{ marginTop: '2px', flexShrink: 0 }} /> Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Calendar size={13} color="#a8b4ff" /> Check-in: Oct 16, 07:30 AM IST • Bring Laptop & ID

@@ -417,7 +417,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '15px', color: '#f7d070', fontWeight: '800' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '15px', color: 'var(--eventra-indigo)', fontWeight: '800' }}>
                         {popupModalResult.attendee.uniqueId}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#10b981', fontWeight: '700' }}>
@@ -468,7 +468,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
                       {popupModalResult.attendee.track && (
                         <div style={{ background: '#0d121f', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                           <div style={{ fontSize: '10px', color: 'var(--text-dim)', fontWeight: '700', textTransform: 'uppercase' }}>TRACK</div>
-                          <div style={{ fontSize: '13px', fontWeight: '800', color: '#f7d070', marginTop: '2px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--eventra-indigo)', marginTop: '2px' }}>
                             {popupModalResult.attendee.track}
                           </div>
                         </div>

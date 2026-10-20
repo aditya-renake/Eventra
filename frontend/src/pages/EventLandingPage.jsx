@@ -240,7 +240,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           </div>
 
           <div className="event-hero-host">
-            <img src="/eventra-logo.png" alt="Eventra" style={{ height: '30px', width: 'auto' }} />
+            <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '32px', width: 'auto' }} />
             <span className="event-hero-host-divider" />
             <span><small>Powered by</small><strong>Eventra 2026</strong></span>
           </div>
@@ -363,7 +363,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
                         style={{ width: '180px', height: '180px', display: 'block' }}
                       />
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#f7d070', fontWeight: '900', marginTop: '10px', letterSpacing: '1px' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#596EE6', fontWeight: '900', marginTop: '10px', letterSpacing: '1px' }}>
                       {retrievedPass.uniqueId}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', color: '#10b981', marginTop: '4px', fontWeight: '700' }}>
@@ -430,20 +430,20 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(209, 165, 80, 0.25)' }}>
-                <div style={{ fontSize: '22px', fontWeight: '900', color: '#f7d070' }}>NAAC A++</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '700' }}>DIT Pune Accredited</div>
-              </div>
-              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(178, 43, 47, 0.25)' }}>
-                <div style={{ fontSize: '22px', fontWeight: '900', color: '#fca5a5' }}>5 Tracks</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '700' }}>AI, Web3, Cyber, Cloud</div>
-              </div>
-              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ fontSize: '22px', fontWeight: '900', color: '#ffffff' }}>48 Hours</div>
+              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(89, 110, 230, 0.2)' }}>
+                <div style={{ fontSize: '22px', fontWeight: '900', color: '#596EE6' }}>48 Hours</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '700' }}>Non-Stop Building</div>
               </div>
-              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
-                <div style={{ fontSize: '22px', fontWeight: '900', color: '#4ade80' }}>Express QR</div>
+              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(89, 110, 230, 0.2)' }}>
+                <div style={{ fontSize: '22px', fontWeight: '900', color: '#29304A' }}>5 Tracks</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '700' }}>AI, Web3, Cyber, Cloud</div>
+              </div>
+              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(89, 110, 230, 0.2)' }}>
+                <div style={{ fontSize: '22px', fontWeight: '900', color: '#596EE6' }}>50+ Colleges</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '700' }}>National Participation</div>
+              </div>
+              <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                <div style={{ fontSize: '22px', fontWeight: '900', color: '#059669' }}>Express QR</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '700' }}>Zero-Wait Gate Entry</div>
               </div>
             </div>
@@ -467,7 +467,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
               <div key={idx} className="glass-card" style={{ padding: '22px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'rgba(178, 43, 47, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171', border: '1px solid rgba(178, 43, 47, 0.3)' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#596EE6', border: '1px solid #DDE3FF' }}>
                       <Icon size={20} />
                     </div>
                     <span className="badge badge-dark" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
@@ -479,7 +479,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
                 </div>
                 <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontWeight: '700' }}>PRIZE POOL</span>
-                  <span style={{ fontSize: '14px', fontWeight: '900', color: '#f7d070' }}>{t.prize}</span>
+                  <span style={{ fontSize: '14px', fontWeight: '900', color: '#596EE6' }}>{t.prize}</span>
                 </div>
               </div>
             );
@@ -520,28 +520,28 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
 
       {/* Venue & Location */}
       <section id="venue-section" style={{ margin: '0 0 60px 0', position: 'relative', zIndex: 1 }}>
-        <div className="glass-card" style={{ padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', border: '1px solid rgba(209, 165, 80, 0.35)' }}>
+        <div className="glass-card" style={{ padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', border: '1px solid #E2E8F8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(178, 43, 47, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171', border: '1px solid rgba(178, 43, 47, 0.4)' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#596EE6', border: '1px solid #DDE3FF' }}>
               <MapPin size={22} />
             </div>
             <div>
               <div style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
-                Dr. D. Y. Patil Institute of Technology (DIT)
+                Eventra Innovation Arena
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Sant Tukaram Nagar, Pimpri, Pune - 411018 (Near Sant Tukaram Nagar Metro Station)
+                Main Campus Center • Gigabit Wi-Fi • Express Check-in Gates
               </div>
             </div>
           </div>
 
           <a
-            href="https://maps.google.com/?q=Dr.+D.+Y.+Patil+Institute+of+Technology,+Pimpri,+Pune"
+            href="https://maps.google.com"
             target="_blank"
             rel="noreferrer"
             className="btn btn-secondary btn-sm"
           >
-            <Compass size={15} color="var(--dyp-gold)" /> Open Google Maps <ArrowUpRight size={13} />
+            <Compass size={15} color="#596EE6" /> Open Campus Maps <ArrowUpRight size={13} />
           </a>
         </div>
       </section>
@@ -561,9 +561,9 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img
-            src="/eventra-logo.png"
+            src="/eventra-logo.svg"
             alt="Eventra"
-            style={{ height: '26px', width: 'auto', display: 'block' }}
+            style={{ height: '28px', width: 'auto', display: 'block' }}
           />
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             © 2026 Eventra • Zero-Tamper Event Management Platform

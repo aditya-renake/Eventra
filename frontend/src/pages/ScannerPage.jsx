@@ -61,9 +61,9 @@ export const ScannerPage = ({ onShowToast }) => {
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
         <img 
-          src="/eventra-logo.png" 
+          src="/eventra-logo.svg" 
           alt="Eventra" 
-          style={{ height: '38px', width: 'auto', margin: '0 auto 14px auto', display: 'block', background: 'rgba(255, 255, 255, 0.08)', padding: '4px 12px', borderRadius: '8px' }} 
+          style={{ height: '40px', width: 'auto', margin: '0 auto 14px auto', display: 'block' }} 
         />
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, rgba(80, 101, 246, 0.15) 0%, rgba(34, 211, 238, 0.15) 100%)', border: '1px solid rgba(168, 180, 255, 0.35)', borderRadius: '999px', padding: '4px 16px', fontSize: '11px', color: '#a8b4ff', fontWeight: '800', marginBottom: '12px' }}>
           <QrCode size={13} color="#22d3ee" /> EVENTRA GATE ENTRY SCANNER • LIVE OPERATIONAL TERMINAL

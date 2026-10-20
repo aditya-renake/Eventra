@@ -128,7 +128,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/eventra-logo.png" alt="Eventra" style={{ height: '26px', width: 'auto', display: 'block', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '6px' }} />
+              <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '28px', width: 'auto', display: 'block' }} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
@@ -189,12 +189,12 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
           {/* Details */}
           <div style={{ background: '#030712', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-subtle)', fontSize: '12px', color: 'var(--text-muted)', marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Calendar size={14} color="#f7d070" />
+              <Calendar size={14} color="#596EE6" />
               <span><strong>Dates:</strong> October 16 - 18, 2026 (Check-in 07:30 AM IST)</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-              <MapPin size={14} color="#b22b2f" style={{ marginTop: '2px', flexShrink: 0 }} />
-              <span><strong>Venue:</strong> Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune - 411018</span>
+              <MapPin size={14} color="#596EE6" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <span><strong>Venue:</strong> Eventra Arena • Main Stage & Hack Labs</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Mail size={14} color="#a78bfa" />

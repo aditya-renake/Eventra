@@ -142,16 +142,16 @@ export const TeamManagementModal = ({ onClose, onShowToast, events = [] }) => {
             justifyContent: 'space-between',
             padding: '18px 24px',
             borderBottom: '1px solid var(--border-subtle)',
-            background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.12) 0%, rgba(178, 43, 47, 0.08) 100%)',
+            background: 'linear-gradient(135deg, rgba(89, 110, 230, 0.12) 0%, rgba(168, 180, 255, 0.08) 100%)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'rgba(209, 165, 80, 0.2)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-              <Crown size={18} color="#f7d070" />
+            <div style={{ background: 'var(--eventra-soft-lavender)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+              <Crown size={18} color="var(--eventra-indigo)" />
             </div>
             <div>
               <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Team & Role Access Delegation</div>
-              <div style={{ fontSize: '11px', color: '#f7d070', fontWeight: '700' }}>👑 Root Owner: Aditya Renake (Main Authority)</div>
+              <div style={{ fontSize: '11px', color: 'var(--eventra-lavender)', fontWeight: '700' }}>👑 Root Owner: Aditya Renake (Main Authority)</div>
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px', borderRadius: '50%' }}>
@@ -348,16 +348,16 @@ export const TeamManagementModal = ({ onClose, onShowToast, events = [] }) => {
                                 textTransform: 'uppercase',
                                 padding: '3px 10px',
                                 borderRadius: '9999px',
-                                background: 'linear-gradient(135deg, rgba(209, 165, 80, 0.25) 0%, rgba(178, 43, 47, 0.25) 100%)',
-                                color: '#f7d070',
-                                border: '1px solid rgba(247, 208, 112, 0.6)',
+                                background: 'linear-gradient(135deg, var(--eventra-indigo) 0%, var(--eventra-indigo-dark) 100%)',
+                                color: '#ffffff',
+                                border: '1px solid rgba(168, 180, 255, 0.4)',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                boxShadow: '0 0 12px rgba(209, 165, 80, 0.35)',
+                                boxShadow: '0 0 12px rgba(89, 110, 230, 0.35)',
                               }}
                             >
-                              <Crown size={12} color="#f7d070" /> ROOT OWNER / MAIN EVENT ORGANIZER
+                              <Crown size={12} color="#ffffff" /> ROOT OWNER / MAIN EVENT ORGANIZER
                             </span>
                           ) : (
                             <span
@@ -369,19 +369,19 @@ export const TeamManagementModal = ({ onClose, onShowToast, events = [] }) => {
                                 borderRadius: '9999px',
                                 background:
                                   st.role === 'super_admin'
-                                    ? 'rgba(178, 43, 47, 0.2)'
+                                    ? 'rgba(89, 110, 230, 0.2)'
                                     : st.role === 'event_head'
-                                    ? 'rgba(209, 165, 80, 0.2)'
+                                    ? 'rgba(168, 180, 255, 0.2)'
                                     : 'rgba(34, 211, 238, 0.2)',
                                 color:
                                   st.role === 'super_admin'
-                                    ? '#f7d070'
+                                    ? '#A8B4FF'
                                     : st.role === 'event_head'
-                                    ? '#d1a550'
+                                    ? '#EEF0FF'
                                     : '#22d3ee',
                                 border: `1px solid ${
                                   st.role === 'super_admin'
-                                    ? 'rgba(209, 165, 80, 0.4)'
+                                    ? 'rgba(168, 180, 255, 0.4)'
                                     : 'rgba(255, 255, 255, 0.1)'
                                 }`,
                               }}

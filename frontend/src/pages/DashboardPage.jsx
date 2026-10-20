@@ -268,12 +268,12 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <img src="/eventra-logo.png" alt="Eventra" style={{ height: '28px', width: 'auto', display: 'block' }} />
+            <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '30px', width: 'auto', display: 'block' }} />
             <h1 className="dashboard-title" style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Operations Control Room</h1>
             
             {/* Multi-Event Selector Dropdown */}
-            <div className="dashboard-event-picker" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0b0f19', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '9999px', padding: '3px 10px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '800', color: '#f7d070', textTransform: 'uppercase' }}>Active Event:</span>
+            <div className="dashboard-event-picker" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#FFFFFF', border: '1px solid #DDE3FF', borderRadius: '9999px', padding: '3px 12px', boxShadow: '0 2px 6px rgba(41, 48, 74, 0.04)' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#596EE6', textTransform: 'uppercase' }}>Active Event:</span>
               <select
                 value={selectedEventId}
                 onChange={(e) => {
@@ -284,7 +284,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#ffffff',
+                  color: 'var(--eventra-ink, #29304A)',
                   fontWeight: '800',
                   fontSize: '12px',
                   cursor: 'pointer',
@@ -292,7 +292,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
                 }}
               >
                 {eventsList.map((ev) => (
-                  <option key={ev.id || ev.eventId} value={ev.id || ev.eventId} style={{ background: '#0b0f19', color: '#fff' }}>
+                  <option key={ev.id || ev.eventId} value={ev.id || ev.eventId} style={{ background: '#FFFFFF', color: '#29304A' }}>
                     {ev.name} ({ev.category})
                   </option>
                 ))}
@@ -300,8 +300,8 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             </div>
 
             {isMainBoss ? (
-              <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 0 10px rgba(247, 208, 112, 0.3)' }}>
-                <Crown size={12} color="#f7d070" /> MAIN EVENT ORGANIZER (ROOT)
+              <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#EEF0FF', color: '#596EE6', border: '1px solid #DDE3FF', fontWeight: '800' }}>
+                <Crown size={12} color="#596EE6" /> MAIN EVENT ORGANIZER
               </span>
             ) : (
               <span className="badge badge-cyan">SUB-EVENT HEAD</span>
@@ -325,15 +325,15 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
                 setShowCreateEvent(true);
               }}
               style={{
-                background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)',
-                border: '1px solid rgba(247, 208, 112, 0.4)',
+                background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
+                border: '1px solid rgba(89, 110, 230, 0.3)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
             >
-              <Sparkles size={14} color="#f7d070" />
+              <Sparkles size={14} color="#ffffff" />
               <span>+ Launch Event</span>
             </button>
           )}
@@ -341,19 +341,19 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
           {/* Team & Roles (EXCLUSIVE TO MAIN EVENT ORGANIZER / ADITYA RENAKE) */}
           {isMainBoss && (
             <button
-              className="btn btn-cyan btn-sm"
+              className="btn btn-sm"
               onClick={() => {
                 sounds.playClick();
                 setShowTeamModal(true);
               }}
               style={{
-                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.25) 0%, rgba(209, 165, 80, 0.25) 100%)',
-                border: '1px solid rgba(209, 165, 80, 0.5)',
-                color: '#f7d070',
+                background: '#EEF0FF',
+                border: '1px solid #DDE3FF',
+                color: '#596EE6',
                 fontWeight: '800',
               }}
             >
-              <Crown size={14} color="#f7d070" /> Team & Roles (Boss)
+              <Crown size={14} color="#596EE6" /> Team & Roles
             </button>
           )}
 

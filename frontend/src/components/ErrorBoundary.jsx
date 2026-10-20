@@ -60,7 +60,7 @@ export class ErrorBoundary extends React.Component {
                   window.location.reload();
                 }}
                 style={{
-                  background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)',
+                  background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
                   color: '#fff',
                   border: 'none',
                   padding: '10px 20px',
@@ -79,9 +79,9 @@ export class ErrorBoundary extends React.Component {
                   window.location.href = '/';
                 }}
                 style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  color: '#f7d070',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: 'rgba(89, 110, 230, 0.08)',
+                  color: '#596EE6',
+                  border: '1px solid rgba(89, 110, 230, 0.25)',
                   padding: '10px 20px',
                   borderRadius: '8px',
                   fontWeight: '700',

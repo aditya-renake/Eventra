@@ -195,7 +195,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           email: formData.email,
           contact: formData.phone,
         },
-        theme: { color: '#b22b2f' },
+        theme: { color: '#596EE6' },
         handler: async (response) => {
           try {
             if (!response?.razorpay_payment_id) {
@@ -340,7 +340,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           <ArrowLeft size={16} /> <span>Back to event</span>
         </button>
         <div className="registration-brand">
-          <img src="/eventra-logo.png" alt="Eventra" style={{ height: '32px', width: 'auto' }} />
+          <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '34px', width: 'auto' }} />
         </div>
         <div className="registration-secure"><ShieldCheck size={15} /> Secure registration</div>
       </header>

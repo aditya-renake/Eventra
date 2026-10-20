@@ -811,7 +811,7 @@ export const RegistrantTable = ({
                 <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>{selectedPhotoReg.name}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{selectedPhotoReg.email}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#f7d070', fontWeight: '700' }}>{selectedPhotoReg.uniqueId}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--eventra-indigo)', fontWeight: '700' }}>{selectedPhotoReg.uniqueId}</span>
                   <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '700' }}>
                     Checked in {selectedPhotoReg.checkedInAt ? new Date(selectedPhotoReg.checkedInAt).toLocaleTimeString() : 'at Gate'}
                   </span>

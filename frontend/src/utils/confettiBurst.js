@@ -3,6 +3,10 @@
  */
 export function triggerCelebration() {
   try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
     const canvas = document.createElement('canvas');
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
@@ -17,7 +21,7 @@ export function triggerCelebration() {
     const width = (canvas.width = window.innerWidth);
     const height = (canvas.height = window.innerHeight);
 
-    const colors = ['#22c55e', '#06b6d4', '#f59e0b', '#ec4899', '#f7d070'];
+    const colors = ['#596EE6', '#A8B4FF', '#475AC4', '#22c55e', '#06b6d4'];
     const particles = [];
 
     for (let i = 0; i < 70; i++) {

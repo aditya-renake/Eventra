@@ -521,7 +521,7 @@ export const SuperAdminModal = ({
 
                 <div style={{ background: '#090d18', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Passes Emailed</div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#f7d070', marginTop: '2px' }}>{telemetry?.emailSentCount ?? '—'}</div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: 'var(--eventra-indigo)', marginTop: '2px' }}>{telemetry?.emailSentCount ?? '—'}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{telemetry?.pendingEmailDispatch ?? 0} Pending</div>
                 </div>
 
@@ -678,7 +678,7 @@ export const SuperAdminModal = ({
               {/* 2. PARTICIPANT INTAKE MODE */}
               <div style={{ background: '#070a13', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
-                  <RotateCcw size={16} color="#f7d070" />
+                  <RotateCcw size={16} color="var(--eventra-indigo)" />
                   <strong style={{ color: '#fff', fontSize: '14px' }}>2. Participant Intake Mode & 1-Click Revert System</strong>
                 </div>
 
@@ -690,8 +690,8 @@ export const SuperAdminModal = ({
                     style={{
                       padding: '16px',
                       borderRadius: '12px',
-                      border: `2px solid ${regMode === 'native_payment' ? '#f7d070' : 'rgba(255, 255, 255, 0.1)'}`,
-                      background: regMode === 'native_payment' ? 'rgba(247, 208, 112, 0.08)' : '#070a13',
+                      border: `2px solid ${regMode === 'native_payment' ? 'var(--eventra-indigo)' : 'rgba(255, 255, 255, 0.1)'}`,
+                      background: regMode === 'native_payment' ? 'rgba(89, 110, 230, 0.1)' : '#070a13',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                       position: 'relative'
@@ -699,7 +699,7 @@ export const SuperAdminModal = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CreditCard size={16} color={regMode === 'native_payment' ? '#f7d070' : '#9ca3af'} />
+                        <CreditCard size={16} color={regMode === 'native_payment' ? 'var(--eventra-indigo)' : '#9ca3af'} />
                         <strong style={{ color: regMode === 'native_payment' ? '#fff' : '#9ca3af', fontSize: '14px' }}>
                           Native In-App + Razorpay (Active)
                         </strong>
@@ -799,7 +799,7 @@ export const SuperAdminModal = ({
                 {/* Ticket Tier Pricing */}
                 {enablePayments && (
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#f7d070', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--eventra-indigo)', marginBottom: '10px' }}>
                       Ticket Tier Fees (INR ₹)
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
@@ -898,8 +898,8 @@ export const SuperAdminModal = ({
                 {/* Razorpay Gateway Live Credentials */}
                 {enablePayments && (
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '14px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#f7d070', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Key size={14} color="#f7d070" /> Razorpay Live / Test Credentials (Optional)
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--eventra-indigo)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Key size={14} color="var(--eventra-indigo)" /> Razorpay Live / Test Credentials (Optional)
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
                       Add your Razorpay Key ID and Key Secret to instantly enable automated Credit/Debit Cards, NetBanking, and automated payment callbacks. (If left blank, direct UPI QR Code verification is used).
@@ -973,7 +973,7 @@ export const SuperAdminModal = ({
           {/* TAB 1: Live Broadcast Notice to All Digital Passes */}
           {activeTab === 'broadcast' && (
             <form onSubmit={handleSaveBroadcast} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div style={{ background: 'rgba(209, 165, 80, 0.08)', border: '1px solid rgba(209, 165, 80, 0.3)', borderRadius: '12px', padding: '16px', fontSize: '13px', color: '#f7d070' }}>
+              <div style={{ background: 'rgba(89, 110, 230, 0.08)', border: '1px solid rgba(89, 110, 230, 0.25)', borderRadius: '12px', padding: '16px', fontSize: '13px', color: 'var(--eventra-indigo)' }}>
                 <div style={{ fontWeight: '800', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Zap size={15} /> Real-Time Pass Broadcast Network
                 </div>
@@ -1000,7 +1000,7 @@ export const SuperAdminModal = ({
                   id="broadcastActiveCheckbox"
                   checked={broadcastActive}
                   onChange={(e) => setBroadcastActive(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#d1a550', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--eventra-indigo)', cursor: 'pointer' }}
                 />
                 <label htmlFor="broadcastActiveCheckbox" style={{ fontSize: '13px', color: '#fff', cursor: 'pointer', userSelect: 'none' }}>
                   Activate live broadcast on attendee digital passes now
@@ -1011,7 +1011,7 @@ export const SuperAdminModal = ({
                 <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-gold btn-sm" disabled={isSavingBroadcast} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={isSavingBroadcast} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Save size={14} />
                   <span>{isSavingBroadcast ? 'Saving...' : 'Publish Broadcast Live'}</span>
                 </button>
@@ -1094,9 +1094,9 @@ export const SuperAdminModal = ({
 
               {/* Result VIP Pass Card */}
               {generatedVipPass && (
-                <div style={{ background: '#090d18', border: '1px solid #d1a550', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ background: '#090d18', border: '1px solid var(--eventra-soft-border)', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '11px', color: '#f7d070', fontWeight: '800', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--eventra-indigo)', fontWeight: '800', textTransform: 'uppercase' }}>
                       PASS GENERATED SUCCESSFULLY ✅
                     </div>
                     <div style={{ fontSize: '15px', fontWeight: '800', color: '#fff', marginTop: '2px' }}>
@@ -1159,7 +1159,7 @@ export const SuperAdminModal = ({
                 </div>
 
                 <div style={{ background: '#090d18', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#f7d070', fontWeight: '800' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--eventra-indigo)', fontWeight: '800' }}>
                     <Lock size={13} /> SECURITY AUTHORITY
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginTop: '4px' }}>HMAC-SHA256 Token</div>
@@ -1168,7 +1168,7 @@ export const SuperAdminModal = ({
               </div>
 
               <div style={{ background: '#060913', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#9ca3af' }}>
-                <div style={{ color: '#f7d070', fontWeight: '700', marginBottom: '8px' }}>⚡ OPERATOR CREDENTIALS VERIFICATION</div>
+                <div style={{ color: 'var(--eventra-indigo)', fontWeight: '700', marginBottom: '8px' }}>⚡ OPERATOR CREDENTIALS VERIFICATION</div>
                 <div>• Active Session Operator: <strong style={{ color: '#fff' }}>{currentUser?.name || 'Operations Admin'}</strong></div>
                 <div>• Username: <strong style={{ color: '#fff' }}>{currentUser?.username || 'admin'}</strong></div>
                 <div>• Assigned Security Clearance: <strong style={{ color: '#22c55e' }}>LEVEL 0 — LEAD OPERATIONS SOVEREIGN</strong></div>

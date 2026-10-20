@@ -78,15 +78,15 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
             justifyContent: 'space-between',
             padding: '18px 24px',
             borderBottom: '1px solid var(--border-subtle)',
-            background: 'linear-gradient(135deg, rgba(178, 43, 47, 0.15) 0%, rgba(209, 165, 80, 0.1) 100%)',
+            background: 'linear-gradient(135deg, rgba(89, 110, 230, 0.12) 0%, rgba(168, 180, 255, 0.08) 100%)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'rgba(178, 43, 47, 0.2)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-              <Plus size={18} color="#f7d070" />
+            <div style={{ background: 'var(--eventra-soft-lavender)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+              <Plus size={18} color="var(--eventra-indigo)" />
             </div>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Create New Campus Event</div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--eventra-ink)' }}>Create New Campus Event</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Launch a hackathon, workshop, gaming tourney, or seminar</div>
             </div>
           </div>
@@ -359,10 +359,11 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
               style={{
                 padding: '10px 20px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #b22b2f 0%, #7a1518 100%)',
+                background: 'linear-gradient(135deg, var(--eventra-indigo) 0%, var(--eventra-indigo-dark) 100%)',
                 color: '#fff',
                 fontWeight: '800',
-                border: '1px solid rgba(247, 208, 112, 0.4)',
+                border: '1px solid rgba(168, 180, 255, 0.4)',
+                boxShadow: '0 4px 14px rgba(89, 110, 230, 0.3)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',

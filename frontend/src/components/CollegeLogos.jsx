@@ -14,7 +14,7 @@ export const EventraLogo = ({ height = 34, className = '', showBorder = false })
       border: showBorder ? '1px solid rgba(168, 180, 255, 0.25)' : 'none'
     }}>
       <img
-        src="/eventra-logo.png"
+        src="/eventra-logo.svg"
         alt="Eventra"
         style={{ height: `${height}px`, width: 'auto', objectFit: 'contain', display: 'block' }}
       />

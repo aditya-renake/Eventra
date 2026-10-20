@@ -1,13 +1,17 @@
 import React, { useEffect, useRef } from 'react';
 
 /**
- * Interactive Network Constellation Background matching ACES website
- * Renders connected nodes, fine grid, and floating crimson square particles.
+ * Interactive Network Constellation Background for Eventra
+ * Renders connected nodes and floating indigo / lavender particles with reduced-motion respect.
  */
 export const ConstellationBackground = () => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
+    // Check user preference for reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -24,35 +28,35 @@ export const ConstellationBackground = () => {
     window.addEventListener('resize', handleResize);
 
     // Particle nodes
-    const particleCount = Math.min(Math.floor(width / 18), 75);
+    const particleCount = Math.min(Math.floor(width / 22), 60);
     const particles = [];
 
     for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        size: Math.random() < 0.25 ? 5 : Math.random() < 0.6 ? 3 : 2,
-        isSquare: Math.random() < 0.4,
-        opacity: 0.25 + Math.random() * 0.5,
-        color: Math.random() < 0.85 ? '#b22b2f' : '#d1a550',
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() < 0.25 ? 4 : Math.random() < 0.6 ? 2.5 : 1.5,
+        isSquare: Math.random() < 0.3,
+        opacity: 0.2 + Math.random() * 0.4,
+        color: Math.random() < 0.75 ? '#596EE6' : '#A8B4FF',
       });
     }
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Connect near particles with faint crimson lines
+      // Connect near particles with faint indigo lines
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 140) {
-            const alpha = (1 - dist / 140) * 0.15;
-            ctx.strokeStyle = `rgba(178, 43, 47, ${alpha})`;
+          if (dist < 130) {
+            const alpha = (1 - dist / 130) * 0.12;
+            ctx.strokeStyle = `rgba(89, 110, 230, ${alpha})`;
             ctx.lineWidth = 0.75;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
