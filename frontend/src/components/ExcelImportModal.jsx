@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * EXCEL & CSV ROSTER IMPORT MODAL (ExcelImportModal.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Enables organizers to upload offline spreadsheets (.xlsx, .xls, .csv) and
+ *   bulk-import hundreds of participants in seconds.
+ *
+ * Key Capabilities:
+ *   - Parses spreadsheets in-browser using SheetJS (XLSX).
+ *   - Fuzzy maps column headers to attendee fields (Name, Email, College, Phone, Team).
+ *   - Supports optional auto-verification and automatic welcome email triggers.
+ * ============================================================================
+ */
+
 import React, { useState, useRef } from 'react';
 import { 
   FileSpreadsheet, 
@@ -8,10 +23,10 @@ import {
   Mail, 
   Users, 
   Check, 
-  ArrowRight,
-  ShieldCheck,
-  Send,
-  FileText
+  ArrowRight, 
+  ShieldCheck, 
+  Send, 
+  FileText 
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from '../services/api';

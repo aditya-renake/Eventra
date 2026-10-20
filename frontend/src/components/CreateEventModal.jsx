@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * EVENT CREATION MODAL (CreateEventModal.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Wizard enabling organizers to publish new hackathons, tech workshops, or
+ *   esports competitions to the multi-event catalog.
+ *
+ * Key Capabilities:
+ *   - Configures event metadata, venues, capacity caps, and custom tracks.
+ *   - Sets up Google Form / Sheets integration endpoints for external intake.
+ *   - Persists event record directly to Supabase via `/api/event`.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { X, Plus, Calendar, MapPin, Layers, Users, Sparkles, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';

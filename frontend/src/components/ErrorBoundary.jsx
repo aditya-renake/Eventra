@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * REACT RUNTIME ERROR BOUNDARY (ErrorBoundary.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Catches unhandled runtime exceptions in descendant React component trees,
+ *   logs errors to console, and presents a branded recovery interface with
+ *   options to reload or clear corrupted cache/storage state.
+ * ============================================================================
+ */
+
 import React from 'react';
 
 export class ErrorBoundary extends React.Component {

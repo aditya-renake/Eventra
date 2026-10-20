@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * EVENT DISCOVERY & CATALOG COMPONENT (EventsDiscoverySection.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Dynamic catalog showcase rendering all upcoming events, hackathons, and
+ *   workshops. Enables attendees to filter by category, search by keyword,
+ *   and click "Register Now" to seamlessly jump into in-app registration.
+ *
+ * Key Capabilities:
+ *   - Live catalog query from `/api/event` with local fallback dataset.
+ *   - Category pills (Hackathons, AI Bootcamps, Esports, Cultural).
+ *   - Direct callback `onSelectEvent(event)` wiring event details into checkout.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 

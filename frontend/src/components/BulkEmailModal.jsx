@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * BULK EMAIL DISPATCH MODAL (BulkEmailModal.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Queue and dispatch mass ticket pass emails to attendees.
+ *   Provides precise targeting filters to ensure passes are only sent to verified
+ *   attendees without duplicate spamming.
+ *
+ * Targeting Modes:
+ *   - 'verified_pending' : Only sends to verified attendees who have not yet received an email.
+ *   - 'selected'         : Sends only to checkboxes explicitly selected in the table.
+ *   - 'verified_all'     : Re-sends or broadcasts passes to all verified participants.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { X, Send, AlertCircle, RefreshCw, CheckCircle2, Users, CheckSquare, Mail } from 'lucide-react';
 import { api } from '../services/api';

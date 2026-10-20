@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * HIGH-PERFORMANCE QR SCANNER COMPONENT (QRScanner.jsx)
+ * ============================================================================
+ * Purpose:
+ *   Hardware-accelerated camera barcode scanner for gate admission desks.
+ *   Interacts directly with webcams and phone cameras to decode attendee passes,
+ *   verify cryptographic signatures, and prevent entry fraud.
+ *
+ * Key Capabilities:
+ *   - Camera device detection, switching (front vs. back wide-angle), and FPS tuning.
+ *   - Instant audio chimes, celebratory particle effects, and modal feedback.
+ *   - Manual alphanumeric pass ID fallback input for damaged phone screens.
+ *   - Anti-duplication debouncing preventing accidental double-scans.
+ * ============================================================================
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 const getHtml5Qrcode = () => window.Html5Qrcode;
 import { 
