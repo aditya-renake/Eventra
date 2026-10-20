@@ -46,8 +46,6 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       .catch(() => {});
   }, []);
 
-  const googleFormUrl = eventConfig?.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6';
-  const isNativePaymentMode = eventConfig?.registrationMode === 'native_payment';
   const eventName = eventConfig?.eventName || 'Eventra 2026';
 
   const handleHeroPointerMove = (event) => {
@@ -164,7 +162,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       onShowToast({
         type: 'error',
         title: 'Pass Not Found',
-        message: 'No registered pass found for this ID or Email. Please ensure you completed the Google Form registration.',
+        message: 'No registered pass found for this ID or Email. Please ensure you completed your registration.',
       });
     } finally {
       setIsLookingUp(false);
@@ -227,15 +225,9 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           </div>
 
           <div className="event-hero-actions">
-            {isNativePaymentMode ? (
-              <button type="button" onClick={onNavigateToRegister} className="event-hero-cta">
-                <Ticket size={17} /> Get your pass <ArrowUpRight size={16} />
-              </button>
-            ) : (
-              <a href={googleFormUrl} target="_blank" rel="noreferrer" className="event-hero-cta">
-                <Ticket size={17} /> Register for the event <ExternalLink size={14} />
-              </a>
-            )}
+            <button type="button" onClick={onNavigateToRegister} className="event-hero-cta">
+              <Ticket size={17} /> Get your pass <ArrowUpRight size={16} />
+            </button>
             <a href="#tracks-section" className="event-hero-secondary">Explore the tracks <ArrowUpRight size={15} /></a>
           </div>
 
@@ -548,6 +540,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
 
       {/* CampusMeet Style Events Discovery Hub */}
       <EventsDiscoverySection
+        onSelectEvent={onNavigateToRegister}
         onNavigateToLookup={() => {
           const el = document.getElementById('lookup-section');
           if (el) el.scrollIntoView({ behavior: 'smooth' });

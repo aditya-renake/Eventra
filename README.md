@@ -62,8 +62,8 @@ Built around a high-performance **React 18** frontend and an asynchronous **Node
 
 ```
        ┌──────────────────────┐         ┌─────────────────────────┐
-       │   Attendee Signup    │         │  Google Forms / Sheets  │
-       │ (Direct Native / Web)│         │     (Webhook Intake)    │
+       │ Native In-App Portal │         │  External REST Webhook  │
+       │ (Direct Registration)│         │     (API Ingestion)     │
        └──────────┬───────────┘         └────────────┬────────────┘
                   │                                  │
                   ▼                                  ▼
@@ -105,7 +105,7 @@ Built around a high-performance **React 18** frontend and an asynchronous **Node
 <summary><strong>3. Multi-Channel Attendee Intake & Webhook Bridge</strong></summary>
 
 - **Native Intake Portal**: Interactive registration modal with customizable ticket tiers, team grouping, and optional Razorpay integration.
-- **Google Sheets & Forms Webhook**: Plug-and-play Google Apps Script trigger synchronizes external form submissions into verified Eventra passes in real time.
+- **REST Ingestion Webhook**: High-throughput REST API endpoint (`POST /api/registrants/webhook`) ingests attendee data from custom registration systems, college portals, or external forms into verified Eventra passes in real time.
 - **Excel & Bulk Import**: Built-in drag-and-drop spreadsheet parser enables one-click batch pass generation for pre-registered cohorts.
 </details>
 
@@ -206,7 +206,7 @@ The repository includes a root `vercel.json` and a serverless API adapter (`api/
 | `GET` | `/api/events` | Retrieve active public campus events |
 | `GET` | `/api/registrants/lookup/:uniqueId` | Fetch attendee pass data by Unique ID |
 | `POST` | `/api/registrants/register` | Direct attendee self-registration |
-| `POST` | `/api/registrants/webhook` | Webhook receiver for Google Forms / Sheets |
+| `POST` | `/api/registrants/webhook` | Ingestion receiver for external registrations & webhooks |
 
 ### Protected Operations Endpoints (Bearer JWT Required)
 | Method | Route | Description | Clearance |

@@ -189,7 +189,7 @@ export const purgeAllStaffExceptOwner = async (req, res) => {
 };
 
 /**
- * Public: Get dynamic event configuration (Registration Mode, Ticket Prices, Google Form URL)
+ * Public: Get dynamic event configuration (Registration Mode, Ticket Prices, Gateway)
  */
 export const getEventConfig = async (req, res) => {
   try {
@@ -202,7 +202,7 @@ export const getEventConfig = async (req, res) => {
 };
 
 /**
- * Admin: Update event configuration (Toggle Google Form vs In-App + Razorpay)
+ * Admin: Update event configuration (Pricing, Credentials & Intake Settings)
  */
 export const updateEventConfig = async (req, res) => {
   try {

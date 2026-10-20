@@ -3,197 +3,99 @@ import {
   X, 
   Copy, 
   Check, 
-  Terminal, 
-  Play, 
   Sparkles, 
-  ExternalLink, 
-  CheckCircle2, 
-  HelpCircle,
-  FileSpreadsheet
+  Send, 
+  Terminal, 
+  Code2,
+  CheckCircle2,
+  ShieldCheck,
+  Webhook
 } from 'lucide-react';
 import { api } from '../services/api';
+import { sounds } from '../utils/soundEffects';
 
-export const WebhookGuideModal = ({ onClose, onShowToast, onRefresh }) => {
+export const WebhookGuideModal = ({ onClose, onShowToast }) => {
   const [copied, setCopied] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [simName, setSimName] = useState('Ankit Verma');
   const [simEmail, setSimEmail] = useState('ankit.verma@example.com');
   const [simPhone, setSimPhone] = useState('+91 98980 12345');
   const [simTeam, setSimTeam] = useState('HyperScale Labs');
   const [simTrack, setSimTrack] = useState('AI & Agentic Systems');
+  const [isSimulating, setIsSimulating] = useState(false);
 
   const webhookUrl = `${window.location.origin}/api/registrants/webhook`;
 
-  const appsScriptCode = `/**
- * Google Apps Script for Eventra 2026 Registration Intake & Verification Sync
- * 1. Open your Google Sheet linked to Google Forms
- * 2. Click Extensions -> Apps Script -> Paste this entire code
- * 3. Triggers (⏰ Alarm clock icon on left) -> Add 2 Triggers:
- *    - onFormSubmit (Event: On form submit)
- *    - onEdit (Event: On edit)
- */
-
-const WEBHOOK_URL = "${webhookUrl}";
-
-/**
- * Trigger 1: Runs automatically when a hacker submits the Google Form
- */
-function onFormSubmit(e) {
-  try {
-    const itemResponses = e ? e.namedValues : null;
-    
-    let name = "Sample Hacker";
-    let email = "hacker@example.com";
-    let phone = "";
-    let ticketType = "Hacker Pass";
-    let teamName = "";
-    let track = "AI & Agentic Systems";
-    let institution = "";
-    let formResponses = {};
-
-    if (itemResponses) {
-      for (const [key, valArray] of Object.entries(itemResponses)) {
-        const val = valArray ? valArray[0] : "";
-        const cleanKey = key.trim();
-        formResponses[cleanKey] = val;
-
-        const lower = cleanKey.toLowerCase();
-        if (lower.includes("name") && !lower.includes("team")) name = val;
-        else if (lower.includes("email")) email = val;
-        else if (lower.includes("phone") || lower.includes("contact")) phone = val;
-        else if (lower.includes("team")) teamName = val;
-        else if (lower.includes("track") || lower.includes("category")) track = val;
-        else if (lower.includes("college") || lower.includes("inst")) institution = val;
-      }
-    }
-
-    const payload = {
-      name: name,
-      email: email,
-      phone: phone,
-      ticketType: ticketType,
-      teamName: teamName,
-      track: track,
-      institution: institution,
-      formResponses: formResponses
-    };
-
-    const options = {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-
-    const response = UrlFetchApp.fetch(WEBHOOK_URL, options);
-    Logger.log("Eventra Webhook Response: " + response.getContentText());
-  } catch (error) {
-    Logger.log("Error onFormSubmit: " + error.toString());
-  }
-}
-
-/**
- * Trigger 2: Runs automatically when you change 'Verified' / 'Not Verified' dropdown in Google Sheet!
- */
-function onEdit(e) {
-  try {
-    if (!e || !e.range) return;
-    const range = e.range;
-    const sheet = range.getSheet();
-    const row = range.getRow();
-    const col = range.getColumn();
-    
-    // Ignore header row
-    if (row <= 1) return;
-
-    // Check edited column header name
-    const headerName = sheet.getRange(1, col).getValue().toString().toLowerCase().trim();
-    
-    if (headerName.includes("verif") || headerName.includes("status") || headerName.includes("approval")) {
-      const cellValue = range.getValue().toString().trim();
-      const isVerified = cellValue.toLowerCase() === "verified";
-
-      // Look for the Email column in Row 1
-      const lastCol = sheet.getLastColumn();
-      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-      let emailCol = -1;
-      for (let i = 0; i < headers.length; i++) {
-        if (headers[i].toString().toLowerCase().includes("email")) {
-          emailCol = i + 1;
-          break;
-        }
-      }
-
-      if (emailCol > 0) {
-        const hackerEmail = sheet.getRange(row, emailCol).getValue().toString().trim();
-        if (hackerEmail) {
-          const payload = {
-            action: "update_status",
-            email: hackerEmail,
-            verified: isVerified,
-            verificationStatus: isVerified ? "Verified" : "Not Verified"
-          };
-
-          const options = {
-            method: "post",
-            contentType: "application/json",
-            payload: JSON.stringify(payload),
-            muteHttpExceptions: true
-          };
-
-          UrlFetchApp.fetch(WEBHOOK_URL, options);
-          Logger.log("✅ Updated verification for " + hackerEmail + " to: " + (isVerified ? "Verified" : "Not Verified"));
-        }
-      }
-    }
-  } catch (err) {
-    Logger.log("Error in onEdit sync: " + err.toString());
-  }
-}
-`;
+  const webhookCurlExample = `curl -X POST "${webhookUrl}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Ankit Verma",
+    "email": "ankit.verma@example.com",
+    "phone": "+91 98980 12345",
+    "ticketType": "Hacker Pass",
+    "teamName": "HyperScale Labs",
+    "track": "AI & Agentic Systems",
+    "institution": "Dr. D. Y. Patil Institute of Technology, Pune"
+  }'`;
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(appsScriptCode);
+    sounds.playClick();
+    navigator.clipboard.writeText(webhookCurlExample);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     onShowToast({
       type: 'success',
-      title: 'Copied to Clipboard! 📋',
-      message: 'Google Apps Script snippet is ready to paste into your Google Sheet.',
+      title: 'Payload Copied!',
+      message: 'cURL ingestion request copied to clipboard.',
     });
   };
 
   const handleRunSimulation = async (e) => {
     e.preventDefault();
-    try {
-      setIsSimulating(true);
-      const res = await api.registrants.simulateGoogleFormWebhook({
-        name: simName,
-        email: simEmail,
-        phone: simPhone,
-        ticketType: 'Hacker Pass',
-        teamName: simTeam,
-        track: simTrack,
-        formResponses: {
-          'T-Shirt Size': 'L',
-          'Dietary Preference': 'Vegetarian',
-          'Hackathon Project Idea': 'Automated Multi-Modal Contract Security Auditor',
-          'Submission Timestamp': new Date().toISOString(),
-        },
-      });
-
-      onShowToast({
-        type: 'success',
-        title: 'Webhook Test Ingested! 📥',
-        message: `Registered: ${res.data.name} -> Generated Pass ID: ${res.data.uniqueId}`,
-      });
-
-      if (onRefresh) onRefresh();
-    } catch (err) {
+    if (!simName.trim() || !simEmail.trim()) {
       onShowToast({
         type: 'error',
-        title: 'Simulation Error',
-        message: err.message,
+        title: 'Validation Error',
+        message: 'Name and email are required for the simulation.',
+      });
+      return;
+    }
+
+    try {
+      setIsSimulating(true);
+      sounds.playClick();
+
+      const mockPayload = {
+        name: simName.trim(),
+        email: simEmail.trim(),
+        phone: simPhone.trim(),
+        ticketType: 'Hacker Pass',
+        teamName: simTeam.trim(),
+        track: simTrack,
+        institution: 'Campus Delegate',
+        formResponses: {
+          'Full Name': simName.trim(),
+          'Email': simEmail.trim(),
+          'Contact': simPhone.trim(),
+          'Team': simTeam.trim(),
+          'Track': simTrack,
+          'Ingestion Source': 'REST Webhook Engine',
+        },
+      };
+
+      const res = await api.registrants.submitWebhook(mockPayload);
+      sounds.playSuccess();
+      onShowToast({
+        type: 'success',
+        title: 'Webhook Ingested! ⚡',
+        message: `Pass created for ${mockPayload.name} (${res.data?.uniqueId || 'HS26-XXXXXX'}).`,
+      });
+      onClose();
+    } catch (err) {
+      sounds.playError();
+      onShowToast({
+        type: 'error',
+        title: 'Simulation Failed',
+        message: err.message || 'Webhook rejected payload.',
       });
     } finally {
       setIsSimulating(false);
@@ -207,12 +109,12 @@ function onEdit(e) {
         {/* Modal Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(34, 197, 94, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
-              <FileSpreadsheet size={18} />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--eventra-soft-lavender)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--eventra-indigo)' }}>
+              <Webhook size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: '#fff' }}>Google Forms & Sheet Webhook Bridge</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Real-time automatic intake of Google Form submissions</div>
+              <div style={{ fontSize: '17px', fontWeight: '800', color: '#fff' }}>Eventra REST Ingestion &amp; Webhook Bridge</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Real-time automatic intake from external forms &amp; registration systems</div>
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>
@@ -226,21 +128,21 @@ function onEdit(e) {
           {/* Step-by-Step Instructions */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
             <div style={{ background: '#0b0f19', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: '#22c55e', textTransform: 'uppercase' }}>Step 1</div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>Open Linked Sheet</div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Open the Google Sheet linked to your Google Form.</p>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--eventra-indigo)', textTransform: 'uppercase' }}>Target URL</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>POST Endpoint</div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Dispatch JSON payload to <code>/api/registrants/webhook</code>.</p>
             </div>
 
             <div style={{ background: '#0b0f19', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: '#06b6d4', textTransform: 'uppercase' }}>Step 2</div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>Extensions → Apps Script</div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Click Extensions &gt; Apps Script in the Google Sheet menu.</p>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#06b6d4', textTransform: 'uppercase' }}>Format</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>JSON Body</div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Include name, email, phone, teamName, track, and ticketType.</p>
             </div>
 
             <div style={{ background: '#0b0f19', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: '#a78bfa', textTransform: 'uppercase' }}>Step 3</div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>Paste & Add Trigger</div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Paste the code below, then click Triggers (clock icon) &gt; Add Trigger on 'Form Submit'.</p>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#a78bfa', textTransform: 'uppercase' }}>Output</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>Instant Cryptographic Pass</div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Generates HMAC-SHA256 digital QR ticket and queues confirmation email.</p>
             </div>
           </div>
 
@@ -248,27 +150,27 @@ function onEdit(e) {
           <div style={{ position: 'relative', marginBottom: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#080d1a', padding: '8px 16px', borderTopLeftRadius: '10px', borderTopRightRadius: '10px', border: '1px solid var(--border-subtle)', borderBottom: 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                <Terminal size={14} /> Code.gs
+                <Terminal size={14} /> cURL Ingestion Request
               </div>
               <button className="btn btn-sm btn-primary" onClick={handleCopyCode} style={{ padding: '4px 12px', fontSize: '11px' }}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
-                <span>{copied ? 'Copied!' : 'Copy Script'}</span>
+                <span>{copied ? 'Copied!' : 'Copy cURL'}</span>
               </button>
             </div>
 
             <pre style={{ background: '#030712', border: '1px solid var(--border-subtle)', borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px', padding: '16px', fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#4ade80', maxHeight: '180px', overflowY: 'auto', margin: 0 }}>
-              {appsScriptCode}
+              {webhookCurlExample}
             </pre>
           </div>
 
           {/* Interactive Webhook Simulator */}
-          <div style={{ background: '#0b0f19', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '14px', padding: '18px' }}>
+          <div style={{ background: '#0b0f19', border: '1px solid rgba(89, 110, 230, 0.3)', borderRadius: '14px', padding: '18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Sparkles size={16} color="#06b6d4" />
-              <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>Interactive Webhook Test Simulator</span>
+              <Sparkles size={16} color="var(--eventra-indigo)" />
+              <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>Interactive Webhook Ingestion Simulator</span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Test your endpoint without opening Google Forms. This dispatches an instant simulated submission to <code style={{ color: '#22c55e', background: '#030712', padding: '2px 6px', borderRadius: '4px' }}>POST /api/registrants/webhook</code>.
+              Test your endpoint directly. This dispatches an instant simulated attendee to <code style={{ color: 'var(--eventra-indigo)', background: '#030712', padding: '2px 6px', borderRadius: '4px' }}>POST /api/registrants/webhook</code> and issues a live verified pass.
             </p>
 
             <form onSubmit={handleRunSimulation} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
@@ -302,11 +204,35 @@ function onEdit(e) {
                 value={simTeam}
                 onChange={(e) => setSimTeam(e.target.value)}
               />
-              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
-                <button type="submit" className="btn btn-cyan" disabled={isSimulating}>
-                  <Play size={14} /> {isSimulating ? 'Simulating...' : 'Dispatch Test Submission'}
-                </button>
-              </div>
+              <select
+                className="select-control"
+                value={simTrack}
+                onChange={(e) => setSimTrack(e.target.value)}
+              >
+                <option value="AI & Agentic Systems">AI &amp; Agentic Systems</option>
+                <option value="Cybersecurity & Privacy">Cybersecurity &amp; Privacy</option>
+                <option value="Web3 & Decentralized Tech">Web3 &amp; Decentralized Tech</option>
+                <option value="Cloud & Distributed Systems">Cloud &amp; Distributed Systems</option>
+                <option value="Open Innovation & Campus Tech">Open Innovation</option>
+              </select>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSimulating}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  gridColumn: '1 / -1',
+                  marginTop: '4px',
+                  padding: '10px 16px',
+                }}
+              >
+                <Send size={14} />
+                <span>{isSimulating ? 'Ingesting Simulated Pass...' : 'Dispatch Ingestion Test Payload'}</span>
+              </button>
             </form>
           </div>
 

@@ -66,9 +66,8 @@ export const SuperAdminModal = ({
   const [organizerEmail, setOrganizerEmail] = useState(eventConfig?.organizerEmail || 'tigeradi1504@gmail.com');
 
   // Registration Mode & Payment Gateway State
-  const [regMode, setRegMode] = useState(eventConfig?.registrationMode || 'native_payment');
+  const [regMode, setRegMode] = useState('native_payment');
   const [enablePayments, setEnablePayments] = useState(eventConfig?.enablePaymentGateway !== false);
-  const [googleFormLink, setGoogleFormLink] = useState(eventConfig?.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6');
   const [hackerPrice, setHackerPrice] = useState(eventConfig?.ticketPrices?.['Hacker Pass'] ?? 5);
   const [studentPrice, setStudentPrice] = useState(eventConfig?.ticketPrices?.['Student Pass'] ?? 5);
   const [vipPrice, setVipPrice] = useState(eventConfig?.ticketPrices?.['VIP Delegate'] ?? 5);
@@ -229,10 +228,9 @@ export const SuperAdminModal = ({
         organizerName: organizerName ? organizerName.trim() : '',
         organizerEmail: organizerEmail ? organizerEmail.trim() : '',
 
-        // Registration Mode & Fallback
-        registrationMode: regMode,
+        // Registration Mode
+        registrationMode: 'native_payment',
         enablePaymentGateway: enablePayments,
-        googleFormUrl: googleFormLink ? googleFormLink.trim() : '',
 
         // Payment Gateway & Direct UPI Details
         upiId: upiId ? upiId.trim() : 'tigeradi1504-1@okicici',
@@ -675,104 +673,32 @@ export const SuperAdminModal = ({
                 </div>
               </div>
 
-              {/* 2. PARTICIPANT INTAKE MODE */}
+              {/* 2. PARTICIPANT INTAKE ENGINE */}
               <div style={{ background: '#070a13', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
-                  <RotateCcw size={16} color="var(--eventra-indigo)" />
-                  <strong style={{ color: '#fff', fontSize: '14px' }}>2. Participant Intake Mode & 1-Click Revert System</strong>
+                  <CreditCard size={16} color="var(--eventra-indigo)" />
+                  <strong style={{ color: '#fff', fontSize: '14px' }}>2. Native Participant Intake & Instant Pass Engine</strong>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-                  
-                  {/* Option: Native In-App + Razorpay */}
-                  <div 
-                    onClick={() => { sounds.playClick(); setRegMode('native_payment'); }}
-                    style={{
-                      padding: '16px',
-                      borderRadius: '12px',
-                      border: `2px solid ${regMode === 'native_payment' ? 'var(--eventra-indigo)' : 'rgba(255, 255, 255, 0.1)'}`,
-                      background: regMode === 'native_payment' ? 'rgba(89, 110, 230, 0.1)' : '#070a13',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CreditCard size={16} color={regMode === 'native_payment' ? 'var(--eventra-indigo)' : '#9ca3af'} />
-                        <strong style={{ color: regMode === 'native_payment' ? '#fff' : '#9ca3af', fontSize: '14px' }}>
-                          Native In-App + Razorpay (Active)
-                        </strong>
-                      </div>
-                      <input 
-                        type="radio" 
-                        name="registrationMode" 
-                        checked={regMode === 'native_payment'} 
-                        onChange={() => setRegMode('native_payment')} 
-                      />
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '2px solid var(--eventra-indigo)',
+                  background: 'rgba(89, 110, 230, 0.1)',
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle2 size={16} color="var(--eventra-indigo)" />
+                      <strong style={{ color: '#fff', fontSize: '14px' }}>
+                        Native In-App Intake (Active Everywhere)
+                      </strong>
                     </div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                      Direct on-site registration modal at <code>/#register</code>. Supports UPI, NetBanking, Cards with Razorpay. Instantly issues cryptographically signed passes.
-                    </p>
-                    {regMode === 'native_payment' && (
-                      <div style={{ marginTop: '10px', display: 'inline-block' }}>
-                        <span className="badge badge-gold" style={{ fontSize: '10px' }}>RECOMMENDED</span>
-                      </div>
-                    )}
+                    <span className="badge badge-emerald" style={{ fontSize: '10px' }}>LIVE &amp; VERIFIED</span>
                   </div>
-
-                  {/* Option: Classic Google Form */}
-                  <div 
-                    onClick={() => { sounds.playClick(); setRegMode('google_form'); }}
-                    style={{
-                      padding: '16px',
-                      borderRadius: '12px',
-                      border: `2px solid ${regMode === 'google_form' ? '#22d3ee' : 'rgba(255, 255, 255, 0.1)'}`,
-                      background: regMode === 'google_form' ? 'rgba(34, 211, 238, 0.08)' : '#070a13',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <RotateCcw size={16} color={regMode === 'google_form' ? '#22d3ee' : '#9ca3af'} />
-                        <strong style={{ color: regMode === 'google_form' ? '#fff' : '#9ca3af', fontSize: '14px' }}>
-                          Classic Google Form (Original)
-                        </strong>
-                      </div>
-                      <input 
-                        type="radio" 
-                        name="registrationMode" 
-                        checked={regMode === 'google_form'} 
-                        onChange={() => setRegMode('google_form')} 
-                      />
-                    </div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                      Landing page CTA redirects participants directly to your Google Form. Existing AppSheet / Webhook synchronization remains active.
-                    </p>
-                    {regMode === 'google_form' && (
-                      <div style={{ marginTop: '10px', display: 'inline-block' }}>
-                        <span className="badge badge-cyan" style={{ fontSize: '10px' }}>CLASSIC ACTIVE</span>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-
-                {/* Google Form Link */}
-                <div style={{ marginTop: '6px' }}>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
-                    Google Form URL (Classic Mode Destination)
-                  </label>
-                  <input 
-                    type="url" 
-                    className="input" 
-                    value={googleFormLink} 
-                    onChange={(e) => setGoogleFormLink(e.target.value)} 
-                    placeholder="https://forms.gle/..."
-                    style={{ width: '100%' }}
-                  />
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                    Direct on-site registration modal at <code>/#register</code>. Supports UPI, NetBanking, Cards with Razorpay. Instantly issues cryptographically signed passes.
+                  </p>
                 </div>
               </div>
 
@@ -1026,7 +952,7 @@ export const SuperAdminModal = ({
                 <div style={{ fontWeight: '800', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={15} /> Instant Cryptographic VIP / Judge Pass Issuer
                 </div>
-                Generate a verified holographic digital pass on the spot for VIP guests, keynote speakers, judges, or mentors without requiring a Google Form response.
+                Generate a verified holographic digital pass on the spot for VIP guests, keynote speakers, judges, or mentors with instant cryptographic signing.
               </div>
 
               <form onSubmit={handleGenerateVip} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>

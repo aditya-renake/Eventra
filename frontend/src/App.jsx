@@ -255,7 +255,7 @@ export function App() {
           </div>
           <div style={{ display: 'flex', gap: '16px' }}>
             <span>🔒 Zero-Forgery HMAC Engine</span>
-            <span>⚡ Google Forms Sync</span>
+            <span>⚡ Native In-App Intake</span>
             <span>📱 In-Browser Camera Scanner</span>
           </div>
         </div>

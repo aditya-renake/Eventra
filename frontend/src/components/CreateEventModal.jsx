@@ -14,7 +14,6 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
     venue: 'Eventra Main Stage / Hybrid Arena',
     organizerName: 'ACES DIT Pune',
     organizerEmail: 'tigeradi1504@gmail.com',
-    googleFormUrl: '',
     totalCapacity: 250,
     ticketTiers: 'Standard Pass, VIP Delegate',
     tracks: 'Track A, Track B',
@@ -281,28 +280,6 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 }}
               />
             </div>
-          </div>
-
-          {/* Google Form Link */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-dim)', marginBottom: '6px', display: 'block' }}>
-              GOOGLE REGISTRATION FORM URL
-            </label>
-            <input
-              type="url"
-              placeholder="https://forms.gle/..."
-              value={formData.googleFormUrl}
-              onChange={(e) => setFormData({ ...formData, googleFormUrl: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                background: '#0b0f19',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                color: '#fff',
-                fontSize: '13px',
-              }}
-            />
           </div>
 
           {/* Ticket Tiers & Tracks */}

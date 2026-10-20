@@ -777,7 +777,7 @@ export const buildRegistrationReceivedEmailHtml = ({
       </p>
 
       <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 0 0 20px 0;">
-        Thank you for registering for <strong>${eventName}</strong> at <strong>${eventVenue}</strong>. We have successfully received your registration details via Google Form.
+        Thank you for registering for <strong>${eventName}</strong> at <strong>${eventVenue}</strong>. We have successfully received your registration details.
       </p>
 
       <!-- Verification Status Callout -->

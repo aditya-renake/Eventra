@@ -419,7 +419,7 @@ export const RegistrantTable = ({
               <tr>
                 <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--text-dim)' }}>
                   <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '4px' }}>No Registrants Found</div>
-                  <p style={{ fontSize: '13px' }}>Google Form submissions will automatically appear here in real time via webhook.</p>
+                  <p style={{ fontSize: '13px' }}>Attendee registrations will automatically appear here in real time.</p>
                 </td>
               </tr>
             ) : (

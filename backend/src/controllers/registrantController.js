@@ -45,7 +45,7 @@ export const getRegistrants = async (req, res) => {
 };
 
 /**
- * Webhook receiver for Google Forms / Google Sheet Apps Script onFormSubmit trigger
+ * Webhook receiver for external attendee registration ingestion
  */
 export const handleWebhookSubmission = async (req, res) => {
   try {

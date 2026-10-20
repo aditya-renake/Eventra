@@ -25,7 +25,6 @@ export const DEFAULT_EVENTS = [
     venue: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
     organizerName: 'ACES (Association of Computer Engineering Students)',
     organizerEmail: 'tigeradi1504@gmail.com',
-    googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
     ticketTiers: ['Hacker Pass', 'VIP Delegate', 'Judge Pass', 'Mentor'],
     tracks: [
       'AI & Agentic Systems',
@@ -59,7 +58,6 @@ export const DEFAULT_EVENTS = [
     venue: 'ACES High-Performance AI Lab (Block 402), DIT Pune',
     organizerName: 'ACES Technical Council',
     organizerEmail: 'tigeradi1504@gmail.com',
-    googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
     ticketTiers: ['Workshop Pass', 'Student Pass'],
     tracks: ['Multi-Agent Systems', 'Model Fine-tuning', 'Vector Search'],
     status: 'upcoming',
@@ -87,7 +85,6 @@ export const DEFAULT_EVENTS = [
     venue: 'DIT Main Auditorium & ACES Esports Zone, Pimpri, Pune',
     organizerName: 'ACES Sports & Esports Committee',
     organizerEmail: 'tigeradi1504@gmail.com',
-    googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
     ticketTiers: ['Player Pass', 'Spectator Pass', 'VIP Lounge'],
     tracks: ['Valorant 5v5', 'BGMI Squads'],
     status: 'upcoming',

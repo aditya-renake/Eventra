@@ -10,8 +10,7 @@ const DEFAULT_CONFIG = {
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune - 411018',
   organizerEmail: 'tigeradi1504@gmail.com',
   organizerName: 'ACES (Association of Computer Engineering Students), DIT Pune',
-  googleFormUrl: 'https://forms.gle/TmoSjzxUt7yAKz1o6',
-  registrationMode: 'native_payment', // 'native_payment' (direct in-app registration + payment) or 'google_form'
+  registrationMode: 'native_payment', // Native in-app registration + instant pass issuance
   enablePaymentGateway: true, // Enabled: Razorpay and direct payments active
   ticketPrices: {
     'Hacker Pass': 5,

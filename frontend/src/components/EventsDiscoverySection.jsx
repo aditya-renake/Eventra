@@ -271,27 +271,32 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
 
                   {/* Action Buttons */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '14px', borderTop: '1px solid #E2E8F8' }}>
-                    <a
-                      href={ev.googleFormUrl || 'https://forms.gle/TmoSjzxUt7yAKz1o6'}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => sounds.playClick()}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sounds.playClick();
+                        if (onSelectEvent) onSelectEvent(ev);
+                        else {
+                          window.location.hash = '#register';
+                        }
+                      }}
                       className="btn btn-primary"
                       style={{
                         padding: '10px',
                         borderRadius: '10px',
                         fontSize: '12px',
                         fontWeight: '700',
-                        textDecoration: 'none',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
+                        border: 'none',
                       }}
                     >
                       <span>Register</span>
                       <ArrowUpRight size={14} />
-                    </a>
+                    </button>
 
                     <a
                       href="#lookup-section"

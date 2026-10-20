@@ -16,7 +16,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Primary Intake Webhook from Google Form / Google Apps Script trigger
+// Primary Intake Webhook for external attendee registration
 router.post('/webhook', handleWebhookSubmission);
 
 // Public Digital Pass Lookup (by UniqueId or Email)

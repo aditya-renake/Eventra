@@ -309,7 +309,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             <span className="badge badge-dyp">EVENTRA OPS</span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Multi-Event Campus Engine • Live Google Forms Sync • Express Gate Check-In • Role-Based Delegation
+            Multi-Event Campus Engine • Native Attendee Ingestion • Express Gate Check-In • Role-Based Delegation
           </p>
         </div>
 
@@ -454,7 +454,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
               </span>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Live Google Forms Sync • Real-Time Gate Check-In & Attendee Pass Management
+              Native Event Registration • Real-Time Gate Check-In & Attendee Pass Management
             </div>
           </div>
         </div>
@@ -510,7 +510,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         <StatCard
           title="Total Registrations"
           value={stats.totalRegistrants}
-          subtitle="Real-time Google Form intake"
+          subtitle="Real-time verified intake"
           icon={Users}
           color="emerald"
         />
