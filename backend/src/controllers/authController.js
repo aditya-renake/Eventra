@@ -22,15 +22,27 @@ const OWNER_REGISTRATION_SECRET = process.env.OWNER_REGISTRATION_SECRET || 'K8!v
 export const login = async (req, res) => {
   try {
     const { username, email, identifier, password } = req.body || {};
-    const rawEmail = String(email || identifier || username || '').toLowerCase().trim();
+    let rawEmail = String(email || identifier || username || '').toLowerCase().trim();
     const rawPassword = String(password || '').trim();
 
     if (!rawEmail || !rawPassword) {
-      return res.status(400).json({ success: false, message: 'Email address and password are required.' });
+      return res.status(400).json({ success: false, message: 'Username/Email address and password are required.' });
     }
 
-    if (!rawEmail.includes('@')) {
-      return res.status(400).json({ success: false, message: 'Please enter your registered email address to sign in.' });
+    // Automatically resolve known usernames or lookup in staffRepo
+    if (rawEmail === 'adityarenake') {
+      rawEmail = 'tigeradi1504@gmail.com';
+    } else if (rawEmail === 'gate_scanner_1') {
+      rawEmail = 'scanner@acesdit.org';
+    } else if (rawEmail === 'rajsingh') {
+      rawEmail = 'rajsingh2007.rs@gmail.com';
+    } else if (!rawEmail.includes('@')) {
+      const existingUser = await staffRepo.findByUsername(rawEmail).catch(() => null);
+      if (existingUser?.email) {
+        rawEmail = existingUser.email.toLowerCase().trim();
+      } else {
+        return res.status(400).json({ success: false, message: 'Please enter a valid registered email address or username.' });
+      }
     }
 
     // Always ensure default admin accounts exist

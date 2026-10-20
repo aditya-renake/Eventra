@@ -28,25 +28,25 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorCode, setErrorCode] = useState('');
 
-  // Handle Standard Email Login
+  // Handle Standard Login (Email or Username)
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     setErrorMessage('');
     setErrorCode('');
 
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail.includes('@')) {
-      const msg = 'Please enter your registered email address to sign in.';
+    const cleanInput = email.trim();
+    if (!cleanInput) {
+      const msg = 'Please enter your registered email address or username.';
       setErrorMessage(msg);
       setErrorCode('INVALID_EMAIL');
-      onShowToast({ type: 'warning', title: 'Email Required', message: msg });
+      onShowToast({ type: 'warning', title: 'Input Required', message: msg });
       return;
     }
 
     try {
       setIsLoading(true);
-      const data = await api.auth.login(cleanEmail, password);
-      const displayName = data.user.username || data.user.name || cleanEmail.split('@')[0];
+      const data = await api.auth.login(cleanInput, password);
+      const displayName = data.user.username || data.user.name || cleanInput;
       onShowToast({
         type: 'success',
         title: 'Authentication Verified! ⚡',
@@ -202,17 +202,17 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Owner Email Address
+                Owner Email Address or Username
               </label>
               <div style={{ position: 'relative' }}>
                 <input
-                  type="email"
+                  type="text"
                   className="input-control"
-                  placeholder="Enter your registered email"
+                  placeholder="Enter email or username (e.g. adityarenake)"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   style={{ paddingLeft: '38px' }}
-                  autoComplete="email"
+                  autoComplete="username"
                   required
                 />
                 <Mail size={16} color="#6b7280" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
