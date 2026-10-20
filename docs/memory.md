@@ -104,11 +104,8 @@
   ```
   This guarantees the HTTP response reaches the browser before the serverless container terminates.
 
-### Gotcha 3: Firestore Composite Index Requirements
-- **Symptom:** Querying `.where('checkedIn', '==', true).orderBy('checkedInAt', 'desc')` fails if composite index is pending.
-- **Fix:** `registrantRepo.js` contains a built-in try-catch fallback that fetches the most recent check-ins with an in-memory sort if the composite index is missing or building.
-
-### Gotcha 4: Zero-Config Local Development
-- If Google Cloud credentials are not supplied, the backend seamlessly falls back to `MemoryFirestore` in `backend/src/config/firebase.js`.
+### Gotcha 3: Database & Local Development
+- The application uses **Supabase Postgres** as its primary database.
+- Schema definitions and performance indexes are managed in [`supabase/schema.sql`](file:///c:/Users/rajsi/OneDrive/Desktop/Documents/raj/hackseries-2026/supabase/schema.sql).
+- If Supabase is ever unreachable offline, repositories maintain in-memory fallbacks to prevent runtime crashes.
 - If Cloudinary credentials are not supplied, pass generation falls back to local Base64 data URLs.
-- If Supabase credentials are not supplied, auth falls back to local JWT signing with default master passwords.

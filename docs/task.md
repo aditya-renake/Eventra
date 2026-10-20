@@ -16,7 +16,7 @@
 | **M4: Cloudinary QR CDN** | Direct buffer uploads to Cloudinary, CDN URLs replacing base64 DB bloat. | **COMPLETED** | Oct 2026 |
 | **M5: Supabase Auth & RBAC** | Supabase GoTrue integration, staff user auto-provisioning, JWT verification. | **COMPLETED** | Oct 2026 |
 | **M6: Git Hygiene & Lockfiles** | Merge conflict resolution on `main`, lockfile regeneration, clean tree. | **COMPLETED** | Oct 2026 |
-| **M7: Postgres Database Migration** | Full migration from Firestore to Supabase Postgres tables with RLS. | **PLANNED** | Roadmap |
+| **M7: Postgres Database Migration** | Full migration from Firestore to Supabase Postgres tables with RLS. | **COMPLETED** | Oct 2026 |
 | **M8: Offline PWA & Apple Wallet** | Offline service worker for scanners, `.pkpass` Apple Wallet passes. | **PLANNED** | Roadmap |
 
 ---
