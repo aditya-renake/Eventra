@@ -15,7 +15,7 @@
     <strong>Zero-Tamper HMAC-SHA256 Pass Verification • Real-Time Attendee Intake • In-Browser Camera Gate Scanner • Multi-Event Command Center</strong>
   </p>
 
-  [Explore Live App](https://eventra-2026.vercel.app) • [View Digital Pass](https://eventra-2026.vercel.app/#lookup-section) • [Gate Scanner](https://eventra-2026.vercel.app/scanner) • [Report Issue](https://github.com/aditya-renake/Hackseries-2026/issues)
+  [Explore Live App](https://eventra-2026.vercel.app) • [View Digital Pass](https://eventra-2026.vercel.app/#lookup-section) • [Gate Scanner](https://eventra-2026.vercel.app/scanner) • [Report Issue](https://github.com/aditya-renake/Eventra/issues)
 
 </div>
 
@@ -136,8 +136,8 @@ Built around a high-performance **React 18** frontend and an asynchronous **Node
 
 ```bash
 # Clone the repository
-git clone https://github.com/aditya-renake/Hackseries-2026.git
-cd Hackseries-2026
+git clone https://github.com/aditya-renake/Eventra.git
+cd Eventra
 
 # Install backend dependencies
 cd backend && npm install
