@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { initFirebase } from './config/firebase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -26,9 +25,6 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
-
-// Initialize Google Cloud Firestore
-initFirebase();
 
 // Asynchronously ensure staff users exist in background without blocking requests
 staffRepo.seedDefaultAdmin().catch(() => {});
@@ -56,7 +52,7 @@ app.use('/', paymentRoutes);
 app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({
     status: 'online',
-    database: 'Google Cloud Firestore',
+    database: 'Supabase Postgres',
     event: 'HackSeries 2026',
     environment: process.env.NODE_ENV || 'production',
     timestamp: new Date(),
