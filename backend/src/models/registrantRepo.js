@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Registrant Repository (Data Access Layer)
+ * ==============================================================================
+ * Purpose:
+ *   High-throughput repository managing attendee registrations in Supabase Postgres.
+ * 
+ * Performance & Architecture:
+ *   1. Micro-Cache Layer:
+ *      - 10-second in-memory TTL caching for list queries and aggregate metrics.
+ *      - Absorbs high-concurrency dashboard traffic (5,000+ simultaneous requests).
+ *   2. Dual-Layer Resiliency:
+ *      - Primary persistence in Supabase Postgres `public.registrants` table.
+ *      - Synchronous fallback in-memory Map (`fallbackStore`) if Postgres is unreachable.
+ *   3. Atomic Check-In Concurrency:
+ *      - Uses Postgres conditional updates (`eq('checked_in', false)`) to prevent
+ *        gate race conditions where two scanners read an un-checked pass at the same millisecond.
+ *   4. Cloudinary Decoupling:
+ *      - Keeps list query payloads light by storing CDN URLs (`qr_code_url`)
+ *        rather than bulky Base64 image strings.
+ * ==============================================================================
+ */
+
 import { getSupabaseAdmin } from '../config/supabase.js';
 
 // In-memory micro-cache for sub-millisecond dashboard speeds (5,000+ attendee concurrency)
@@ -5,13 +28,17 @@ let memoryCache = null;
 let lastCacheTime = 0;
 const CACHE_TTL_MS = 10000;
 
+// High-efficiency aggregate counter cache
 let aggregateStatsCache = null;
 let lastStatsCacheTime = 0;
 const STATS_CACHE_TTL_MS = 10000;
 
-// Local fallback store if Supabase is offline
+// In-memory fallback store if database is offline or during testing
 const fallbackStore = new Map();
 
+/**
+ * Invalidates active memory caches when a mutation (create/update/delete) occurs.
+ */
 function invalidateCache() {
   memoryCache = null;
   lastCacheTime = 0;

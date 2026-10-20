@@ -1,7 +1,22 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Global Event Configuration Repository
+ * ==============================================================================
+ * Purpose:
+ *   Manages live administrative settings stored in Supabase Postgres `event_config`.
+ *   Controls ticket pricing, active payment gateway toggles, Razorpay API credentials,
+ *   event metadata (venue, dates, host college), and email templates.
+ * ==============================================================================
+ */
+
 import { getSupabaseAdmin, isSupabaseConfigured } from '../config/supabase.js';
 
+// Primary configuration document identifier
 const CONFIG_DOC_ID = 'main_event_2026';
 
+/**
+ * Baseline default configuration for the event.
+ */
 const DEFAULT_CONFIG = {
   eventName: 'HackSeries 2026',
   eventTagline: 'Presented by ACES — Dept. of Computer Engineering, Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)',

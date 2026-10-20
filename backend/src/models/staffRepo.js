@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Operations Staff & Volunteer Repository
+ * ==============================================================================
+ * Purpose:
+ *   Manages operations staff accounts, gate scanner profiles, and permission roles
+ *   in Supabase Postgres `public.staff_users`.
+ *   Supports bcrypt password hashing, event assignment scopes, and idempotent admin seeding.
+ * ==============================================================================
+ */
+
 import bcrypt from 'bcryptjs';
 import { getSupabaseAdmin } from '../config/supabase.js';
 

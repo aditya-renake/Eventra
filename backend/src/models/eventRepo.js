@@ -1,9 +1,24 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Club Events Repository
+ * ==============================================================================
+ * Purpose:
+ *   Manages multi-event catalog items in Supabase Postgres `public.club_events`.
+ *   Supports dynamic event discovery, custom problem tracks, dates, venues,
+ *   ticket pricing tiers, and assigned staff permissions per sub-event.
+ * ==============================================================================
+ */
+
 import { getSupabaseAdmin } from '../config/supabase.js';
 
+// In-memory catalog cache (5-second TTL) for instant homepage and registration renders
 let eventsMemoryCache = null;
 let lastCacheTime = 0;
 const CACHE_TTL_MS = 5000;
 
+/**
+ * Flushes the in-memory event catalog cache upon administrative mutations.
+ */
 function invalidateCache() {
   eventsMemoryCache = null;
   lastCacheTime = 0;
