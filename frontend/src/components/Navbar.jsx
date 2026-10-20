@@ -40,7 +40,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
           <a
             href="#events-hub-section"
             className="pill-nav-item"
-            style={{ textDecoration: 'none', color: '#f7d070' }}
+            style={{ textDecoration: 'none', color: '#7086fd', fontWeight: '800' }}
           >
             🔥 ALL EVENTS
           </a>

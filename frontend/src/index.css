@@ -1,19 +1,25 @@
 :root {
-  /* Rich Ambient Dark Palette */
-  --bg-primary: #06080e;
-  --bg-secondary: #0b0f19;
-  --bg-card: rgba(14, 18, 28, 0.85);
-  --bg-glass: rgba(10, 14, 23, 0.88);
+  /* Rich Ambient Dark Palette - Eventra Indigo & Cyan */
+  --bg-primary: #070913;
+  --bg-secondary: #0c1020;
+  --bg-card: rgba(14, 19, 36, 0.88);
+  --bg-glass: rgba(12, 17, 32, 0.9);
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-gold: rgba(209, 165, 80, 0.4);
-  --border-crimson: rgba(178, 43, 47, 0.4);
+  --border-gold: rgba(89, 110, 230, 0.4);
+  --border-crimson: rgba(80, 101, 246, 0.4);
 
-  --dyp-crimson: #b22b2f;
-  --dyp-crimson-dark: #7a1518;
-  --dyp-gold: #d1a550;
-  --dyp-gold-light: #f7d070;
+  --eventra-blue: #5065f6;
+  --eventra-blue-light: #7086fd;
+  --eventra-indigo: #3746bf;
+  --eventra-periwinkle: #a8b4ff;
+  --eventra-periwinkle-light: #eef1ff;
+
+  --dyp-crimson: #5065f6;
+  --dyp-crimson-dark: #3746bf;
+  --dyp-gold: #7086fd;
+  --dyp-gold-light: #a8b4ff;
   --aces-cyan: #22d3ee;
-  --aces-charcoal: #11141f;
+  --aces-charcoal: #0e1424;
 
   --text-main: #f9fafb;
   --text-muted: #9ca3af;
@@ -49,18 +55,18 @@ html, body {
   width: 100%;
 }
 
-/* Authentic ACES Institutional Ambient Background with Crisp Matrix Grid & Crimson/Gold Radial Glows */
+/* Eventra Ambient Background with Matrix Grid & Electric Blue/Indigo Radial Glows */
 body {
   background-color: var(--bg-primary);
   background-image: 
-    radial-gradient(circle at 50% 50%, rgba(209, 165, 80, 0.12) 1px, transparent 1px),
-    linear-gradient(rgba(178, 43, 47, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(178, 43, 47, 0.045) 1px, transparent 1px),
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(178, 43, 47, 0.45) 0%, transparent 65%),
-    radial-gradient(circle 700px at 10% 20%, rgba(209, 165, 80, 0.22) 0%, transparent 55%),
-    radial-gradient(circle 800px at 90% 40%, rgba(178, 43, 47, 0.28) 0%, transparent 60%),
-    radial-gradient(circle 750px at 20% 80%, rgba(209, 165, 80, 0.16) 0%, transparent 55%),
-    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(178, 43, 47, 0.35) 0%, transparent 70%);
+    radial-gradient(circle at 50% 50%, rgba(112, 134, 253, 0.12) 1px, transparent 1px),
+    linear-gradient(rgba(80, 101, 246, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 101, 246, 0.04) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(80, 101, 246, 0.35) 0%, transparent 65%),
+    radial-gradient(circle 700px at 10% 20%, rgba(112, 134, 253, 0.18) 0%, transparent 55%),
+    radial-gradient(circle 800px at 90% 40%, rgba(55, 70, 191, 0.25) 0%, transparent 60%),
+    radial-gradient(circle 750px at 20% 80%, rgba(168, 180, 255, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(80, 101, 246, 0.28) 0%, transparent 70%);
   background-size: 32px 32px, 32px 32px, 32px 32px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-attachment: fixed;
 }
@@ -149,15 +155,15 @@ body {
 }
 
 .pill-nav-item:hover {
-  color: #f7d070;
-  background: rgba(209, 165, 80, 0.12);
+  color: #a8b4ff;
+  background: rgba(80, 101, 246, 0.12);
 }
 
 .pill-nav-item.active {
-  background: linear-gradient(135deg, #b22b2f 0%, #7a1518 100%);
+  background: linear-gradient(135deg, #5065f6 0%, #3746bf 100%);
   color: #ffffff !important;
-  box-shadow: 0 2px 12px rgba(178, 43, 47, 0.5);
-  border: 1px solid rgba(247, 208, 112, 0.35);
+  box-shadow: 0 4px 16px rgba(80, 101, 246, 0.45);
+  border: 1px solid rgba(168, 180, 255, 0.35);
 }
 
 /* Cyber Badges from Screenshot */
@@ -296,14 +302,14 @@ body {
 }
 
 .btn-dyp {
-  background: linear-gradient(135deg, #b22b2f 0%, #7a1518 100%);
+  background: linear-gradient(135deg, #5065f6 0%, #3746bf 100%);
   color: #ffffff;
-  border: 1px solid rgba(247, 208, 112, 0.35);
-  box-shadow: 0 4px 16px rgba(178, 43, 47, 0.4);
+  border: 1px solid rgba(168, 180, 255, 0.4);
+  box-shadow: 0 4px 18px rgba(80, 101, 246, 0.35);
 }
 .btn-dyp:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d3383d 0%, #901b20 100%);
-  box-shadow: 0 6px 24px rgba(178, 43, 47, 0.6);
+  background: linear-gradient(135deg, #6377ff 0%, #4758d4 100%);
+  box-shadow: 0 6px 26px rgba(80, 101, 246, 0.55);
 }
 
 .btn-secondary {
@@ -357,21 +363,21 @@ body {
 }
 
 .badge-dyp {
-  background: rgba(178, 43, 47, 0.18);
-  color: #fca5a5;
-  border: 1px solid rgba(178, 43, 47, 0.45);
+  background: rgba(80, 101, 246, 0.15);
+  color: #a8b4ff;
+  border: 1px solid rgba(168, 180, 255, 0.35);
 }
 
 .badge-aces {
-  background: rgba(6, 182, 212, 0.15);
-  color: #67e8f9;
-  border: 1px solid rgba(6, 182, 212, 0.45);
+  background: rgba(80, 101, 246, 0.15);
+  color: #cdd5ff;
+  border: 1px solid rgba(168, 180, 255, 0.35);
 }
 
 .badge-gold {
-  background: rgba(209, 165, 80, 0.18);
-  color: #f7d070;
-  border: 1px solid rgba(209, 165, 80, 0.45);
+  background: rgba(112, 134, 253, 0.15);
+  color: #a8b4ff;
+  border: 1px solid rgba(168, 180, 255, 0.4);
 }
 
 .badge-dark {
@@ -1337,124 +1343,124 @@ footer {
 .app-registration-light > footer strong { color: #38393e !important; }
 
 .app-registration-light .registration-page {
-  --registration-accent: #9b4b4e;
-  --registration-accent-soft: rgba(155, 75, 78, 0.08);
-  color: #292a2f;
-  background: #f5f5f2;
+  --registration-accent: #5065f6;
+  --registration-accent-soft: rgba(80, 101, 246, 0.08);
+  color: #141a2d;
+  background: #f8faff;
 }
-.app-registration-light .registration-orb-one { background: #bd7773; opacity: 0.11; }
-.app-registration-light .registration-orb-two { background: #d2b879; opacity: 0.12; }
-.app-registration-light .registration-back { color: #666971; }
-.app-registration-light .registration-back:hover { color: #873f42; }
-.app-registration-light .registration-brand > span { background: #dfddd8; }
-.app-registration-light .registration-brand strong { color: #37383d; }
-.app-registration-light .registration-brand small { color: #777a81; }
-.app-registration-light .registration-secure { color: #666971; }
-.app-registration-light .registration-secure svg { color: #53856a; }
-.app-registration-light .registration-eyebrow { color: #8c4649; }
-.app-registration-light .registration-intro h1 { color: #27282d; }
+.app-registration-light .registration-orb-one { background: #5065f6; opacity: 0.12; }
+.app-registration-light .registration-orb-two { background: #7086fd; opacity: 0.12; }
+.app-registration-light .registration-back { color: #5a647d; }
+.app-registration-light .registration-back:hover { color: #5065f6; }
+.app-registration-light .registration-brand > span { background: #dbe2f8; }
+.app-registration-light .registration-brand strong { color: #141a2d; }
+.app-registration-light .registration-brand small { color: #7d88a4; }
+.app-registration-light .registration-secure { color: #5a647d; }
+.app-registration-light .registration-secure svg { color: #22c55e; }
+.app-registration-light .registration-eyebrow { color: #5065f6; }
+.app-registration-light .registration-intro h1 { color: #141a2d; }
 .app-registration-light .registration-intro h1 span {
-  color: #9b4b4e;
-  background: linear-gradient(100deg, #a35558 8%, #944448 58%, #b38e50 100%);
+  color: #5065f6;
+  background: linear-gradient(100deg, #5065f6 8%, #3746bf 58%, #7086fd 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.app-registration-light .registration-intro p { color: #686b73; }
-.app-registration-light .registration-event-meta span { color: #72757d; }
-.app-registration-light .registration-event-meta svg { color: #9b4b4e; }
-.app-registration-light .registration-step-number { color: #72757d; background: #fff; border-color: #dedbd5; }
+.app-registration-light .registration-intro p { color: #5a647d; }
+.app-registration-light .registration-event-meta span { color: #5a647d; }
+.app-registration-light .registration-event-meta svg { color: #5065f6; }
+.app-registration-light .registration-step-number { color: #5a647d; background: #fff; border-color: #dbe2f8; }
 .app-registration-light .registration-step.is-current .registration-step-number {
   color: #fff;
-  background: #98484b;
-  border-color: #98484b;
-  box-shadow: 0 0 0 4px rgba(152, 72, 75, 0.1);
+  background: #5065f6;
+  border-color: #5065f6;
+  box-shadow: 0 0 0 4px rgba(80, 101, 246, 0.15);
 }
-.app-registration-light .registration-step.is-complete .registration-step-number { color: #39704f; background: #e8f2eb; border-color: #c8dfd0; }
-.app-registration-light .registration-step-copy strong { color: #73767d; }
-.app-registration-light .registration-step.is-current .registration-step-copy strong { color: #303137; }
-.app-registration-light .registration-step-copy small { color: #92949a; }
-.app-registration-light .registration-step-line { background: #dfddd8; }
-.app-registration-light .registration-step-line.is-complete { background: #a8c5b1; }
-.app-registration-light .registration-error { color: #8f3b3f; background: #fff1ef; border-color: #edcecb; }
+.app-registration-light .registration-step.is-complete .registration-step-number { color: #22c55e; background: #eefdf4; border-color: #bbf7d0; }
+.app-registration-light .registration-step-copy strong { color: #5a647d; }
+.app-registration-light .registration-step.is-current .registration-step-copy strong { color: #141a2d; }
+.app-registration-light .registration-step-copy small { color: #8c96ac; }
+.app-registration-light .registration-step-line { background: #dbe2f8; }
+.app-registration-light .registration-step-line.is-complete { background: #86efac; }
+.app-registration-light .registration-error { color: #ef4444; background: #fef2f2; border-color: #fecaca; }
 
 .app-registration-light .registration-form-card,
 .app-registration-light .registration-summary {
   background: #fff;
-  border-color: #e8e5df;
-  box-shadow: 0 12px 34px rgba(38, 37, 33, 0.065), inset 0 1px #fff;
+  border-color: #e2e8f8;
+  box-shadow: 0 12px 34px rgba(80, 101, 246, 0.05), inset 0 1px #fff;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-.app-registration-light .registration-overline { color: #98484b; }
-.app-registration-light .registration-section-heading h2 { color: #2c2d32; }
-.app-registration-light .registration-section-icon { color: #95484b; background: #f7efeb; border-color: #ecddda; }
-.app-registration-light .registration-section-note { color: #72757d; }
-.app-registration-light .registration-tier { color: #303137; background: #fff; border-color: #e6e3de; }
-.app-registration-light .registration-tier:hover { background: #fdfbf9; border-color: #d8c9c2; }
+.app-registration-light .registration-overline { color: #5065f6; }
+.app-registration-light .registration-section-heading h2 { color: #141a2d; }
+.app-registration-light .registration-section-icon { color: #5065f6; background: #eef1ff; border-color: #dbe2ff; }
+.app-registration-light .registration-section-note { color: #5a647d; }
+.app-registration-light .registration-tier { color: #141a2d; background: #fff; border-color: #e2e8f8; }
+.app-registration-light .registration-tier:hover { background: #f8faff; border-color: #c7d2fe; }
 .app-registration-light .registration-tier.is-selected {
-  background: linear-gradient(145deg, #fffaf2, #fff7f4);
-  border-color: #b67c69;
-  box-shadow: inset 0 0 0 1px rgba(182, 124, 105, 0.12), 0 5px 15px rgba(58, 39, 28, 0.045);
+  background: linear-gradient(145deg, #f8faff, #f0f3fe);
+  border-color: #5065f6;
+  box-shadow: inset 0 0 0 1px rgba(80, 101, 246, 0.2), 0 5px 15px rgba(80, 101, 246, 0.08);
 }
-.app-registration-light .registration-tier-top { color: #94624c; }
-.app-registration-light .registration-tier-top svg { color: #98484b; }
-.app-registration-light .registration-tier-name { color: #292a2f; }
-.app-registration-light .registration-tier-price { color: #884145; }
-.app-registration-light .registration-tier-price small { color: #85878d; }
-.app-registration-light .registration-tier-detail { color: #777a81; }
-.app-registration-light .registration-tier-features { color: #55585f; }
-.app-registration-light .registration-tier-features svg { color: #548363; }
-.app-registration-light .registration-field-block > label { color: #45474e; }
-.app-registration-light .registration-field-block > label > span { color: #9b4b4e; }
+.app-registration-light .registration-tier-top { color: #5065f6; }
+.app-registration-light .registration-tier-top svg { color: #5065f6; }
+.app-registration-light .registration-tier-name { color: #141a2d; }
+.app-registration-light .registration-tier-price { color: #5065f6; }
+.app-registration-light .registration-tier-price small { color: #7d88a4; }
+.app-registration-light .registration-tier-detail { color: #5a647d; }
+.app-registration-light .registration-tier-features { color: #475569; }
+.app-registration-light .registration-tier-features svg { color: #22c55e; }
+.app-registration-light .registration-field-block > label { color: #334155; }
+.app-registration-light .registration-field-block > label > span { color: #5065f6; }
 .app-registration-light .registration-field-block > label > small,
-.app-registration-light .registration-field-block > small { color: #85878e; }
+.app-registration-light .registration-field-block > small { color: #7d88a4; }
 .app-registration-light .registration-input-wrap .input-control,
 .app-registration-light .registration-select {
-  color: #303137;
+  color: #141a2d;
   background: #fff;
-  border-color: #dedbd5;
-  box-shadow: 0 1px 2px rgba(35, 34, 30, 0.025);
+  border-color: #e2e8f8;
+  box-shadow: 0 1px 2px rgba(80, 101, 246, 0.02);
 }
-.app-registration-light .registration-input-wrap .input-control::placeholder { color: #999ba1; }
+.app-registration-light .registration-input-wrap .input-control::placeholder { color: #94a3b8; }
 .app-registration-light .registration-input-wrap .input-control:focus,
 .app-registration-light .registration-select:focus {
-  border-color: #b87f71;
-  box-shadow: 0 0 0 3px rgba(155, 75, 78, 0.1);
+  border-color: #5065f6;
+  box-shadow: 0 0 0 3px rgba(80, 101, 246, 0.15);
 }
-.app-registration-light .registration-input-wrap > svg { color: #898b91; }
-.app-registration-light .registration-select option { color: #303137; background: #fff; }
-.app-registration-light .registration-privacy-note { color: #73767d; border-color: #eeece8; }
-.app-registration-light .registration-privacy-note svg { color: #548363; }
-.app-registration-light .registration-review-card { background: #faf9f7; border-color: #e9e6e0; }
-.app-registration-light .registration-review-label { color: #777a81; }
-.app-registration-light .registration-review-top button { color: #91474a; }
-.app-registration-light .registration-review-ticket { color: #91474a; background: #f5eae7; }
-.app-registration-light .registration-review-title > div strong { color: #303137; }
-.app-registration-light .registration-review-title > div small { color: #777a81; }
-.app-registration-light .registration-review-title > b { color: #884145; }
-.app-registration-light .registration-review-divider { background: #e8e5df; }
-.app-registration-light .registration-review-details dt { color: #777a81; }
-.app-registration-light .registration-review-details dd { color: #36373d; }
-.app-registration-light .registration-next-note { color: #745f3a; background: #fbf7ed; border-color: #eee5cf; }
-.app-registration-light .registration-next-note svg { color: #987a42; }
-.app-registration-light .registration-form-actions { background: #faf9f7; border-color: #eae7e2; }
-.app-registration-light .registration-button-secondary { color: #55585f; background: #fff; border-color: #dedbd5; }
-.app-registration-light .registration-button-secondary:hover:not(:disabled) { color: #873f42; background: #f9f3f1; }
-.app-registration-light .registration-button-primary { color: #fff; background: linear-gradient(135deg, #9d4d50, #823b3e); border-color: #914447; box-shadow: 0 6px 15px rgba(125, 55, 58, 0.16); }
-.app-registration-light .registration-button-primary:hover:not(:disabled) { background: linear-gradient(135deg, #ad5b5e, #904347); }
+.app-registration-light .registration-input-wrap > svg { color: #7d88a4; }
+.app-registration-light .registration-select option { color: #141a2d; background: #fff; }
+.app-registration-light .registration-privacy-note { color: #5a647d; border-color: #e2e8f8; }
+.app-registration-light .registration-privacy-note svg { color: #22c55e; }
+.app-registration-light .registration-review-card { background: #f8faff; border-color: #e2e8f8; }
+.app-registration-light .registration-review-label { color: #7d88a4; }
+.app-registration-light .registration-review-top button { color: #5065f6; }
+.app-registration-light .registration-review-ticket { color: #5065f6; background: #eef1ff; }
+.app-registration-light .registration-review-title > div strong { color: #141a2d; }
+.app-registration-light .registration-review-title > div small { color: #7d88a4; }
+.app-registration-light .registration-review-title > b { color: #5065f6; }
+.app-registration-light .registration-review-divider { background: #e2e8f8; }
+.app-registration-light .registration-review-details dt { color: #7d88a4; }
+.app-registration-light .registration-review-details dd { color: #141a2d; }
+.app-registration-light .registration-next-note { color: #3746bf; background: #eef1ff; border-color: #c7d2fe; }
+.app-registration-light .registration-next-note svg { color: #5065f6; }
+.app-registration-light .registration-form-actions { background: #f8faff; border-color: #e2e8f8; }
+.app-registration-light .registration-button-secondary { color: #475569; background: #fff; border-color: #e2e8f8; }
+.app-registration-light .registration-button-secondary:hover:not(:disabled) { color: #5065f6; background: #eef1ff; }
+.app-registration-light .registration-button-primary { color: #fff; background: linear-gradient(135deg, #5065f6, #3746bf); border-color: #5065f6; box-shadow: 0 6px 15px rgba(80, 101, 246, 0.25); }
+.app-registration-light .registration-button-primary:hover:not(:disabled) { background: linear-gradient(135deg, #6075ff, #4454d6); }
 .app-registration-light .registration-spinner { border-color: rgba(255, 255, 255, 0.4); border-top-color: #fff; }
-.app-registration-light .registration-summary-heading { color: #777a81; }
-.app-registration-light .registration-summary-heading small { color: #5e8169; }
-.app-registration-light .registration-live-dot { background: #61936f; box-shadow: 0 0 8px rgba(97, 147, 111, 0.35); }
-.app-registration-light .registration-summary-event { color: #2c2d32; }
-.app-registration-light .registration-summary-subtitle { color: #777a81; }
-.app-registration-light .registration-summary-rule { background: #e8e5df; }
-.app-registration-light .registration-summary-line { color: #5d6067; }
-.app-registration-light .registration-summary-line > svg { color: #91474a; }
-.app-registration-light .registration-summary-line > strong { color: #884145; }
-.app-registration-light .registration-total { color: #62656c; }
-.app-registration-light .registration-total strong { color: #2d2e33; }
+.app-registration-light .registration-summary-heading { color: #7d88a4; }
+.app-registration-light .registration-summary-heading small { color: #22c55e; }
+.app-registration-light .registration-live-dot { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+.app-registration-light .registration-summary-event { color: #141a2d; }
+.app-registration-light .registration-summary-subtitle { color: #7d88a4; }
+.app-registration-light .registration-summary-rule { background: #e2e8f8; }
+.app-registration-light .registration-summary-line { color: #475569; }
+.app-registration-light .registration-summary-line > svg { color: #5065f6; }
+.app-registration-light .registration-summary-line > strong { color: #5065f6; }
+.app-registration-light .registration-total { color: #475569; }
+.app-registration-light .registration-total strong { color: #141a2d; }
 .app-registration-light .registration-summary-foot { color: #687c6c; }
 .app-registration-light .registration-summary-foot svg,
 .app-registration-light .registration-summary-perks svg { color: #548363; }
@@ -1469,22 +1475,22 @@ footer {
 /* Eventra light event platform */
 :root {
   color-scheme: light;
-  --bg-primary: #f7f6f2;
-  --bg-secondary: #f0efeb;
+  --bg-primary: #f8faff;
+  --bg-secondary: #f0f3fe;
   --bg-card: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.94);
-  --border-subtle: #e7e4de;
-  --border-gold: rgba(158, 124, 63, 0.28);
-  --border-crimson: rgba(147, 71, 74, 0.22);
-  --dyp-crimson: #93474a;
-  --dyp-crimson-dark: #71383b;
-  --dyp-gold: #9e7c3f;
-  --dyp-gold-light: #b59a64;
-  --aces-cyan: #287885;
-  --aces-charcoal: #f0efeb;
-  --text-main: #292a2f;
-  --text-muted: #696b73;
-  --text-dim: #85878e;
+  --bg-glass: rgba(255, 255, 255, 0.95);
+  --border-subtle: #e2e8f8;
+  --border-gold: rgba(89, 110, 230, 0.25);
+  --border-crimson: rgba(80, 101, 246, 0.25);
+  --dyp-crimson: #5065f6;
+  --dyp-crimson-dark: #3746bf;
+  --dyp-gold: #7086fd;
+  --dyp-gold-light: #596ee6;
+  --aces-cyan: #4f65f1;
+  --aces-charcoal: #1e2538;
+  --text-main: #141a2d;
+  --text-muted: #5a647d;
+  --text-dim: #7d88a4;
   --font-main: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
   --radius-sm: 10px;
@@ -1495,15 +1501,15 @@ footer {
 html, body {
   color-scheme: light;
   color: var(--text-main);
-  background: #f7f6f2;
+  background: #f8faff;
   font-family: var(--font-main);
 }
 
 body {
   background-image:
-    radial-gradient(ellipse 78% 42% at 50% -8%, rgba(177, 145, 91, 0.11), transparent 72%),
-    radial-gradient(ellipse 52% 38% at 100% 40%, rgba(147, 71, 74, 0.045), transparent 72%),
-    linear-gradient(180deg, #faf9f6 0%, #f5f4f0 60%, #f8f7f4 100%);
+    radial-gradient(ellipse 78% 42% at 50% -8%, rgba(89, 110, 230, 0.08), transparent 72%),
+    radial-gradient(ellipse 52% 38% at 100% 40%, rgba(168, 180, 255, 0.06), transparent 72%),
+    linear-gradient(180deg, #fbfcfe 0%, #f4f6fd 60%, #f7f9ff 100%);
   background-attachment: fixed;
 }
 
@@ -1585,29 +1591,29 @@ button, input, select, textarea { font-family: var(--font-main); }
 .app-theme-light .btn-initialize,
 .app-theme-light .btn-primary {
   color: #fff;
-  background: linear-gradient(135deg, #a45457, #873d40);
-  border: 1px solid rgba(129, 54, 57, 0.15);
-  box-shadow: 0 6px 16px rgba(129, 54, 57, 0.16);
+  background: linear-gradient(135deg, #5065f6, #3746bf);
+  border: 1px solid rgba(80, 101, 246, 0.25);
+  box-shadow: 0 4px 14px rgba(80, 101, 246, 0.25);
 }
 
 .app-theme-light .btn-dyp:hover:not(:disabled),
 .app-theme-light .btn-initialize:hover,
 .app-theme-light .btn-primary:hover:not(:disabled) {
   color: #fff;
-  background: linear-gradient(135deg, #b25f62, #93484b);
-  box-shadow: 0 9px 20px rgba(129, 54, 57, 0.2);
+  background: linear-gradient(135deg, #6075ff, #4454d6);
+  box-shadow: 0 6px 20px rgba(80, 101, 246, 0.35);
   transform: translateY(-1px);
 }
 
 .app-theme-light .btn-secondary {
-  color: #474950;
+  color: #1e2538;
   background: #fff;
-  border: 1px solid #e3dfd8;
+  border: 1px solid #dbe2f8;
 }
-.app-theme-light .btn-secondary:hover:not(:disabled) { color: #813e41; background: #faf6f3; border-color: #d8c8c1; }
-.app-theme-light .btn-ghost { color: #55575f; }
-.app-theme-light .btn-ghost:hover:not(:disabled) { color: #813e41; background: #f6efec; }
-.app-theme-light .btn-cyan { color: #286d77; background: #eef6f6; border: 1px solid #d5e6e5; }
+.app-theme-light .btn-secondary:hover:not(:disabled) { color: #5065f6; background: #f0f3fe; border-color: #c7d2fe; }
+.app-theme-light .btn-ghost { color: #5a647d; }
+.app-theme-light .btn-ghost:hover:not(:disabled) { color: #5065f6; background: #eef1ff; }
+.app-theme-light .btn-cyan { color: #3746bf; background: #eef1ff; border: 1px solid #c7d2fe; }
 
 .app-theme-light .badge {
   color: #4e5057;
@@ -1615,9 +1621,9 @@ button, input, select, textarea { font-family: var(--font-main); }
   border: 1px solid #e4e1db;
 }
 .app-theme-light .badge-emerald { color: #39724c; background: #edf6ef; border-color: #d3e8d8; }
-.app-theme-light .badge-dyp { color: #914649; background: #f8efed; border-color: #ead8d4; }
-.app-theme-light .badge-aces, .app-theme-light .badge-cyan { color: #286d77; background: #edf6f6; border-color: #d5e6e5; }
-.app-theme-light .badge-gold { color: #806433; background: #f8f4e9; border-color: #ece2c9; }
+.app-theme-light .badge-dyp { color: #5065f6; background: #eef1ff; border-color: #c7d2fe; }
+.app-theme-light .badge-aces, .app-theme-light .badge-cyan { color: #3746bf; background: #eef1ff; border-color: #c7d2fe; }
+.app-theme-light .badge-gold { color: #3746bf; background: #f0f3fe; border-color: #c7d2fe; }
 .app-theme-light .badge-dark { color: #5e6067; background: #f2f1ee; border-color: #e3e0d9; }
 .app-theme-light .badge-amber { color: #8b682d; background: #fbf5e9; border-color: #eee1c3; }
 .app-theme-light .badge-violet { color: #67528d; background: #f3eff9; border-color: #e3daf1; }
@@ -2270,4 +2276,25 @@ button, input, select, textarea { font-family: var(--font-main); }
   .app-theme-light .event-float-card,
   .app-theme-light .event-hero-cta,
   .app-theme-light .event-hero-secondary { transition: none !important; }
+}
+
+/* Eventra wordmark in the shared site navigation */
+.eventra-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0 13px 0 4px;
+  margin-right: 2px;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid #e6e2da;
+  cursor: pointer;
+}
+.eventra-brand img { display: block; width: auto; height: 34px; }
+.eventra-brand:focus-visible { outline: 2px solid #a66b61; outline-offset: 3px; border-radius: 5px; }
+
+@media (max-width: 480px) {
+  .eventra-brand { padding: 0 10px 0 2px; }
+  .eventra-brand img { height: 31px; }
 }

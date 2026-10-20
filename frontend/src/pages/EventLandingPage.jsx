@@ -240,9 +240,9 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           </div>
 
           <div className="event-hero-host">
-            <img src="/dypdpu-logo.png" alt="Dr. D. Y. Patil Vidyapeeth" />
+            <img src="/eventra-logo.png" alt="Eventra" style={{ height: '30px', width: 'auto' }} />
             <span className="event-hero-host-divider" />
-            <span><small>Hosted by</small><strong>ACES · DIT Pune</strong></span>
+            <span><small>Powered by</small><strong>Eventra 2026</strong></span>
           </div>
         </div>
 
@@ -333,8 +333,8 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <DYPDPULogo height={20} />
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: '900', color: '#fff' }}>HACKSERIES 2026</div>
-                        <div style={{ fontSize: '9px', color: '#d1a550', fontWeight: '800' }}>DIT PUNE (DYPDPU)</div>
+                        <div style={{ fontSize: '14px', fontWeight: '900', color: '#fff' }}>EVENTRA 2026</div>
+                        <div style={{ fontSize: '9px', color: '#a8b4ff', fontWeight: '800' }}>OFFICIAL VERIFIED ENTRY PASS</div>
                       </div>
                     </div>
                     <span className="badge badge-emerald" style={{ fontSize: '10px' }}>{retrievedPass.ticketType}</span>
@@ -422,7 +422,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
                 Eventra 2026 — 48-Hour Innovation Arena
               </h2>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                Eventra 2026 is India’s flagship national 48-hour student hackathon hosted at <strong>Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune (DYPDPU)</strong>. Designed for collegiate developers, AI practitioners, cybersecurity enthusiasts, and hardware builders to turn ambitious ideas into production-ready software.
+                Eventra 2026 is India’s flagship national 48-hour student hackathon powered by the <strong>Eventra Platform</strong>. Designed for collegiate developers, AI practitioners, cybersecurity enthusiasts, and hardware builders to turn ambitious ideas into production-ready software.
               </p>
               <p style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: 1.5 }}>
                 Hackers receive high-density compute lab access, gigabit internet, uninterrupted power backup, meals, energy lounges, and guidance from industry engineering mentors.
@@ -563,16 +563,10 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           <img
             src="/eventra-logo.png"
             alt="Eventra"
-            style={{ height: '24px', width: 'auto', display: 'block' }}
-          />
-          <span style={{ height: '18px', width: '1px', background: 'rgba(255, 255, 255, 0.15)' }} />
-          <img
-            src="/dypdpu-logo.png"
-            alt="DYP DPU"
-            style={{ height: '24px', width: 'auto' }}
+            style={{ height: '26px', width: 'auto', display: 'block' }}
           />
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            © 2026 Eventra • ACES, Dept. of Computer Engineering, DIT Pune (DYPDPU)
+            © 2026 Eventra • Zero-Tamper Event Management Platform
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-muted)' }}>

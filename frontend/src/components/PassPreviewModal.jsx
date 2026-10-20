@@ -133,13 +133,13 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
               {/* Event Badge Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <DYPDPULogo height={22} />
+                  <img src="/eventra-logo.png" alt="Eventra" style={{ height: '24px', width: 'auto', display: 'block' }} />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>HACKSERIES 2026</span>
-                      <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>ACES DIT</span>
+                      <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
+                      <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>VERIFIED PASS</span>
                     </div>
-                    <div style={{ fontSize: '9px', color: '#d1a550', fontWeight: '800', marginTop: '1px' }}>DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY (DYPDPU)</div>
+                    <div style={{ fontSize: '9px', color: '#a8b4ff', fontWeight: '800', marginTop: '1px' }}>OFFICIAL VERIFIED ENTRY PASS</div>
                   </div>
                 </div>
                 <span className="badge badge-emerald">{registrant.ticketType}</span>
@@ -196,7 +196,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
                   />
                 </div>
 
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#f7d070', fontWeight: '800', marginTop: '12px', letterSpacing: '1px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#a8b4ff', fontWeight: '800', marginTop: '12px', letterSpacing: '1px' }}>
                   {registrant.uniqueId}
                 </div>
 
@@ -211,7 +211,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
                   <MapPin size={13} color="#b22b2f" style={{ marginTop: '2px', flexShrink: 0 }} /> Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Calendar size={13} color="#f7d070" /> Check-in: Oct 16, 07:30 AM IST • Bring Laptop & ID
+                  <Calendar size={13} color="#a8b4ff" /> Check-in: Oct 16, 07:30 AM IST • Bring Laptop & ID
                 </div>
               </div>
 

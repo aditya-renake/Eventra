@@ -65,14 +65,14 @@ export const ScannerPage = ({ onShowToast }) => {
           alt="Eventra" 
           style={{ height: '38px', width: 'auto', margin: '0 auto 14px auto', display: 'block', background: 'rgba(255, 255, 255, 0.08)', padding: '4px 12px', borderRadius: '8px' }} 
         />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, rgba(178, 43, 47, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '999px', padding: '4px 16px', fontSize: '11px', color: '#f7d070', fontWeight: '800', marginBottom: '12px' }}>
-          <QrCode size={13} color="#22d3ee" /> DIT PUNE GATE ENTRY SCANNER • ACES OPS
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, rgba(80, 101, 246, 0.15) 0%, rgba(34, 211, 238, 0.15) 100%)', border: '1px solid rgba(168, 180, 255, 0.35)', borderRadius: '999px', padding: '4px 16px', fontSize: '11px', color: '#a8b4ff', fontWeight: '800', marginBottom: '12px' }}>
+          <QrCode size={13} color="#22d3ee" /> EVENTRA GATE ENTRY SCANNER • LIVE OPERATIONAL TERMINAL
         </div>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
           Eventra 2026 Check-in Terminal
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-          Dr. D. Y. Patil Institute of Technology (DIT) Campus • Live anti-forgery QR verification
+          Official Event Gates • Live anti-forgery cryptographic QR verification
         </p>
       </div>
 

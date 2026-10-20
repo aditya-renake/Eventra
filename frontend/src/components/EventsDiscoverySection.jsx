@@ -71,7 +71,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
         </h2>
 
         <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto', lineHeight: '1.6' }}>
-          Discover upcoming hackathons, AI workshops, gaming championships, and keynotes hosted by ACES at Dr. D. Y. Patil Institute of Technology (DYPDPU).
+          Discover upcoming hackathons, AI workshops, gaming championships, and keynotes powered by Eventra 2026.
         </p>
       </div>
 

@@ -58,7 +58,7 @@ export const SuperAdminModal = ({
 
   // Event Details State
   const [eventName, setEventName] = useState(eventConfig?.eventName || 'Eventra 2026');
-  const [eventTagline, setEventTagline] = useState(eventConfig?.eventTagline || 'Presented by ACES — Dept. of Computer Engineering, Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)');
+  const [eventTagline, setEventTagline] = useState(eventConfig?.eventTagline || 'Powered by Eventra 2026 — Zero-Tamper QR Pass & Event Intelligence Platform');
   const [eventDate, setEventDate] = useState(eventConfig?.eventDate || 'October 16 - 18, 2026');
   const [eventTime, setEventTime] = useState(eventConfig?.eventTime || '09:00 AM IST (Gate Check-in starts 07:30 AM)');
   const [eventVenue, setEventVenue] = useState(eventConfig?.eventVenue || 'Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune - 411018');
@@ -280,7 +280,7 @@ export const SuperAdminModal = ({
         ticketType: vipRole,
         teamName: vipTeam,
         track: vipTrack,
-        institution: 'Dr. D. Y. Patil Institute of Technology (DYPDPU)',
+        institution: 'Eventra Community',
       });
 
       sounds.playSuccess();
@@ -654,7 +654,7 @@ export const SuperAdminModal = ({
                       className="input" 
                       value={eventTagline} 
                       onChange={(e) => setEventTagline(e.target.value)} 
-                      placeholder="Presented by ACES — Dept. of Computer Engineering, Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)"
+                      placeholder="Powered by Eventra 2026 — Zero-Tamper QR Pass Platform"
                       style={{ width: '100%' }}
                     />
                   </div>

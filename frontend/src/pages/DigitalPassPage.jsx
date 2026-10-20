@@ -132,9 +132,9 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
-                  <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>DIT PUNE</span>
+                  <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>VERIFIED PASS</span>
                 </div>
-                <div style={{ fontSize: '9px', color: '#d1a550', fontWeight: '800', marginTop: '1px' }}>DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY (DYPDPU)</div>
+                <div style={{ fontSize: '9px', color: '#a8b4ff', fontWeight: '800', marginTop: '1px' }}>OFFICIAL EVENT GATE ENTRY ACCESS</div>
               </div>
             </div>
             <span className="badge badge-emerald">{passData.ticketType}</span>
@@ -164,7 +164,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
               />
             </div>
 
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '15px', color: '#f7d070', fontWeight: '900', marginTop: '14px', letterSpacing: '1px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '15px', color: '#a8b4ff', fontWeight: '900', marginTop: '14px', letterSpacing: '1px' }}>
               {passData.uniqueId}
             </div>
 
@@ -177,7 +177,7 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
           <div style={{ textAlign: 'center', margin: '14px 0' }}>
             {passData.checkedIn ? (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.4)', borderRadius: '999px', padding: '6px 18px', color: '#4ade80', fontSize: '12px', fontWeight: '800' }}>
-                <CheckCircle2 size={15} /> CHECKED IN AT DIT CAMPUS
+                <CheckCircle2 size={15} /> CHECKED IN AT EVENT GATE
               </div>
             ) : (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.4)', borderRadius: '999px', padding: '6px 18px', color: '#22d3ee', fontSize: '12px', fontWeight: '800' }}>

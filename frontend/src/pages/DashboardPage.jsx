@@ -268,7 +268,8 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <h1 className="dashboard-title" style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Club Operations Control Room</h1>
+            <img src="/eventra-logo.png" alt="Eventra" style={{ height: '28px', width: 'auto', display: 'block' }} />
+            <h1 className="dashboard-title" style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Operations Control Room</h1>
             
             {/* Multi-Event Selector Dropdown */}
             <div className="dashboard-event-picker" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0b0f19', border: '1px solid rgba(209, 165, 80, 0.4)', borderRadius: '9999px', padding: '3px 10px' }}>
@@ -305,7 +306,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             ) : (
               <span className="badge badge-cyan">SUB-EVENT HEAD</span>
             )}
-            <span className="badge badge-dyp">ACES • DIT PUNE</span>
+            <span className="badge badge-dyp">EVENTRA OPS</span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Multi-Event Campus Engine • Live Google Forms Sync • Express Gate Check-In • Role-Based Delegation

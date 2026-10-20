@@ -333,7 +333,7 @@ export const buildPassEmailHtml = ({
       <div style="text-align: center; margin-bottom: 12px;">
         <img src="https://eventra-2026.vercel.app/eventra-logo.png" alt="Eventra" style="height: 38px; width: auto; background: rgba(255, 255, 255, 0.95); padding: 5px 14px; border-radius: 8px; display: inline-block;" />
       </div>
-      <div class="college-sub">🏛️ DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY, PIMPRI, PUNE (DYPDPU)</div>
+      <div class="college-sub">⚡ OFFICIAL ENTRY PASS • ZERO-TAMPER QR ACCESS</div>
       <h1>⚡ ${eventName}</h1>
       <p>Presented by ACES — Dept. of Computer Engineering</p>
     </div>
@@ -396,7 +396,7 @@ export const buildPassEmailHtml = ({
     </div>
 
     <div class="footer">
-      <p style="margin: 0 0 6px 0;">Organised by <strong>ACES</strong> • Department of Computer Engineering, DIT Pune (DYPDPU)</p>
+      <p style="margin: 0 0 6px 0;">Powered by <strong>Eventra Platform</strong> • High-Security Gate Verification</p>
       <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong></p>
     </div>
   </div>
@@ -651,7 +651,7 @@ export const buildCheckinConfirmationEmailHtml = ({
     <!-- Footer -->
     <div class="footer">
       <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">Eventra 2026 • Association of Computer Engineering Students (ACES)</p>
-      <p style="margin: 0 0 6px 0;">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)</p>
+      <p style="margin: 0 0 6px 0;">Eventra 2026 • Verified Event Operations</p>
       <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong> (<a href="mailto:tigeradi1504@gmail.com" style="color: #f7d070; text-decoration: none;">tigeradi1504@gmail.com</a>)</p>
     </div>
 
@@ -842,7 +842,7 @@ export const buildRegistrationReceivedEmailHtml = ({
         <div style="font-size: 12px; color: #cbd5e1; line-height: 1.8;">
           <div>1️⃣ <strong>Review</strong>: Operations team verifies details & team allocations.</div>
           <div>2️⃣ <strong>Pass Delivery</strong>: You will receive an email with your official QR Entry Pass.</div>
-          <div>3️⃣ <strong>Gate Check-In</strong>: Show your digital pass on your phone at DYP DPU campus for instant entry & hacker kit!</div>
+          <div>3️⃣ <strong>Gate Check-In</strong>: Show your digital pass on your phone at the event gate for instant entry & hacker kit!</div>
         </div>
       </div>
 
@@ -856,7 +856,7 @@ export const buildRegistrationReceivedEmailHtml = ({
     <!-- Footer -->
     <div style="background-color: #06080e; border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 20px 24px; text-align: center; font-size: 11px; color: #6b7280;">
       <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">Eventra 2026 • Association of Computer Engineering Students (ACES)</p>
-      <p style="margin: 0 0 6px 0;">Dr. D. Y. Patil Institute of Technology, Pimpri, Pune (DYPDPU)</p>
+      <p style="margin: 0 0 6px 0;">Eventra 2026 • Verified Event Operations</p>
       <p style="margin: 0;">
         Lead Operations: <strong>Aditya Renake</strong> • 
         <a href="https://instagram.com/where.aditya" style="color: #f7d070; text-decoration: none;">Instagram</a> • 

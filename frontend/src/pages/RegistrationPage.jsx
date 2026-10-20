@@ -340,11 +340,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           <ArrowLeft size={16} /> <span>Back to event</span>
         </button>
         <div className="registration-brand">
-          <img src="/eventra-logo.png" alt="Eventra" style={{ height: '30px', width: 'auto' }} />
-          <span />
-          <img src="/dypdpu-logo.png" alt="Dr. D. Y. Patil Vidyapeeth" />
-          <span />
-          <div><strong>ACES</strong><small>DIT Pune</small></div>
+          <img src="/eventra-logo.png" alt="Eventra" style={{ height: '32px', width: 'auto' }} />
         </div>
         <div className="registration-secure"><ShieldCheck size={15} /> Secure registration</div>
       </header>
@@ -356,7 +352,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           <p>Save your place at the 48-hour student hackathon. Choose a pass, tell us a little about yourself, and you’re all set.</p>
           <div className="registration-event-meta">
             <span><Ticket size={15} /> {eventConfig.eventDate || DEFAULT_CONFIG.eventDate}</span>
-            <span><MapPin size={15} /> DIT Pune</span>
+            <span><MapPin size={15} /> Eventra Live Stage</span>
           </div>
         </div>
 

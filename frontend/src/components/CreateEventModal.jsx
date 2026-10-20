@@ -11,7 +11,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
     description: '',
     dateDisplay: '',
     timeDisplay: '',
-    venue: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+    venue: 'Eventra Main Stage / Hybrid Arena',
     organizerName: 'ACES DIT Pune',
     organizerEmail: 'tigeradi1504@gmail.com',
     googleFormUrl: '',

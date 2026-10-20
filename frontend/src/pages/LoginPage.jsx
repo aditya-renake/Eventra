@@ -38,11 +38,9 @@ export const LoginPage = ({ onLoginSuccess, onShowToast }) => {
         
         {/* Header Icon */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div className="login-icon" style={{ width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', margin: '0 auto 12px auto' }}>
-            <Lock size={22} strokeWidth={2.5} />
-          </div>
-          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Operations portal</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ACES · Dr. D. Y. Patil Institute of Technology</p>
+          <img src="/eventra-logo.png" alt="Eventra" style={{ height: '38px', width: 'auto', margin: '0 auto 14px auto', display: 'block' }} />
+          <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>Operations Portal</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>Eventra 2026 • Secure Staff Access</p>
         </div>
 
         {/* Inline Error Alert */}
