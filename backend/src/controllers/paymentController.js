@@ -1,3 +1,19 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Payment & Pass Issuance Controller
+ * ==============================================================================
+ * Purpose:
+ *   Orchestrates native attendee registration, Razorpay order creation,
+ *   cryptographic HMAC signature verification, Cloudinary QR CDN uploads,
+ *   Supabase Postgres persistence, and automated ticket pass delivery.
+ * 
+ * Strict Pass Minting Rules:
+ *   - For ₹0 free tickets: Pass is generated immediately upon request.
+ *   - For paid tickets (₹5): ZERO registrant record or email is created until
+ *     the Razorpay payment signature is cryptographically confirmed.
+ * ==============================================================================
+ */
+
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
@@ -9,6 +25,12 @@ import { sendAutoPassWhatsApp } from '../services/messagingService.js';
 /**
  * 1. Initiate In-App Registration Order
  * POST /api/payment/create-order
+ * 
+ * Pipeline:
+ * - Validates required contact info (name, email).
+ * - Reads current tier pricing from database config (`event_config`).
+ * - Free Passes: Mints pass immediately, uploads QR to Cloudinary, sends email, returns 201.
+ * - Paid Passes: Creates official Razorpay order and returns client credentials.
  */
 export const initiateRegistrationOrder = async (req, res) => {
   try {

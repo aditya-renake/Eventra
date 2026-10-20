@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * REGISTRANT CONTROLLER
+ * ============================================================================
+ * Purpose:
+ *   Handles attendee record management, administrative CRUD operations, batch
+ *   CSV imports, search/filtering, and real-time pass preview generation.
+ *
+ * Key Responsibilities:
+ *   - getRegistrants: Filter, search, and paginate attendees with aggregated stats.
+ *   - handleWebhookSubmission: Ingest form submissions and sync row-status updates.
+ *   - createRegistrant: Admin or manual attendee creation with auto-generated unique ID.
+ *   - exportRegistrantsCSV: Stream attendee database to CSV for event logistics.
+ *   - getPublicPassPreview: Allow public ticket preview without requiring auth.
+ * ============================================================================
+ */
+
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';

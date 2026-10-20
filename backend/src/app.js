@@ -1,3 +1,19 @@
+/**
+ * ==============================================================================
+ * HackSeries 2026 — Express Application Router & Middleware Pipeline
+ * ==============================================================================
+ * Purpose:
+ *   Assembles core HTTP middleware, logging, route mounts, and error handlers.
+ * 
+ * Architectural Features:
+ *   - Dual Route Mounting: Every route is mounted at both `/api/<endpoint>` and `/<endpoint>`.
+ *     This eliminates 404 routing anomalies whether hosted locally with a Vite proxy
+ *     or deployed to Vercel with path-stripping serverless rewrites.
+ *   - Large JSON Body Limit (10MB): Allows camera gate terminals to send high-clarity
+ *     canvas snapshots directly alongside check-in payloads.
+ * ==============================================================================
+ */
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -20,7 +36,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request Logger
+// Development Request Logger
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
