@@ -227,6 +227,57 @@ export const api = {
     },
   },
 
+  events: {
+    async getAll() {
+      return request('/events');
+    },
+    async getById(id) {
+      return request(`/events/${id}`);
+    },
+    async create(eventData) {
+      return request('/events', {
+        method: 'POST',
+        body: JSON.stringify(eventData),
+      });
+    },
+    async update(id, eventData) {
+      return request(`/events/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(eventData),
+      });
+    },
+    async delete(id) {
+      return request(`/events/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    async getStaff() {
+      return request('/events/admin/staff');
+    },
+    async createStaff(staffData) {
+      return request('/events/admin/staff', {
+        method: 'POST',
+        body: JSON.stringify(staffData),
+      });
+    },
+    async updateStaff(username, updates) {
+      return request(`/events/admin/staff/${username}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+    },
+    async deleteStaff(username) {
+      return request(`/events/admin/staff/${username}`, {
+        method: 'DELETE',
+      });
+    },
+    async purgeStaffExceptOwner() {
+      return request('/events/admin/staff-purge/all-except-owner', {
+        method: 'DELETE',
+      });
+    },
+  },
+
   payment: {
     async createOrder(participantData) {
       return request('/payment/create-order', {
