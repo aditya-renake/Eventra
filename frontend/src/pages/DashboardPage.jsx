@@ -87,6 +87,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   const [showEmailTemplate, setShowEmailTemplate] = useState(false);
   const [showBulkEmail, setShowBulkEmail] = useState(false);
   const [showSuperAdminModal, setShowSuperAdminModal] = useState(false);
+  const [superAdminTab, setSuperAdminTab] = useState('operations');
   const [eventConfig, setEventConfig] = useState(cachedInitial?.eventConfig || null);
 
   // Fetch Events Catalog
@@ -111,6 +112,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       if (activeElement?.matches('input, textarea, select, [contenteditable="true"]')) return;
 
       event.preventDefault();
+      setSuperAdminTab('operations');
       setShowSuperAdminModal(true);
     };
 
@@ -338,76 +340,30 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             </button>
           )}
 
-          {/* Team & Roles (EXCLUSIVE TO MAIN EVENT ORGANIZER / ADITYA RENAKE) */}
-          {isMainBoss && (
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                sounds.playClick();
-                setShowTeamModal(true);
-              }}
-              style={{
-                background: '#EEF0FF',
-                border: '1px solid #DDE3FF',
-                color: '#596EE6',
-                fontWeight: '800',
-              }}
-            >
-              <Crown size={14} color="#596EE6" /> Team & Roles
-            </button>
-          )}
-
-          {onNavigateToScanner && (
-            <button className="btn btn-cyan btn-sm" onClick={onNavigateToScanner}>
-              <QrCode size={14} /> Gate Scanner
-            </button>
-          )}
-
-          <button 
-            className="btn btn-secondary btn-sm" 
+          {/* Operations Command Center (Houses Team & Roles, Gate Scanner, Import Excel/CSV, Google Sheet Webhook Script, Bulk Email, Templates & CSV Export) */}
+          <button
+            className="btn btn-sm"
             onClick={() => {
               sounds.playClick();
-              setShowExcelImport(true);
+              setSuperAdminTab('operations');
+              setShowSuperAdminModal(true);
             }}
             style={{
-              border: '1px solid rgba(34, 197, 94, 0.4)',
-              background: 'rgba(34, 197, 94, 0.08)',
-              color: '#4ade80'
-            }}
-          >
-            <FileSpreadsheet size={15} /> Import Excel / CSV
-          </button>
-
-          {isMainBoss && (
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowWebhookGuide(true)}>
-              <FileSpreadsheet size={15} color="#22c55e" /> Google Sheet Webhook Script
-            </button>
-          )}
-
-          {/* Bulk Email button with selected counter badge */}
-          <button 
-            className="btn btn-primary btn-sm" 
-            onClick={() => {
-              sounds.playClick();
-              setShowBulkEmail(true);
-            }}
-            style={{
-              background: selectedIds.length > 0 ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : undefined,
+              background: '#EEF0FF',
+              border: '1px solid #DDE3FF',
+              color: '#596EE6',
+              fontWeight: '800',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              padding: '6px 14px',
+              boxShadow: '0 2px 8px rgba(89, 110, 230, 0.12)',
             }}
+            title="Open Operations Command Center (⌘K / Ctrl K)"
           >
-            <Send size={14} /> 
-            <span>{selectedIds.length > 0 ? `Email Selected (${selectedIds.length})` : 'Bulk Email Passes'}</span>
-          </button>
-
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowEmailTemplate(true)}>
-            <Sliders size={14} /> Email Template
-          </button>
-
-          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>
-            <Download size={14} /> Export CSV
+            <Zap size={14} color="#596EE6" />
+            <span>Command Center</span>
+            <kbd className="command-shortcut-hint" style={{ background: '#ffffff', color: '#596EE6', borderColor: '#DDE3FF', borderRadius: '4px', padding: '1px 5px', fontSize: '10px' }}>⌘K</kbd>
           </button>
 
           <button className="btn btn-ghost btn-sm" onClick={() => fetchData(pagination.page)} title="Refresh Data">
@@ -465,6 +421,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             className="btn btn-secondary btn-sm"
             onClick={() => {
               sounds.playClick();
+              setSuperAdminTab('telemetry');
               setShowSuperAdminModal(true);
             }}
             style={{
@@ -488,6 +445,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             className="btn btn-cyan btn-sm"
             onClick={() => {
               sounds.playClick();
+              setSuperAdminTab('operations');
               setShowSuperAdminModal(true);
             }}
             style={{
@@ -503,6 +461,24 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             <kbd className="command-shortcut-hint">⌘K / Ctrl K</kbd>
           </button>
         </div>
+      </div>
+
+      {/* Quick Create Event Banner (Screenshot 4) */}
+      <div className="dashboard-create-event-banner">
+        <div>
+          <h3 className="banner-title">Create event</h3>
+          <p className="banner-subtitle">Start here. Stats stay below this action.</p>
+        </div>
+        <button
+          type="button"
+          className="banner-btn"
+          onClick={() => {
+            sounds.playClick();
+            setShowCreateEvent(true);
+          }}
+        >
+          Create event
+        </button>
       </div>
 
       {/* KPI Stats Grid */}
@@ -690,6 +666,17 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             fetchData(pagination.page);
             api.event.getConfig().then((res) => setEventConfig(res.data)).catch(() => {});
           }}
+          initialTab={superAdminTab}
+          onNavigateToScanner={onNavigateToScanner}
+          onOpenTeamModal={() => setShowTeamModal(true)}
+          onOpenExcelImport={() => setShowExcelImport(true)}
+          onOpenWebhookGuide={() => setShowWebhookGuide(true)}
+          onOpenBulkEmail={() => setShowBulkEmail(true)}
+          onOpenEmailTemplate={() => setShowEmailTemplate(true)}
+          onExportCSV={handleExportCSV}
+          onOpenCreateEvent={() => setShowCreateEvent(true)}
+          isMainBoss={isMainBoss}
+          selectedCount={selectedIds.length}
         />
       )}
 
@@ -719,6 +706,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         className="command-center-fab"
         onClick={() => {
           sounds.playClick();
+          setSuperAdminTab('operations');
           setShowSuperAdminModal(true);
         }}
         aria-label="Open Operations Command Center"

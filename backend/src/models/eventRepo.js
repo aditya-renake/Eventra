@@ -204,7 +204,6 @@ export const eventRepo = {
    */
   async create(data) {
     invalidateCache();
-    const collection = this.getCollection();
     const cleanId = (data.eventId || data.id || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-')).toLowerCase().trim();
 
     const eventItem = {
@@ -223,7 +222,21 @@ export const eventRepo = {
       updatedAt: new Date().toISOString(),
     };
 
-    await collection.doc(cleanId).set(eventItem);
+    try {
+      const collection = this.getCollection();
+      await collection.doc(cleanId).set(eventItem);
+    } catch (e) {
+      console.warn('[eventRepo] create notice (persisting in memory):', e.message);
+    }
+
+    // Maintain in memory list for instantaneous offline/dev fallback access
+    const existingIdx = DEFAULT_EVENTS.findIndex((ev) => ev.id === cleanId || ev.eventId === cleanId);
+    if (existingIdx >= 0) {
+      DEFAULT_EVENTS[existingIdx] = eventItem;
+    } else {
+      DEFAULT_EVENTS.unshift(eventItem);
+    }
+
     return eventItem;
   },
 

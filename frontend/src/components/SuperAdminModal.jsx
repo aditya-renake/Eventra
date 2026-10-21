@@ -29,12 +29,25 @@ import {
   Eye,
   EyeOff,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  QrCode,
+  FileSpreadsheet,
+  Send,
+  Sliders,
+  LayoutGrid,
+  ArrowUpRight
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
 const COMMAND_TABS = [
+  { 
+    id: 'operations', 
+    label: 'Operations & Tools', 
+    description: 'Team & roles, gate scanner, Excel import, webhook sync, bulk email, template studio, and CSV export', 
+    icon: LayoutGrid, 
+    keywords: 'team roles gate scanner terminal import excel csv google sheet webhook bulk email passes template studio export download attendees launch event' 
+  },
   { id: 'telemetry', label: 'Telemetry', description: 'Database activity and system capacity', icon: Activity, keywords: 'database live metrics health' },
   { id: 'intake', label: 'Event & Payments', description: 'Edit all event details, schedule, venue, ticket prices, and payment gateway', icon: Sparkles, keywords: 'event details name dates venue intake payment form tickets upi razorpay pricing' },
   { id: 'broadcast', label: 'Pass broadcast', description: 'Publish an announcement on attendee passes', icon: Radio, keywords: 'announcement message notice' },
@@ -49,9 +62,25 @@ export const SuperAdminModal = ({
   onClose, 
   onShowToast, 
   onRefreshData,
-  initialTab = 'telemetry'
+  initialTab = 'operations',
+  onNavigateToScanner,
+  onOpenTeamModal,
+  onOpenExcelImport,
+  onOpenWebhookGuide,
+  onOpenBulkEmail,
+  onOpenEmailTemplate,
+  onExportCSV,
+  onOpenCreateEvent,
+  isMainBoss = false,
+  selectedCount = 0
 }) => {
-  const [activeTab, setActiveTab] = useState(initialTab || 'telemetry');
+  const [activeTab, setActiveTab] = useState(initialTab || 'operations');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [commandSearch, setCommandSearch] = useState('');
   const [broadcastText, setBroadcastText] = useState(eventConfig?.broadcastNotice || '');
   const [broadcastActive, setBroadcastActive] = useState(eventConfig?.broadcastActive || false);
@@ -119,6 +148,157 @@ export const SuperAdminModal = ({
   const [vipTrack, setVipTrack] = useState('AI & Web3 Innovation');
   const [isGeneratingVip, setIsGeneratingVip] = useState(false);
   const [generatedVipPass, setGeneratedVipPass] = useState(null);
+
+  const operationsTools = [
+    ...(isMainBoss ? [{
+      id: 'team',
+      title: 'Team & Roles',
+      badge: 'GOVERNANCE',
+      badgeColor: 'dyp',
+      description: 'Configure event heads, delegate gate scanner volunteers, and set granular role-based permissions.',
+      icon: Crown,
+      iconColor: '#596EE6',
+      iconBg: '#EEF0FF',
+      buttonText: 'Manage Team & Roles',
+      buttonClass: 'btn-secondary',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        if (onOpenTeamModal) onOpenTeamModal();
+      },
+      keywords: 'team roles coordinators scanner volunteers permissions organizer'
+    }] : []),
+    ...(onNavigateToScanner ? [{
+      id: 'scanner',
+      title: 'Gate Scanner Terminal',
+      badge: 'LIVE TERMINAL',
+      badgeColor: 'cyan',
+      description: 'Launch high-speed camera QR code scanner with zero-tamper HMAC verification and attendee gate photo capture.',
+      icon: QrCode,
+      iconColor: '#06b6d4',
+      iconBg: 'rgba(6, 182, 212, 0.12)',
+      buttonText: 'Launch Gate Scanner',
+      buttonClass: 'btn-cyan',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        onNavigateToScanner();
+      },
+      keywords: 'scanner gate qr code camera check-in verify attend terminal'
+    }] : []),
+    {
+      id: 'import-excel',
+      title: 'Import Excel / CSV',
+      badge: 'BATCH INGESTION',
+      badgeColor: 'emerald',
+      description: 'Bulk upload attendee manifests (.xlsx, .xls, .csv) with automatic column matching & instant pass generation.',
+      icon: FileSpreadsheet,
+      iconColor: '#22c55e',
+      iconBg: 'rgba(34, 197, 94, 0.12)',
+      buttonText: 'Import Excel / CSV',
+      buttonClass: 'btn-secondary',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        if (onOpenExcelImport) onOpenExcelImport();
+      },
+      keywords: 'import excel csv spreadsheet upload bulk attendees data manifest'
+    },
+    ...(isMainBoss ? [{
+      id: 'webhook-script',
+      title: 'Google Sheet Webhook Script',
+      badge: 'REAL-TIME SYNC',
+      badgeColor: 'emerald',
+      description: 'Copy and deploy the ready Google Apps Script to stream Google Form submissions directly into Cloud Firestore.',
+      icon: FileSpreadsheet,
+      iconColor: '#10b981',
+      iconBg: 'rgba(16, 185, 129, 0.12)',
+      buttonText: 'View Webhook Script',
+      buttonClass: 'btn-secondary',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        if (onOpenWebhookGuide) onOpenWebhookGuide();
+      },
+      keywords: 'google sheet webhook script apps script form live sync automation'
+    }] : []),
+    {
+      id: 'bulk-email',
+      title: selectedCount > 0 ? `Bulk Email (${selectedCount} Selected)` : 'Bulk Email Passes',
+      badge: selectedCount > 0 ? `${selectedCount} READY` : 'DISPATCH ENGINE',
+      badgeColor: selectedCount > 0 ? 'emerald' : 'violet',
+      description: 'Mass-send personalized HTML emails with dynamic HMAC-SHA256 digital QR passes to registered attendees.',
+      icon: Send,
+      iconColor: '#6366f1',
+      iconBg: 'rgba(99, 102, 241, 0.12)',
+      buttonText: selectedCount > 0 ? `Email ${selectedCount} Selected` : 'Bulk Email Passes',
+      buttonClass: 'btn-primary',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        if (onOpenBulkEmail) onOpenBulkEmail();
+      },
+      keywords: 'bulk email passes send dispatch hmac qr tickets mail pass'
+    },
+    {
+      id: 'email-template',
+      title: 'Email Template Studio',
+      badge: 'PASS BRANDING',
+      badgeColor: 'dyp',
+      description: 'Customize HTML email invitation branding, banner art, check-in instructions, and organizer contact details.',
+      icon: Sliders,
+      iconColor: '#8b5cf6',
+      iconBg: 'rgba(139, 92, 246, 0.12)',
+      buttonText: 'Customize Template',
+      buttonClass: 'btn-secondary',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        if (onOpenEmailTemplate) onOpenEmailTemplate();
+      },
+      keywords: 'email template custom html subject body styling design branding'
+    },
+    {
+      id: 'export-csv',
+      title: 'Export Attendee CSV',
+      badge: 'INSTANT DOWNLOAD',
+      badgeColor: 'amber',
+      description: 'Download the complete verified attendee roster with check-in status, phone, institution, and unique pass IDs.',
+      icon: Download,
+      iconColor: '#f59e0b',
+      iconBg: 'rgba(245, 158, 11, 0.12)',
+      buttonText: 'Export CSV',
+      buttonClass: 'btn-secondary',
+      action: () => {
+        sounds.playClick();
+        if (onExportCSV) onExportCSV();
+      },
+      keywords: 'export csv download spreadsheet roster data attendees'
+    },
+    ...(isMainBoss && onOpenCreateEvent ? [{
+      id: 'create-event',
+      title: '+ Launch Sub-Event',
+      badge: 'CAMPUS ENGINE',
+      badgeColor: 'emerald',
+      description: 'Create and launch a new hackathon, workshop, or competition with custom pricing, schedule, and tracks.',
+      icon: Sparkles,
+      iconColor: '#596EE6',
+      iconBg: '#EEF0FF',
+      buttonText: '+ Launch Event',
+      buttonClass: 'btn-primary',
+      action: () => {
+        sounds.playClick();
+        onClose();
+        onOpenCreateEvent();
+      },
+      keywords: 'launch create new event track hackathon add'
+    }] : [])
+  ];
+
+  const filteredOperationsTools = operationsTools.filter((tool) =>
+    !commandSearch.trim() ||
+    `${tool.title} ${tool.description} ${tool.keywords} ${tool.badge}`.toLowerCase().includes(commandSearch.trim().toLowerCase())
+  );
 
   const filteredCommandTabs = COMMAND_TABS.filter((tab) =>
     `${tab.label} ${tab.description} ${tab.keywords}`.toLowerCase().includes(commandSearch.trim().toLowerCase())
