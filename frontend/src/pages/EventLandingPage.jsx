@@ -579,7 +579,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
         </div>
       </section>
 
-      {/* CampusMeet Style Events Discovery Hub */}
+      {/* Eventra Events Discovery Hub */}
       <EventsDiscoverySection
         onSelectEvent={onNavigateToRegister}
         onNavigateToLookup={() => {

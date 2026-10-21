@@ -356,7 +356,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
 
           <div className="event-wizard-brand">
             <Sparkles size={16} color="#596EE6" />
-            <span>CAMPUS MEET • EVENTRA</span>
+            <span>EVENTRA PLATFORM</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -596,7 +596,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        campusmeet.in/
+                        eventra.live/
                       </span>
                       <input
                         type="text"
@@ -1511,6 +1511,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
 
               {/* Live Event Preview Card */}
               <div
+                className="event-wizard-preview"
                 style={{
                   background: '#090D18',
                   border: `2px solid ${formData.themeColor}`,
@@ -1520,7 +1521,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 }}
               >
                 {/* Banner Header */}
-                <div style={{ height: '140px', position: 'relative', overflow: 'hidden' }}>
+                <div className="event-wizard-preview-banner" style={{ height: '140px', position: 'relative', overflow: 'hidden' }}>
                   <img
                     src={formData.bannerUrl}
                     alt={formData.name}
@@ -1592,7 +1593,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
               </div>
 
               {/* 6-Point Readiness Checklist */}
-              <div style={{ background: '#090D18', border: '1px solid #1E283D', borderRadius: '10px', padding: '16px' }}>
+              <div className="event-wizard-readiness" style={{ background: '#090D18', border: '1px solid #1E283D', borderRadius: '10px', padding: '16px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
                   SYSTEM LAUNCH VERIFICATION CHECKLIST:
                 </span>
@@ -1631,6 +1632,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 <div className="wizard-field">
                   <label className="wizard-label">FLAGSHIP FEATURE ON HOMEPAGE</label>
                   <label
+                    className="event-wizard-feature-toggle"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
