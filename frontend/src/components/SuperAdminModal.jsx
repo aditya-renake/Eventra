@@ -610,6 +610,287 @@ export const SuperAdminModal = ({
           ) : (
             <>
 
+          {/* TAB: Operations & Tools Hub */}
+          {activeTab === 'operations' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+              
+              {/* Quick Action Launcher Strip */}
+              <div style={{
+                background: '#f8f9fc',
+                border: '1px solid var(--eventra-soft-border, #E2E8F0)',
+                borderRadius: '16px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '7px',
+                      background: 'var(--eventra-soft-lavender, #EEF0FF)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--eventra-indigo, #596EE6)'
+                    }}>
+                      <Zap size={14} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '12px', fontWeight: '800', letterSpacing: '0.03em', color: 'var(--eventra-ink, #1E293B)', textTransform: 'uppercase' }}>
+                        Quick Action Launcher
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748B)', marginLeft: '8px' }}>
+                        One-click access to all core operational tools
+                      </span>
+                    </div>
+                  </div>
+                  <span className="badge badge-cyan" style={{ fontSize: '10px' }}>
+                    COMMAND TOOLS
+                  </span>
+                </div>
+
+                {/* Pills Row (Exact style from Dashboard) */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
+                }}>
+                  {isMainBoss && (
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => {
+                        sounds.playClick();
+                        onClose();
+                        if (onOpenTeamModal) onOpenTeamModal();
+                      }}
+                      style={{
+                        background: '#EEF0FF',
+                        border: '1px solid #DDE3FF',
+                        color: '#596EE6',
+                        fontWeight: '800',
+                      }}
+                      title="Manage Coordinators, Event Heads & Permissions"
+                    >
+                      <Crown size={14} color="#596EE6" /> Team & Roles
+                    </button>
+                  )}
+
+                  {onNavigateToScanner && (
+                    <button
+                      className="btn btn-cyan btn-sm"
+                      onClick={() => {
+                        sounds.playClick();
+                        onClose();
+                        onNavigateToScanner();
+                      }}
+                      title="Launch Camera QR Scanner Terminal"
+                    >
+                      <QrCode size={14} /> Gate Scanner
+                    </button>
+                  )}
+
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={() => {
+                      sounds.playClick();
+                      onClose();
+                      if (onOpenExcelImport) onOpenExcelImport();
+                    }}
+                    style={{
+                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                      background: 'rgba(34, 197, 94, 0.08)',
+                      color: '#4ade80'
+                    }}
+                    title="Upload .xlsx or .csv attendee manifests"
+                  >
+                    <FileSpreadsheet size={15} /> Import Excel / CSV
+                  </button>
+
+                  {isMainBoss && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        sounds.playClick();
+                        onClose();
+                        if (onOpenWebhookGuide) onOpenWebhookGuide();
+                      }}
+                      title="Google Apps Script live sync code"
+                    >
+                      <FileSpreadsheet size={15} color="#22c55e" /> Google Sheet Webhook Script
+                    </button>
+                  )}
+
+                  <button 
+                    className="btn btn-primary btn-sm" 
+                    onClick={() => {
+                      sounds.playClick();
+                      onClose();
+                      if (onOpenBulkEmail) onOpenBulkEmail();
+                    }}
+                    style={{
+                      background: selectedCount > 0 ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : undefined,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    title="Dispatch HMAC digital QR passes to attendees"
+                  >
+                    <Send size={14} /> 
+                    <span>{selectedCount > 0 ? `Email Selected (${selectedCount})` : 'Bulk Email Passes'}</span>
+                  </button>
+
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      sounds.playClick();
+                      onClose();
+                      if (onOpenEmailTemplate) onOpenEmailTemplate();
+                    }}
+                    title="Customize HTML pass layout, copy & styling"
+                  >
+                    <Sliders size={14} /> Email Template
+                  </button>
+
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      sounds.playClick();
+                      if (onExportCSV) onExportCSV();
+                    }}
+                    title="Download complete registry as CSV"
+                  >
+                    <Download size={14} /> Export CSV
+                  </button>
+
+                  {isMainBoss && onOpenCreateEvent && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        sounds.playClick();
+                        onClose();
+                        onOpenCreateEvent();
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                      title="Launch new hackathon sub-event"
+                    >
+                      <Sparkles size={14} color="#ffffff" />
+                      <span>+ Launch Event</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Detailed Tool Cards Section Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--eventra-ink, #1E293B)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <LayoutGrid size={15} color="var(--eventra-indigo, #596EE6)" />
+                  <span>Operations Control Center</span>
+                </div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748B)' }}>
+                  Showing {filteredOperationsTools.length} {filteredOperationsTools.length === 1 ? 'operational tool' : 'operational tools'}
+                </span>
+              </div>
+
+              {/* Detailed Tool Cards Grid */}
+              {filteredOperationsTools.length === 0 ? (
+                <div style={{
+                  padding: '36px 20px',
+                  textAlign: 'center',
+                  background: '#f8f9fc',
+                  borderRadius: '14px',
+                  border: '1px dashed var(--eventra-soft-border, #E2E8F0)'
+                }}>
+                  <Search size={24} style={{ color: '#94A3B8', margin: '0 auto 8px' }} />
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#475569' }}>
+                    No operations tools match "{commandSearch}"
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>
+                    Try searching for "scanner", "email", "excel", "roles", or "csv"
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '14px'
+                }}>
+                  {filteredOperationsTools.map((tool) => {
+                    const ToolIcon = tool.icon;
+                    return (
+                      <div
+                        key={tool.id}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid var(--eventra-soft-border, #E2E8F0)',
+                          borderRadius: '14px',
+                          padding: '18px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '14px',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                          transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <div style={{
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '10px',
+                              background: tool.iconBg,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: tool.iconColor
+                            }}>
+                              <ToolIcon size={20} />
+                            </div>
+                            <span className={`badge badge-${tool.badgeColor}`} style={{ fontSize: '10px', padding: '3px 8px' }}>
+                              {tool.badge}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--eventra-ink, #0F172A)', marginBottom: '4px' }}>
+                            {tool.title}
+                          </div>
+                          <p style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)', lineHeight: '1.5', margin: 0 }}>
+                            {tool.description}
+                          </p>
+                        </div>
+
+                        <button
+                          className={`btn btn-sm ${tool.buttonClass}`}
+                          onClick={tool.action}
+                          style={{
+                            width: '100%',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '9px 14px',
+                            fontWeight: '700'
+                          }}
+                        >
+                          <ToolIcon size={14} />
+                          <span>{tool.buttonText}</span>
+                          <ArrowUpRight size={13} style={{ opacity: 0.7 }} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+            </div>
+          )}
+
           {/* TAB 0: Live Database Telemetry */}
           {activeTab === 'telemetry' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
