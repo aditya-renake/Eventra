@@ -28,7 +28,8 @@ import {
   Key,
   Eye,
   EyeOff,
-  Info
+  Info,
+  CheckCircle2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
