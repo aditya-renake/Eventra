@@ -27,7 +27,12 @@ export default async function handler(req, res) {
   }
 
   // Preserve original request URL across Vercel rewrites
-  const forwardedUri = req.headers['x-forwarded-uri'] || req.headers['x-now-route-matches'];
+  const forwardedUri =
+    req.headers['x-forwarded-uri'] ||
+    req.headers['x-matched-path'] ||
+    req.headers['x-original-uri'] ||
+    req.headers['x-rewrite-url'] ||
+    req.headers['x-now-route-matches'];
   if (forwardedUri && forwardedUri.startsWith('/api')) {
     req.url = forwardedUri;
   }

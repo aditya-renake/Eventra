@@ -146,7 +146,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
   const selectedTier = ticketOptions.find((tier) => tier.type === formData.ticketType) || ticketOptions[0];
   const paymentEnabled = eventConfig.enablePaymentGateway !== false;
-  const amountDue = paymentEnabled ? (selectedTier?.price || 5) : 5;
+  const amountDue = paymentEnabled ? (selectedTier?.price ?? 5) : 0;
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -204,8 +204,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
             setIsLoading(true);
             const verifyRes = await api.payment.verifyPayment({
-              order_id: response.razorpay_order_id,
-              razorpay_order_id: response.razorpay_order_id,
+              order_id: response.razorpay_order_id || effectiveOrderId,
+              razorpay_order_id: response.razorpay_order_id || effectiveOrderId,
               payment_id: response.razorpay_payment_id,
               razorpay_payment_id: response.razorpay_payment_id,
               signature: response.razorpay_signature,
@@ -217,8 +217,9 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           } catch (error) {
             // Auto-recovery: Check directly with Razorpay before declaring failure
             try {
-              if (response?.razorpay_order_id) {
-                const checkRes = await api.payment.checkOrderStatus(response.razorpay_order_id, formData);
+              const recoverOrderId = response?.razorpay_order_id || effectiveOrderId;
+              if (recoverOrderId) {
+                const checkRes = await api.payment.checkOrderStatus(recoverOrderId, formData);
                 if (checkRes.isPaid && checkRes.data) {
                   completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
                   return;

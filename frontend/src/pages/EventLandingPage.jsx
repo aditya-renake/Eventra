@@ -37,6 +37,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
   const [retrievedPass, setRetrievedPass] = useState(null);
   const [eventConfig, setEventConfig] = useState(null);
   const [heroTilt, setHeroTilt] = useState({ x: 0, y: 0 });
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0);
 
   React.useEffect(() => {
     api.event.getConfig()
@@ -93,6 +94,9 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
       tag: 'OPEN',
     },
   ];
+
+  const activeTrack = tracks[activeTrackIndex] || tracks[0];
+  const ActiveTrackIcon = activeTrack.icon;
 
   const schedule = [
     { 
@@ -219,6 +223,43 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           <h1 id="event-hero-title">Make your next big idea <span>real in 48 hours.</span></h1>
           <p className="event-hero-description">A hands-on hackathon for curious minds, bold prototypes, and the people who make them happen. Find your track and build something worth sharing.</p>
 
+          <div className="event-track-picker" role="group" aria-label="Choose a hackathon track">
+            <div className="event-track-picker-heading">
+              <span>Choose your build path</span>
+              <span>{String(activeTrackIndex + 1).padStart(2, '0')} <i>/</i> 05</span>
+            </div>
+            <div className="event-track-picker-options" role="group" aria-label="Hackathon tracks">
+              {tracks.map((track, index) => {
+                const TrackIcon = track.icon;
+                const isSelected = activeTrackIndex === index;
+                return (
+                  <button
+                    type="button"
+                    key={track.tag}
+                    className={`event-track-chip ${isSelected ? 'is-active' : ''}`}
+                    aria-pressed={isSelected}
+                    title={track.title}
+                    onClick={() => {
+                      sounds.playClick();
+                      setActiveTrackIndex(index);
+                    }}
+                  >
+                    <TrackIcon size={13} aria-hidden="true" />
+                    <span>{track.tag}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div key={activeTrack.tag} className="event-track-picker-preview" aria-live="polite">
+              <span className="event-track-preview-icon"><ActiveTrackIcon size={16} aria-hidden="true" /></span>
+              <div>
+                <strong>{activeTrack.title}</strong>
+                <p>{activeTrack.desc}</p>
+              </div>
+              <span className="event-track-preview-prize">{activeTrack.prize}</span>
+            </div>
+          </div>
+
           <div className="event-hero-meta">
             <span><Calendar size={16} /> {eventConfig?.eventDate || 'October 16–18, 2026'}</span>
             <span><MapPin size={16} /> {eventConfig?.eventVenue || 'DIT Pune, India'}</span>
@@ -242,7 +283,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
           <div className="event-hero-image" style={{ transform: `perspective(1200px) rotateX(${heroTilt.x}deg) rotateY(${heroTilt.y}deg)` }}>
             <img src="/gallery/futuristic_hackathon_1775424262777.png" alt="A packed hackathon floor with teams building together" />
             <div className="event-hero-image-shade" />
-            <div className="event-hero-image-topline"><span><Activity size={14} /> THE BUILD STARTS HERE</span><span>01 / 03</span></div>
+            <div className="event-hero-image-topline"><span><Activity size={14} /> THE BUILD STARTS HERE</span><span>48H · DIT PUNE</span></div>
             <div className="event-hero-image-caption"><span>Ideas move faster together.</span><small>48 hours · 5 tracks · one big finish</small></div>
           </div>
           <div className="event-float-card event-prize-card">
@@ -250,9 +291,9 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
             <span><small>Prize pool</small><strong>₹15 lakh+</strong></span>
             <ArrowUpRight size={15} className="event-float-arrow" />
           </div>
-          <a href="#tracks-section" className="event-float-card event-tracks-card">
+          <a href="#tracks-section" className="event-float-card event-tracks-card" aria-label={`Explore ${activeTrack.title}`}>
             <span className="event-track-orbit"><Sparkles size={16} /></span>
-            <span><small>Find your challenge</small><strong>5 focused tracks</strong></span>
+            <span><small>{activeTrack.tag} · Track prize</small><strong>{activeTrack.prize}</strong></span>
             <ArrowUpRight size={15} className="event-float-arrow" />
           </a>
         </div>

@@ -91,7 +91,6 @@ export const SuperAdminModal = ({
       if (eventConfig.organizerEmail) setOrganizerEmail(eventConfig.organizerEmail);
       if (eventConfig.registrationMode) setRegMode(eventConfig.registrationMode);
       if (eventConfig.enablePaymentGateway !== undefined) setEnablePayments(eventConfig.enablePaymentGateway);
-      if (eventConfig.googleFormUrl) setGoogleFormLink(eventConfig.googleFormUrl);
       if (eventConfig.ticketPrices) {
         if (eventConfig.ticketPrices['Hacker Pass'] !== undefined) setHackerPrice(eventConfig.ticketPrices['Hacker Pass']);
         if (eventConfig.ticketPrices['Student Pass'] !== undefined) setStudentPrice(eventConfig.ticketPrices['Student Pass']);
