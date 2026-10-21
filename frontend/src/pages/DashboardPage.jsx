@@ -15,8 +15,7 @@ import {
   ShieldCheck,
   QrCode,
   CheckSquare,
-  Crown,
-  Sparkles
+  Crown
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StatCard } from '../components/StatCard';
@@ -317,29 +316,6 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          
-          {/* + Launch Event */}
-          {isMainBoss && (
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                sounds.playClick();
-                setShowCreateEvent(true);
-              }}
-              style={{
-                background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
-                border: '1px solid rgba(89, 110, 230, 0.3)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Sparkles size={14} color="#ffffff" />
-              <span>+ Launch Event</span>
-            </button>
-          )}
-
           {/* Operations Command Center (Houses Team & Roles, Gate Scanner, Import Excel/CSV, Google Sheet Webhook Script, Bulk Email, Templates & CSV Export) */}
           <button
             className="btn btn-sm"
