@@ -465,7 +465,7 @@ export const SuperAdminModal = ({
       setGeneratedVipPass(res.data);
       onShowToast({
         type: 'success',
-        title: 'VIP Pass Generated! 👑',
+        title: 'VIP Pass Generated!',
         message: `Cryptographically signed entry pass created for ${vipName} (${res.data.uniqueId})`,
       });
       if (onRefreshData) onRefreshData();
@@ -1448,7 +1448,7 @@ export const SuperAdminModal = ({
                     value={vipRole}
                     onChange={(e) => setVipRole(e.target.value)}
                   >
-                    <option value="VIP Pass">👑 VIP Pass</option>
+                    <option value="VIP Pass">VIP Pass</option>
                     <option value="Mentor / Judge">⚖️ Mentor / Judge</option>
                     <option value="Speaker">🎙️ Keynote Speaker</option>
                     <option value="Volunteer Pass">🛡️ Volunteer Pass</option>

@@ -257,7 +257,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
   let adminDisplayName = name;
   if (isMainBoss) {
-    adminDisplayName = 'Aditya Renake (Main Event Organizer 👑)';
+    adminDisplayName = 'Aditya Renake (Main Event Organizer)';
   } else if (!adminDisplayName) {
     adminDisplayName = 'Operations Admin';
   }
@@ -379,7 +379,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '18px', fontWeight: '900', color: '#fff' }}>
-                Welcome back, {adminDisplayName}! 👋
+                Welcome back, {adminDisplayName}!
               </span>
               <span className="badge badge-cyan" style={{ fontSize: '10px', padding: '3px 8px' }}>
                 OPERATIONS ADMIN

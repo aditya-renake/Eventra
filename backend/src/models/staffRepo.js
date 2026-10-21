@@ -193,7 +193,7 @@ export const staffRepo = {
       for (const staff of staffList) {
         const existing = await this.findByUsername(staff.username);
         if (!existing) {
-          console.log(`👑 [Firestore] Seeding staff user (${staff.username})...`);
+          console.log(`[Firestore] Seeding staff user (${staff.username})...`);
           await this.createStaff(staff);
           console.log(`✅ [Firestore] User ${staff.username} created successfully.`);
         } else if (staff.username === 'adityarenake' && existing.role !== 'root_owner') {

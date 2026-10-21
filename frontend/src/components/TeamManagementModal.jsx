@@ -151,7 +151,7 @@ export const TeamManagementModal = ({ onClose, onShowToast, events = [] }) => {
             </div>
             <div>
               <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Team & Role Access Delegation</div>
-              <div style={{ fontSize: '11px', color: 'var(--eventra-lavender)', fontWeight: '700' }}>👑 Root Owner: Aditya Renake (Main Authority)</div>
+              <div style={{ fontSize: '11px', color: 'var(--eventra-lavender)', fontWeight: '700' }}>Root Owner: Aditya Renake (Main Authority)</div>
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px', borderRadius: '50%' }}>
