@@ -85,12 +85,66 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [dateDisplayEdited, setDateDisplayEdited] = useState(false);
+  const [timeDisplayEdited, setTimeDisplayEdited] = useState(false);
+
+  // Helper date formatters
+  const formatDateDisplay = (startStr, endStr) => {
+    if (!startStr) return '';
+    try {
+      const start = new Date(startStr);
+      if (isNaN(start.getTime())) return '';
+      const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
+      const startDay = start.getDate();
+      const startYear = start.getFullYear();
+
+      if (!endStr) {
+        return `${startMonth} ${startDay}, ${startYear}`;
+      }
+      const end = new Date(endStr);
+      if (isNaN(end.getTime())) {
+        return `${startMonth} ${startDay}, ${startYear}`;
+      }
+      const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
+      const endDay = end.getDate();
+      const endYear = end.getFullYear();
+
+      if (startYear === endYear) {
+        if (startMonth === endMonth) {
+          if (startDay === endDay) {
+            return `${startMonth} ${startDay}, ${startYear}`;
+          }
+          return `${startMonth} ${startDay} – ${endDay}, ${startYear}`;
+        }
+        return `${startMonth} ${startDay} – ${endMonth} ${endDay}, ${startYear}`;
+      }
+      return `${startMonth} ${startDay}, ${startYear} – ${endMonth} ${endDay}, ${endYear}`;
+    } catch {
+      return '';
+    }
+  };
+
+  const formatTimeDisplay = (startStr, endStr) => {
+    if (!startStr) return '';
+    try {
+      const start = new Date(startStr);
+      if (isNaN(start.getTime())) return '';
+      const fmt = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const startTime = fmt(start);
+      if (!endStr) return `${startTime} IST`;
+      const end = new Date(endStr);
+      if (isNaN(end.getTime())) return `${startTime} IST`;
+      return `${startTime} – ${fmt(end)} IST`;
+    } catch {
+      return '';
+    }
+  };
 
   // Core Form State across the 6 Systematic Steps
   const [formData, setFormData] = useState({
     // Step 1: Essentials & Structure
     structureType: 'single', // 'single' | 'sub-events'
-    collegeName: 'Dr. D. Y. Patil Institute of Technology Pimpri',
+    collegeName: '',
     name: '',
     slug: '',
     category: 'Hackathon',
@@ -98,34 +152,34 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
 
     // Step 2: When & where
     mode: 'in_person', // 'in_person' | 'online' | 'hybrid'
-    startDate: '2026-11-15T09:00',
-    endDate: '2026-11-17T18:00',
-    dateDisplay: 'November 15 – 17, 2026',
-    timeDisplay: '09:00 AM – 06:00 PM IST (Gate Check-in: 07:45 AM)',
-    venue: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
-    venueHall: 'Main Stage & Block 402 High-Density Computing Lab',
-    mapUrl: 'https://maps.google.com/?q=DYP+Institute+of+Technology+Pimpri',
+    startDate: '',
+    endDate: '',
+    dateDisplay: '',
+    timeDisplay: '',
+    venue: '',
+    venueHall: '',
+    mapUrl: '',
     meetingUrl: '',
 
     // Step 3: Look & POC
-    tagline: 'India’s Flagship 48-Hour National Hackathon • ACES DIT Pune',
+    tagline: '',
     themeColor: '#596EE6',
-    bannerUrl: CURATED_POSTERS[0].url,
-    clubName: 'Association of Computer Engineering Students (ACES)',
-    clubCode: 'ASS29EE',
-    organizerName: 'Aditya Renake',
-    organizerRole: 'Club President / Lead Organizer',
-    organizerEmail: 'tigeradi1504@gmail.com',
-    organizerPhone: '+91 98765 43210',
-    alternatePOC: 'ACES Tech Secretariat (+91 98220 54321)',
+    bannerUrl: '',
+    clubName: '',
+    clubCode: '',
+    organizerName: '',
+    organizerRole: '',
+    organizerEmail: '',
+    organizerPhone: '',
+    alternatePOC: '',
 
     // Step 4: Tickets & seats
     pricingType: 'paid', // 'free' | 'paid'
     entryFee: 5,
     feeDisplay: '₹5 Entry Pass',
     totalCapacity: 250,
-    ticketTiers: 'Standard Pass, VIP Delegate, Hacker Pass',
-    tracks: 'AI & Agents, Cybersecurity, Web3, Cloud Distributed Systems',
+    ticketTiers: '',
+    tracks: '',
     subEvents: [], // Array of { id, name, category, fee, seats, coordinator }
 
     // Step 5: Questions & links
@@ -134,23 +188,36 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
       email: true,
       phone: true,
       college: true,
-      branch: true,
-      year: true,
-      prn: true,
-      github: true,
+      branch: false,
+      year: false,
+      prn: false,
+      github: false,
       linkedin: false,
     },
-    customQuestion: 'Do you require on-campus overnight hacker accommodation?',
-    whatsappUrl: 'https://chat.whatsapp.com/ACES-Eventra-2026-Official',
-    discordUrl: 'https://discord.gg/aces-hackers',
+    customQuestion: '',
+    whatsappUrl: '',
+    discordUrl: '',
     brochureUrl: '',
-    socialUrl: 'https://instagram.com/aces_dit_pune',
+    socialUrl: '',
 
     // Step 6: Review & visibility
     status: 'upcoming', // 'upcoming' | 'live' | 'draft'
-    isFlagship: true,
+    isFlagship: false,
     allowSpotRegistration: true,
+    setActiveLive: true,
   });
+
+  // Pre-fill organizer name/email from logged in admin if available
+  React.useEffect(() => {
+    const user = api.auth.getUser();
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        organizerName: prev.organizerName || user.name || '',
+        organizerEmail: prev.organizerEmail || user.email || '',
+      }));
+    }
+  }, []);
 
   // State for adding a sub-event dynamically in Step 4
   const [newSubEvent, setNewSubEvent] = useState({
@@ -282,28 +349,67 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
       const eventIdClean = (formData.slug || formData.name)
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
+        .replace(/^-|-$/g, '') || `event-${Date.now()}`;
+
+      const rawFee = formData.pricingType === 'free' ? 0 : parseInt(formData.entryFee || 0, 10);
+      const parsedFee = isNaN(rawFee) || rawFee < 0 ? 0 : rawFee;
+
+      const tiers = typeof formData.ticketTiers === 'string'
+        ? formData.ticketTiers.split(',').map((t) => t.trim()).filter(Boolean)
+        : (formData.ticketTiers || []);
+      const finalTiers = tiers.length > 0 ? tiers : ['Standard Pass'];
+
+      const parsedTracks = typeof formData.tracks === 'string'
+        ? formData.tracks.split(',').map((t) => t.trim()).filter(Boolean)
+        : (formData.tracks || []);
+      const finalTracks = parsedTracks.length > 0 ? parsedTracks : ['General Track'];
+
+      const banner = formData.bannerUrl || CURATED_POSTERS[0].url;
+      const cleanDateDisplay = formData.dateDisplay || formatDateDisplay(formData.startDate, formData.endDate) || 'Dates TBA';
+      const cleanTimeDisplay = formData.timeDisplay || formatTimeDisplay(formData.startDate, formData.endDate) || 'Schedule TBA';
 
       const payload = {
         ...formData,
         id: eventIdClean,
         eventId: eventIdClean,
-        entryFee: formData.pricingType === 'free' ? 0 : parseInt(formData.entryFee || 0, 10),
-        feeDisplay:
-          formData.pricingType === 'free' || parseInt(formData.entryFee || 0, 10) === 0
-            ? 'Free Entry Pass'
-            : `₹${formData.entryFee} Entry Pass`,
-        ticketTiers: typeof formData.ticketTiers === 'string'
-          ? formData.ticketTiers.split(',').map((t) => t.trim()).filter(Boolean)
-          : formData.ticketTiers,
-        tracks: typeof formData.tracks === 'string'
-          ? formData.tracks.split(',').map((t) => t.trim()).filter(Boolean)
-          : formData.tracks,
+        bannerUrl: banner,
+        entryFee: parsedFee,
+        feeDisplay: parsedFee === 0 ? 'Free Entry Pass' : `₹${parsedFee} Entry Pass`,
+        ticketTiers: finalTiers,
+        tracks: finalTracks,
         totalCapacity: parseInt(formData.totalCapacity || 250, 10),
+        dateDisplay: cleanDateDisplay,
+        timeDisplay: cleanTimeDisplay,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const res = await api.events.create(payload);
+
+      // If set as active live event on the platform, sync it to dynamic site config
+      if (formData.setActiveLive) {
+        try {
+          const ticketMap = {};
+          finalTiers.forEach((tier) => {
+            ticketMap[tier] = parsedFee;
+          });
+
+          await api.event.updateConfig({
+            eventName: payload.name,
+            eventTagline: payload.tagline || (payload.description ? payload.description.slice(0, 120) : 'Official Campus Event'),
+            eventDate: cleanDateDisplay,
+            eventTime: cleanTimeDisplay,
+            eventVenue: payload.venue || 'Campus Venue',
+            organizerEmail: payload.organizerEmail || '',
+            organizerName: payload.clubName ? `${payload.clubName} (${payload.organizerName})` : (payload.organizerName || 'Campus Organizer'),
+            ticketPrices: ticketMap,
+            activeEventId: payload.id,
+            bannerUrl: banner,
+          });
+        } catch (cfgErr) {
+          console.warn('Could not update live active event config:', cfgErr);
+        }
+      }
 
       // Trigger Celebration
       sounds.playSuccess();
@@ -382,8 +488,8 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
           </div>
           <h2 className="event-wizard-title">Create Event</h2>
           <div className="event-wizard-meta">
-            <span>Creating event as: <strong>{formData.clubName}</strong></span>
-            <span className="event-wizard-club-badge">Club Code: {formData.clubCode}</span>
+            <span>Creating event as: <strong>{formData.clubName || 'Campus Club / Organizer'}</strong></span>
+            {formData.clubCode && <span className="event-wizard-club-badge">Club Code: {formData.clubCode}</span>}
           </div>
         </div>
 
@@ -540,26 +646,39 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   
-                  {/* Official College Box (Screenshot 2) */}
+                  {/* Official College / Institution */}
                   <div className="wizard-field">
-                    <label className="wizard-label">OFFICIAL COLLEGE</label>
-                    <div
-                      style={{
-                        background: '#090D18',
-                        border: '1px solid #1E283D',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
-                      }}
-                    >
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#F8FAFC' }}>
-                        {formData.collegeName}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#64748B' }}>
-                        This club is already bound to that campus, so a token is not required.
-                      </div>
+                    <label className="wizard-label">OFFICIAL COLLEGE / INSTITUTION</label>
+                    <input
+                      type="text"
+                      className="wizard-input"
+                      placeholder="e.g. Dr. D. Y. Patil Institute of Technology, Pimpri, Pune"
+                      value={formData.collegeName}
+                      onChange={(e) => setFormData({ ...formData, collegeName: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Organizing Club & Code */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
+                    <div className="wizard-field">
+                      <label className="wizard-label">ORGANIZING CLUB / COMMITTEE *</label>
+                      <input
+                        type="text"
+                        className="wizard-input"
+                        placeholder="e.g. ACES / Computer Engineering Dept / Sports Council"
+                        value={formData.clubName}
+                        onChange={(e) => setFormData({ ...formData, clubName: e.target.value })}
+                      />
+                    </div>
+                    <div className="wizard-field">
+                      <label className="wizard-label">CLUB CODE (OPTIONAL)</label>
+                      <input
+                        type="text"
+                        className="wizard-input"
+                        placeholder="e.g. ACES-01"
+                        value={formData.clubCode}
+                        onChange={(e) => setFormData({ ...formData, clubCode: e.target.value.toUpperCase() })}
+                      />
                     </div>
                   </div>
 
@@ -709,7 +828,17 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     type="datetime-local"
                     className="wizard-input"
                     value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const nextDate = !dateDisplayEdited ? formatDateDisplay(val, formData.endDate) : formData.dateDisplay;
+                      const nextTime = !timeDisplayEdited ? formatTimeDisplay(val, formData.endDate) : formData.timeDisplay;
+                      setFormData({
+                        ...formData,
+                        startDate: val,
+                        dateDisplay: nextDate,
+                        timeDisplay: nextTime,
+                      });
+                    }}
                   />
                 </div>
 
@@ -719,7 +848,17 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     type="datetime-local"
                     className="wizard-input"
                     value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const nextDate = !dateDisplayEdited ? formatDateDisplay(formData.startDate, val) : formData.dateDisplay;
+                      const nextTime = !timeDisplayEdited ? formatTimeDisplay(formData.startDate, val) : formData.timeDisplay;
+                      setFormData({
+                        ...formData,
+                        endDate: val,
+                        dateDisplay: nextDate,
+                        timeDisplay: nextTime,
+                      });
+                    }}
                   />
                 </div>
               </div>
@@ -733,7 +872,10 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     className="wizard-input"
                     placeholder="e.g. October 16 – 18, 2026"
                     value={formData.dateDisplay}
-                    onChange={(e) => setFormData({ ...formData, dateDisplay: e.target.value })}
+                    onChange={(e) => {
+                      setDateDisplayEdited(true);
+                      setFormData({ ...formData, dateDisplay: e.target.value });
+                    }}
                   />
                 </div>
 
@@ -744,7 +886,10 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     className="wizard-input"
                     placeholder="e.g. 09:00 AM – 06:00 PM IST (Gate Check-in: 07:45 AM)"
                     value={formData.timeDisplay}
-                    onChange={(e) => setFormData({ ...formData, timeDisplay: e.target.value })}
+                    onChange={(e) => {
+                      setTimeDisplayEdited(true);
+                      setFormData({ ...formData, timeDisplay: e.target.value });
+                    }}
                   />
                 </div>
               </div>
@@ -1652,6 +1797,36 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                       onChange={(e) => setFormData({ ...formData, isFlagship: e.target.checked })}
                     />
                     <span>Highlight as Flagship College Event</span>
+                  </label>
+                </div>
+
+                <div className="wizard-field" style={{ gridColumn: 'span 2' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      background: 'rgba(89, 110, 230, 0.08)',
+                      border: '1px solid rgba(89, 110, 230, 0.3)',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: '#F8FAFC',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.setActiveLive}
+                      onChange={(e) => setFormData({ ...formData, setActiveLive: e.target.checked })}
+                      style={{ width: '16px', height: '16px', accentColor: '#596EE6', cursor: 'pointer' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '800' }}>Set as Active Live Event for Website & Registrations</div>
+                      <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                        Immediately publishes this event to the live homepage and makes it the active registration event.
+                      </div>
+                    </div>
                   </label>
                 </div>
               </div>

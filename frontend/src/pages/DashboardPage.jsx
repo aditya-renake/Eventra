@@ -262,6 +262,54 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
     adminDisplayName = 'Operations Admin';
   }
 
+  const currentSelectedEvent = eventsList.find((ev) => (ev.id || ev.eventId) === selectedEventId);
+  const isSelectedEventLiveOnSite = Boolean(
+    (eventConfig?.activeEventId && eventConfig.activeEventId === selectedEventId) ||
+    (currentSelectedEvent && eventConfig?.eventName === currentSelectedEvent.name)
+  );
+
+  const handleMakeSelectedEventLive = async () => {
+    if (!currentSelectedEvent) return;
+    try {
+      sounds.playClick();
+      const ticketMap = {};
+      const tiers = currentSelectedEvent.ticketTiers || ['Standard Pass'];
+      tiers.forEach((t) => {
+        ticketMap[t] = currentSelectedEvent.entryFee !== undefined ? Number(currentSelectedEvent.entryFee) : 5;
+      });
+
+      const res = await api.event.updateConfig({
+        eventName: currentSelectedEvent.name,
+        eventTagline: currentSelectedEvent.tagline || `${currentSelectedEvent.category} Event`,
+        eventDate: currentSelectedEvent.dateDisplay || 'Dates TBA',
+        eventTime: currentSelectedEvent.timeDisplay || 'Schedule TBA',
+        eventVenue: currentSelectedEvent.venue || 'Campus Venue',
+        organizerEmail: currentSelectedEvent.organizerEmail || '',
+        organizerName: currentSelectedEvent.clubName
+          ? `${currentSelectedEvent.clubName} (${currentSelectedEvent.organizerName})`
+          : (currentSelectedEvent.organizerName || 'Campus Organizer'),
+        ticketPrices: ticketMap,
+        activeEventId: currentSelectedEvent.id || currentSelectedEvent.eventId,
+        bannerUrl: currentSelectedEvent.bannerUrl || '',
+      });
+
+      setEventConfig(res.data);
+      sounds.playSuccess();
+      onShowToast({
+        type: 'success',
+        title: 'Event Published Live! 🚀',
+        message: `"${currentSelectedEvent.name}" is now the active live event on the website.`,
+      });
+    } catch (err) {
+      sounds.playError();
+      onShowToast({
+        type: 'error',
+        title: 'Publish Failed',
+        message: err.message || 'Could not update live active event.',
+      });
+    }
+  };
+
   return (
     <div className="dashboard-page" style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
       
@@ -299,6 +347,37 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
                 ))}
               </select>
             </div>
+
+            {/* Live on Site Indicator / Action */}
+            {isSelectedEventLiveOnSite ? (
+              <span style={{ fontSize: '10px', fontWeight: '800', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', borderRadius: '9999px', padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                LIVE ON WEBSITE
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleMakeSelectedEventLive}
+                style={{
+                  background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  borderRadius: '9999px',
+                  padding: '3px 12px',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 8px rgba(89, 110, 230, 0.25)',
+                }}
+                title="Publish this event to the live website landing page and registration form"
+              >
+                <Zap size={11} />
+                <span>Publish to Live Site</span>
+              </button>
+            )}
 
             {isMainBoss ? (
               <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#EEF0FF', color: '#596EE6', border: '1px solid #DDE3FF', fontWeight: '800' }}>
@@ -664,6 +743,9 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             if (newEvent?.id || newEvent?.eventId) {
               setSelectedEventId(newEvent.id || newEvent.eventId);
             }
+            api.event.getConfig().then((res) => {
+              if (res?.data) setEventConfig(res.data);
+            }).catch(() => {});
           }}
           onShowToast={onShowToast}
         />

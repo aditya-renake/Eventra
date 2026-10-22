@@ -581,7 +581,7 @@ export const EventLandingPage = ({ onNavigateToPass, onNavigateToRegister, onSho
 
       {/* Eventra Events Discovery Hub */}
       <EventsDiscoverySection
-        onSelectEvent={onNavigateToRegister}
+        onSelectEvent={(ev) => onNavigateToRegister?.(ev?.id || ev?.eventId)}
         onNavigateToLookup={() => {
           const el = document.getElementById('lookup-section');
           if (el) el.scrollIntoView({ behavior: 'smooth' });

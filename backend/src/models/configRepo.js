@@ -45,17 +45,20 @@ export const configRepo = {
 
       if (doc.exists) {
         const data = doc.data();
+        let ticketPrices = DEFAULT_CONFIG.ticketPrices;
+        if (data.ticketPrices && typeof data.ticketPrices === 'object' && Object.keys(data.ticketPrices).length > 0) {
+          ticketPrices = {};
+          for (const [key, val] of Object.entries(data.ticketPrices)) {
+            const num = Number(val);
+            ticketPrices[key] = !isNaN(num) && num >= 0 ? num : 5;
+          }
+        }
         return {
           ...DEFAULT_CONFIG,
           ...data,
           registrationMode: data.registrationMode || 'native_payment',
           enablePaymentGateway: data.enablePaymentGateway !== undefined ? data.enablePaymentGateway : true,
-          ticketPrices: {
-            'Hacker Pass': data.ticketPrices?.['Hacker Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Hacker Pass'])) ? Number(data.ticketPrices['Hacker Pass']) : 5,
-            'Student Pass': data.ticketPrices?.['Student Pass'] !== undefined && !isNaN(Number(data.ticketPrices?.['Student Pass'])) ? Number(data.ticketPrices['Student Pass']) : 5,
-            'VIP Delegate': data.ticketPrices?.['VIP Delegate'] !== undefined && !isNaN(Number(data.ticketPrices?.['VIP Delegate'])) ? Number(data.ticketPrices['VIP Delegate']) : 5,
-            'Judge / Mentor': data.ticketPrices?.['Judge / Mentor'] !== undefined && !isNaN(Number(data.ticketPrices?.['Judge / Mentor'])) ? Number(data.ticketPrices['Judge / Mentor']) : 5,
-          },
+          ticketPrices,
         };
       }
 

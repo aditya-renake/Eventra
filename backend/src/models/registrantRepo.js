@@ -29,10 +29,12 @@ export const registrantRepo = {
     invalidateCache();
     const collection = this.getCollection();
     const cleanId = data.uniqueId.toUpperCase().trim();
+    const cleanEventId = (data.eventId || 'eventra-2026').toLowerCase().trim();
     const item = {
       ...data,
       _id: cleanId,
       uniqueId: cleanId,
+      eventId: cleanEventId,
       email: data.email.toLowerCase().trim(),
       createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -163,6 +165,7 @@ export const registrantRepo = {
     verified,
     ticketType,
     track,
+    eventId,
     sortBy = 'createdAt',
     sortOrder = 'desc',
   } = {}) {
@@ -210,6 +213,14 @@ export const registrantRepo = {
 
     if (track && track !== 'all') {
       items = items.filter((item) => item.track === track);
+    }
+
+    if (eventId && eventId !== 'all') {
+      const cleanEventId = String(eventId).toLowerCase().trim();
+      items = items.filter((item) => {
+        const itemEvId = (item.eventId || 'eventra-2026').toLowerCase().trim();
+        return itemEvId === cleanEventId;
+      });
     }
 
     if (search && search.trim() !== '') {

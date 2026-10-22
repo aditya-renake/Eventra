@@ -56,7 +56,7 @@ export function App() {
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/register' || hash === '#register' || hash === '#/register') {
+      } else if (path === '/register' || hash.startsWith('#register') || hash.startsWith('#/register')) {
         setCurrentView('register');
       } else if (path === '/' && (!hash || hash === '#' || hash === '#/')) {
         setCurrentView('landing');
@@ -141,8 +141,8 @@ export function App() {
         {currentView === 'landing' && (
           <EventLandingPage
             onNavigateToPass={handleNavigateToPass}
-            onNavigateToRegister={() => {
-              window.location.hash = '#register';
+            onNavigateToRegister={(eventId) => {
+              window.location.hash = eventId ? `#register?event=${eventId}` : '#register';
               setCurrentView('register');
             }}
             onShowToast={handleShowToast}

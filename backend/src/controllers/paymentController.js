@@ -16,12 +16,14 @@ export const initiateRegistrationOrder = async (req, res) => {
       name,
       email,
       phone,
-      ticketType = 'Hacker Pass',
+      ticketType = 'Standard Pass',
       teamName = '',
       track = 'AI & Agentic Systems',
       githubUrl = '',
       institution = 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
       formResponses = {},
+      eventId = 'eventra-2026',
+      amountPaid,
     } = req.body;
 
     if (!name || !email) {
@@ -29,18 +31,40 @@ export const initiateRegistrationOrder = async (req, res) => {
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
-    // Duplicate registrations are allowed for now
+    const cleanEventId = String(eventId || 'eventra-2026').toLowerCase().trim();
 
     const config = await configRepo.getConfig();
     const isPaymentEnabled = config.enablePaymentGateway !== false;
-    const priceMap = config.ticketPrices || {
-      'Hacker Pass': 5,
-      'Student Pass': 5,
-      'VIP Delegate': 5,
-      'Judge / Mentor': 5,
-    };
 
-    const passPrice = priceMap[ticketType] !== undefined && !isNaN(Number(priceMap[ticketType])) ? Number(priceMap[ticketType]) : 5;
+    let passPrice = 5;
+    if (req.body.eventId) {
+      try {
+        const { eventRepo } = await import('../models/eventRepo.js');
+        const ev = await eventRepo.findById(req.body.eventId);
+        if (ev) {
+          if (ev.ticketPrices && ev.ticketPrices[ticketType] !== undefined && !isNaN(Number(ev.ticketPrices[ticketType]))) {
+            passPrice = Number(ev.ticketPrices[ticketType]);
+          } else if (ev.entryFee !== undefined && !isNaN(Number(ev.entryFee))) {
+            passPrice = Number(ev.entryFee);
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching event for pricing:', err.message);
+      }
+    } else {
+      const priceMap = config.ticketPrices || {
+        'Hacker Pass': 5,
+        'Student Pass': 5,
+        'VIP Delegate': 5,
+        'Judge / Mentor': 5,
+      };
+      if (priceMap[ticketType] !== undefined && !isNaN(Number(priceMap[ticketType]))) {
+        passPrice = Number(priceMap[ticketType]);
+      } else if (amountPaid !== undefined && !isNaN(Number(amountPaid))) {
+        passPrice = Number(amountPaid);
+      }
+    }
+
     const tempReceipt = `RCPT-${Date.now()}`;
 
     // ONLY if the pass price is explicitly 0 INR (free tier), generate pass immediately
@@ -53,6 +77,7 @@ export const initiateRegistrationOrder = async (req, res) => {
 
       const newRegistrant = await registrantRepo.create({
         uniqueId,
+        eventId: cleanEventId,
         name: name.trim(),
         email: cleanEmail,
         phone: phone ? phone.trim() : '',
@@ -267,6 +292,7 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
+      eventId: (participantData.eventId || 'eventra-2026').toLowerCase().trim(),
       name: (participantData.name || 'Participant').trim(),
       email: cleanEmail,
       phone: participantData.phone ? String(participantData.phone).trim() : '',

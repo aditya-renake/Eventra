@@ -129,11 +129,61 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
   useEffect(() => {
     let mounted = true;
-    api.event.getConfig()
-      .then((res) => {
-        if (mounted && res?.data) setEventConfig((current) => ({ ...current, ...res.data }));
-      })
-      .catch(() => {});
+
+    // Check if a specific event is requested via URL hash or query params
+    const getRequestedEventId = () => {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      let targetId = null;
+      if (hash.includes('event=')) {
+        targetId = new URLSearchParams(hash.split('?')[1] || '').get('event');
+      }
+      if (!targetId && search.includes('event=')) {
+        targetId = new URLSearchParams(search).get('event');
+      }
+      return targetId;
+    };
+
+    const requestedEventId = getRequestedEventId();
+
+    if (requestedEventId) {
+      api.events.getById(requestedEventId)
+        .then((res) => {
+          if (mounted && res?.data) {
+            const ev = res.data;
+            const ticketMap = {};
+            const tiers = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0 ? ev.ticketTiers : ['Standard Pass'];
+            tiers.forEach((tier) => {
+              ticketMap[tier] = ev.entryFee !== undefined ? Number(ev.entryFee) : 5;
+            });
+            setEventConfig((current) => ({
+              ...current,
+              eventName: ev.name,
+              eventTagline: ev.tagline || '',
+              eventDate: ev.dateDisplay || '',
+              eventVenue: ev.venue || '',
+              ticketPrices: ticketMap,
+              eventId: ev.id || ev.eventId,
+              customQuestion: ev.customQuestion || '',
+              requiredFields: ev.requiredFields || null,
+            }));
+          }
+        })
+        .catch(() => {
+          api.event.getConfig()
+            .then((res) => {
+              if (mounted && res?.data) setEventConfig((current) => ({ ...current, ...res.data }));
+            })
+            .catch(() => {});
+        });
+    } else {
+      api.event.getConfig()
+        .then((res) => {
+          if (mounted && res?.data) setEventConfig((current) => ({ ...current, ...res.data }));
+        })
+        .catch(() => {});
+    }
+
     return () => { mounted = false; };
   }, []);
 
@@ -193,18 +243,18 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     const prices = eventConfig.ticketPrices || DEFAULT_CONFIG.ticketPrices;
     return Object.entries(prices).map(([type, price]) => {
       const p = Number(price);
-      const finalPrice = p > 0 ? p : 5;
+      const finalPrice = !isNaN(p) && p >= 0 ? p : 5;
       return {
         type,
         price: finalPrice,
         ...(TIER_DETAILS[type] || {
-          badge: 'EVENT PASS',
-          detail: 'Access for Eventra 2026.',
+          badge: finalPrice === 0 ? 'FREE PASS' : 'EVENT PASS',
+          detail: `Access for ${eventConfig.eventName || 'Eventra 2026'}.`,
           features: ['Event access', 'Digital QR entry pass'],
         }),
       };
     });
-  }, [eventConfig.ticketPrices]);
+  }, [eventConfig.ticketPrices, eventConfig.eventName]);
 
   useEffect(() => {
     if (ticketOptions.length && !ticketOptions.some((ticket) => ticket.type === formData.ticketType)) {
@@ -342,7 +392,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
               razorpay_payment_id: response.razorpay_payment_id,
               signature: response.razorpay_signature,
               razorpay_signature: response.razorpay_signature,
-              participantData: { ...formData, amountPaid: amountDue },
+              participantData: {
+                ...formData,
+                amountPaid: amountDue,
+                eventId: eventConfig.eventId || eventConfig.activeEventId || 'eventra-2026',
+              },
             });
 
             try {
@@ -408,7 +462,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       setIsLoading(true);
       setErrorMsg('');
 
-      const orderRes = await api.payment.createOrder({ ...formData, amountPaid: amountDue });
+      const orderRes = await api.payment.createOrder({
+        ...formData,
+        amountPaid: amountDue,
+        eventId: eventConfig.eventId || eventConfig.activeEventId || 'eventra-2026',
+      });
 
       if (orderRes?.isFree) {
         completeRegistration(orderRes.data?.uniqueId || orderRes.uniqueId, 'Registration successful!');

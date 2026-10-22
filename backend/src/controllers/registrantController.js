@@ -15,8 +15,10 @@ export const getRegistrants = async (req, res) => {
       search = '',
       checkedIn,
       emailSent,
+      verified,
       ticketType,
       track,
+      eventId,
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = req.query;
@@ -27,8 +29,10 @@ export const getRegistrants = async (req, res) => {
       search,
       checkedIn,
       emailSent,
+      verified,
       ticketType,
       track,
+      eventId,
       sortBy,
       sortOrder,
     });
