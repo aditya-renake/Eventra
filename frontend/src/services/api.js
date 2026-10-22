@@ -246,6 +246,12 @@ export const api = {
         body: JSON.stringify({ order_id: orderId, participantData }),
       });
     },
+    async verifyPaymentLink(data) {
+      return request('/payment/verify-link', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
     async verifyUpiPayment(payload) {
       return request('/payment/verify-upi', {
         method: 'POST',

@@ -137,20 +137,69 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     return () => { mounted = false; };
   }, []);
 
-  // Restore any pending order from session on initial page mount (e.g. if mobile browser tab reloaded)
+  // 1. Handle return from Razorpay Hosted Checkout (rzp.io) via callback URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const plinkId = params.get('plink_id') || params.get('payment_link_id');
+    const paymentId = params.get('payment_id') || params.get('razorpay_payment_id');
+    const orderId = params.get('order_id');
+    const plinkStatus = params.get('plink_status') || params.get('razorpay_payment_link_status');
+
+    if (plinkId || (orderId && plinkStatus === 'paid') || paymentId) {
+      setIsLoading(true);
+      let participantData = formData;
+      try {
+        const saved = sessionStorage.getItem('eventra_active_order');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.formData) participantData = parsed.formData;
+        }
+      } catch (e) {}
+
+      api.payment.verifyPaymentLink({
+        paymentLinkId: plinkId,
+        orderId,
+        paymentId,
+        participantData,
+      })
+        .then((res) => {
+          if (res?.isPaid && res?.data) {
+            try {
+              sessionStorage.removeItem('eventra_active_order');
+              setPendingOrder(null);
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {}
+            completeRegistration(res.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
+          } else {
+            setIsLoading(false);
+          }
+        })
+        .catch((err) => {
+          setIsLoading(false);
+          console.warn('Payment link check notice:', err?.message);
+        });
+    }
+  }, []);
+
+  // 2. Restore any pending order from session on initial page mount (e.g. if mobile browser tab reloaded)
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem('eventra_active_order');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.orderId && Date.now() - (parsed.timestamp || 0) < 30 * 60 * 1000) {
+        if ((parsed?.orderId || parsed?.paymentLinkId) && Date.now() - (parsed.timestamp || 0) < 30 * 60 * 1000) {
           setPendingOrder(parsed);
           if (parsed.formData) {
             setFormData((prev) => ({ ...prev, ...parsed.formData }));
           }
-          api.payment.checkOrderStatus(parsed.orderId, parsed.formData)
+          const checkPromise = parsed.paymentLinkId
+            ? api.payment.verifyPaymentLink({ paymentLinkId: parsed.paymentLinkId, orderId: parsed.orderId, participantData: parsed.formData })
+            : api.payment.checkOrderStatus(parsed.orderId, parsed.formData);
+
+          checkPromise
             .then((res) => {
-              if (res.isPaid && res.data) {
+              if (res?.isPaid && res?.data) {
                 sessionStorage.removeItem('eventra_active_order');
                 setPendingOrder(null);
                 completeRegistration(res.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
@@ -167,10 +216,14 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
   // Mobile app-switch auto-recovery: Poll when user returns from UPI app (GPay / PhonePe) to browser tab
   useEffect(() => {
     const handleReturnToTab = async () => {
-      if (document.visibilityState === 'visible' && pendingOrder?.orderId) {
+      if (document.visibilityState === 'visible' && (pendingOrder?.orderId || pendingOrder?.paymentLinkId)) {
         try {
-          const checkRes = await api.payment.checkOrderStatus(pendingOrder.orderId, pendingOrder.formData || formData);
-          if (checkRes.isPaid && checkRes.data) {
+          const checkPromise = pendingOrder.paymentLinkId
+            ? api.payment.verifyPaymentLink({ paymentLinkId: pendingOrder.paymentLinkId, orderId: pendingOrder.orderId, participantData: pendingOrder.formData || formData })
+            : api.payment.checkOrderStatus(pendingOrder.orderId, pendingOrder.formData || formData);
+
+          const checkRes = await checkPromise;
+          if (checkRes?.isPaid && checkRes?.data) {
             try {
               sessionStorage.removeItem('eventra_active_order');
               setPendingOrder(null);
@@ -238,19 +291,36 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     onRegistrationSuccess?.(uniqueId);
   };
 
-  const verifyOrderStatusWithRetry = async (orderId, maxAttempts = 3) => {
-    if (!orderId) return false;
+  const verifyOrderStatusWithRetry = async (orderId, maxAttempts = 3, plinkId = null) => {
+    const effectivePlinkId = plinkId || pendingOrder?.paymentLinkId;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         setIsLoading(true);
-        const checkRes = await api.payment.checkOrderStatus(orderId, formData);
-        if (checkRes.isPaid && checkRes.data) {
-          try {
-            sessionStorage.removeItem('eventra_active_order');
-            setPendingOrder(null);
-          } catch (e) {}
-          completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
-          return true;
+        if (effectivePlinkId) {
+          const linkRes = await api.payment.verifyPaymentLink({
+            paymentLinkId: effectivePlinkId,
+            orderId,
+            participantData: pendingOrder?.formData || formData,
+          });
+          if (linkRes?.isPaid && linkRes?.data) {
+            try {
+              sessionStorage.removeItem('eventra_active_order');
+              setPendingOrder(null);
+            } catch (e) {}
+            completeRegistration(linkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
+            return true;
+          }
+        }
+        if (orderId) {
+          const checkRes = await api.payment.checkOrderStatus(orderId, pendingOrder?.formData || formData);
+          if (checkRes?.isPaid && checkRes?.data) {
+            try {
+              sessionStorage.removeItem('eventra_active_order');
+              setPendingOrder(null);
+            } catch (e) {}
+            completeRegistration(checkRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
+            return true;
+          }
         }
       } catch (err) {
         console.warn(`[Order check attempt ${attempt}]:`, err?.message);
@@ -259,6 +329,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         await new Promise((r) => setTimeout(r, 1200));
       }
     }
+    setIsLoading(false);
     return false;
   };
 
@@ -267,13 +338,9 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       setIsLoading(true);
       setErrorMsg('');
 
-      const scriptReady = await loadRazorpay();
-      if (!scriptReady || !window.Razorpay) {
-        throw new Error('Payment gateway failed to load. Please check your internet connection and try again.');
-      }
-
-      const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Toe8X3rzRfnIsm';
       const effectiveOrderId = orderRes?.order_id || orderRes?.orderId;
+      const paymentLinkUrl = orderRes?.paymentLinkUrl;
+      const paymentLinkId = orderRes?.paymentLinkId;
 
       // Clean mobile contact to strict 10 digits for seamless UPI intent dispatch
       const rawPhone = String(formData.phone || '').replace(/\D/g, '');
@@ -283,6 +350,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       // Persist in session storage for mobile app-switch recovery
       const pendingData = {
         orderId: effectiveOrderId,
+        paymentLinkId,
+        paymentLinkUrl,
         formData,
         amountDue,
         timestamp: Date.now(),
@@ -291,6 +360,31 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         sessionStorage.setItem('eventra_active_order', JSON.stringify(pendingData));
         setPendingOrder(pendingData);
       } catch (e) {}
+
+      // On mobile devices: Route directly to official Razorpay Hosted Checkout (rzp.io)
+      // This eliminates mobile iframe blocks ("Payment blocked as website does not match registered website(s)")
+      // and natively triggers Google Pay, PhonePe, Paytm, and CRED UPI apps with 100% success.
+      const isMobileDevice = typeof window !== 'undefined' && (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '') ||
+        window.innerWidth < 768
+      );
+
+      if (isMobileDevice && paymentLinkUrl) {
+        setIsLoading(true);
+        window.location.href = paymentLinkUrl;
+        return;
+      }
+
+      const scriptReady = await loadRazorpay();
+      if (!scriptReady || !window.Razorpay) {
+        if (paymentLinkUrl) {
+          window.location.href = paymentLinkUrl;
+          return;
+        }
+        throw new Error('Payment gateway failed to load. Please check your internet connection and try again.');
+      }
+
+      const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Toe8X3rzRfnIsm';
 
       const options = {
         key: razorpayKey,
@@ -664,7 +758,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                       <button
                         type="button"
-                        onClick={() => verifyOrderStatusWithRetry(pendingOrder.orderId, 3)}
+                        onClick={() => verifyOrderStatusWithRetry(pendingOrder.orderId, 3, pendingOrder.paymentLinkId)}
                         disabled={isLoading}
                         style={{
                           background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
@@ -683,6 +777,26 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                         <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
                         <span>{isLoading ? 'Verifying with Bank...' : 'Verify My UPI Payment'}</span>
                       </button>
+                      {pendingOrder.paymentLinkUrl && (
+                        <a
+                          href={pendingOrder.paymentLinkUrl}
+                          style={{
+                            background: 'linear-gradient(135deg, #596ee6 0%, #475ac4 100%)',
+                            color: '#ffffff',
+                            fontWeight: '800',
+                            fontSize: '12px',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <CreditCard size={13} />
+                          <span>Re-open Razorpay Link</span>
+                        </a>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
