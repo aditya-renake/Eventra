@@ -296,6 +296,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         key: razorpayKey,
         amount: orderRes?.amount || (amountDue * 100),
         currency: orderRes?.currency || 'INR',
+        order_id: effectiveOrderId,
         name: eventConfig.eventName || 'Eventra 2026',
         description: `${formData.ticketType} Entry Pass (₹${amountDue})`,
         image: `${window.location.origin}/eventra-icon.png`,
@@ -327,11 +328,6 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
             });
           },
         },
-        retry: {
-          enabled: true,
-          max_count: 4,
-        },
-        send_sms_hash: true,
         handler: async (response) => {
           try {
             if (!response?.razorpay_payment_id) {
