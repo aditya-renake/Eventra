@@ -49,7 +49,7 @@ export const getRazorpayClient = async () => {
 /**
  * Create a new payment order
  */
-export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {}, customer = {}, callbackUrl = '' }) => {
+export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {} }) => {
   const clientData = await getRazorpayClient();
   const client = clientData?.client;
   const keyId = clientData?.keyId || process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_mode';
@@ -66,8 +66,6 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
       receipt,
       isMock: true,
       keyId,
-      paymentLinkUrl: null,
-      paymentLinkId: null,
     };
   }
 
@@ -79,45 +77,11 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
       notes,
     });
 
-    // Also generate official Razorpay Hosted Payment Link (rzp.io)
-    // Hosted by Razorpay itself, completely immune to custom domain whitelisting restrictions
-    let paymentLinkUrl = null;
-    let paymentLinkId = null;
-    try {
-      const cleanPhone = customer.phone ? String(customer.phone).replace(/\D/g, '').slice(-10) : '';
-      const finalCallback = callbackUrl || (process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/register` : 'https://eventra-2026.vercel.app/register');
-      const link = await client.paymentLink.create({
-        amount: amountInPaise,
-        currency,
-        accept_partial: false,
-        description: `${notes.ticketType || 'Eventra 2026'} Entry Pass`,
-        customer: {
-          name: customer.name || notes.name || 'Participant',
-          email: customer.email || notes.email || '',
-          contact: cleanPhone,
-        },
-        notify: { sms: false, email: false },
-        reminder_enable: false,
-        notes: {
-          ...notes,
-          orderId: order.id,
-        },
-        callback_url: `${finalCallback}?plink_id={payment_link_id}&plink_status={payment_link_status}&order_id=${order.id}`,
-        callback_method: 'get',
-      });
-      paymentLinkUrl = link.short_url;
-      paymentLinkId = link.id;
-    } catch (linkErr) {
-      console.warn('⚠️ [Razorpay] paymentLink generation notice:', linkErr.message);
-    }
-
     return {
       ...order,
       orderId: order.id,
       isMock: false,
       keyId,
-      paymentLinkUrl,
-      paymentLinkId,
     };
   } catch (err) {
     console.warn('⚠️ [Razorpay] orders.create failed:', err.message);
@@ -129,24 +93,7 @@ export const createOrder = async ({ amount, currency = 'INR', receipt, notes = {
       receipt,
       isMock: true,
       keyId,
-      paymentLinkUrl: null,
-      paymentLinkId: null,
     };
-  }
-};
-
-/**
- * Fetch a Razorpay Payment Link by ID
- */
-export const fetchPaymentLink = async (paymentLinkId) => {
-  const clientData = await getRazorpayClient();
-  const client = clientData?.client;
-  if (!client || !paymentLinkId) return null;
-  try {
-    return await client.paymentLink.fetch(paymentLinkId);
-  } catch (err) {
-    console.warn('⚠️ [Razorpay] paymentLink.fetch notice:', err.message);
-    return null;
   }
 };
 

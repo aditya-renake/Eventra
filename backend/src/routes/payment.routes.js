@@ -5,7 +5,6 @@ import {
   verifyAndCompleteRegistration,
   verifyRazorpayPayment,
   verifyUpiPayment,
-  verifyPaymentLink,
   checkOrderStatus,
   handlePaymentWebhook,
 } from '../controllers/paymentController.js';
@@ -20,10 +19,6 @@ router.post('/verify-payment', verifyRazorpayPayment);
 
 // Public: Registration Verification & Pass Minting
 router.post('/verify', verifyAndCompleteRegistration);
-
-// Public: Verify Razorpay Payment Link (rzp.io)
-router.post('/verify-link', verifyPaymentLink);
-router.get('/verify-link', verifyPaymentLink);
 
 // Public: Check order status and auto-recover pass
 router.post('/check-order', checkOrderStatus);

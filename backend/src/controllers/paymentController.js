@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
-import { createOrder, verifyPaymentSignature, getRazorpayClient, fetchPaymentLink } from '../services/paymentService.js';
+import { createOrder, verifyPaymentSignature, getRazorpayClient } from '../services/paymentService.js';
 import { generatePassSignature, createQRPayload, generateQRCodeDataUrl } from '../services/qrService.js';
 import { sendPassEmail, sendRegistrationReceivedEmail } from '../services/emailService.js';
 import { sendAutoPassWhatsApp } from '../services/messagingService.js';
@@ -103,9 +103,8 @@ export const initiateRegistrationOrder = async (req, res) => {
       });
     }
 
-    // For all paid registrations: Initiate Razorpay Order & Hosted Payment Link.
+    // For all paid registrations (₹5): Initiate Razorpay Order.
     // ZERO registrant creation and ZERO pass email dispatch until payment is verified!
-    const clientUrl = process.env.CLIENT_URL || req.headers.origin || 'https://eventra-2026.vercel.app';
     const order = await createOrder({
       amount: passPrice,
       currency: config.currency || 'INR',
@@ -113,17 +112,9 @@ export const initiateRegistrationOrder = async (req, res) => {
       notes: {
         name,
         email: cleanEmail,
-        phone: phone ? String(phone).trim() : '',
         ticketType,
         track,
-        teamName,
       },
-      customer: {
-        name,
-        email: cleanEmail,
-        phone,
-      },
-      callbackUrl: `${clientUrl}/register`,
     });
 
     return res.json({
@@ -136,8 +127,6 @@ export const initiateRegistrationOrder = async (req, res) => {
       currency: order.currency || 'INR',
       key_id: order.keyId,
       keyId: order.keyId,
-      paymentLinkUrl: order.paymentLinkUrl || null,
-      paymentLinkId: order.paymentLinkId || null,
       isMock: order.isMock,
       participantSummary: {
         name,
@@ -559,177 +548,5 @@ export const handlePaymentWebhook = async (req, res) => {
   } catch (error) {
     console.error('Webhook error:', error);
     res.status(500).json({ status: 'error' });
-  }
-};
-
-/**
- * 5. Verify Razorpay Payment Link (rzp.io) & Mint Digital Pass
- * POST /api/payment/verify-link or GET /api/payment/verify-link
- */
-export const verifyPaymentLink = async (req, res) => {
-  try {
-    const payload = req.method === 'GET' ? req.query : req.body;
-    const paymentLinkId = payload.paymentLinkId || payload.payment_link_id || payload.plink_id;
-    const orderId = payload.orderId || payload.order_id;
-    const paymentId = payload.paymentId || payload.payment_id || payload.razorpay_payment_id;
-    const participantData = payload.participantData || {};
-
-    if (!paymentLinkId && !orderId && !paymentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'paymentLinkId, orderId, or paymentId is required to verify transaction.',
-      });
-    }
-
-    // 1. Check if already minted by orderId or paymentId
-    if (orderId) {
-      const existing = await registrantRepo.findByOrderId(orderId);
-      if (existing) {
-        return res.json({ success: true, isPaid: true, message: 'Pass already issued', data: existing });
-      }
-    }
-    if (paymentId) {
-      const existing = await registrantRepo.findByPaymentId(paymentId);
-      if (existing) {
-        return res.json({ success: true, isPaid: true, message: 'Pass already issued', data: existing });
-      }
-    }
-
-    const clientData = await getRazorpayClient();
-    const client = clientData?.client;
-    if (!client) {
-      return res.status(500).json({ success: false, message: 'Razorpay client is unavailable' });
-    }
-
-    let isPaid = false;
-    let verifiedPaymentId = paymentId || null;
-    let verifiedAmountPaid = Number(participantData.amountPaid) || 1;
-    let customerInfo = {};
-
-    // 2. Fetch directly from Razorpay Payment Link
-    if (paymentLinkId) {
-      const plink = await fetchPaymentLink(paymentLinkId);
-      if (plink) {
-        if (plink.status === 'paid' || plink.amount_paid > 0) {
-          isPaid = true;
-          verifiedAmountPaid = (plink.amount_paid || 100) / 100;
-          customerInfo = plink.customer || {};
-          if (plink.payments && plink.payments.length > 0) {
-            const captured = plink.payments.find((p) => p.status === 'captured') || plink.payments[0];
-            verifiedPaymentId = captured?.payment_id || captured?.id || verifiedPaymentId;
-          }
-        }
-      }
-    }
-
-    // 3. Fallback: Check Razorpay Order if not confirmed via plink
-    if (!isPaid && orderId) {
-      try {
-        const order = await client.orders.fetch(orderId);
-        if (order && order.status === 'paid') {
-          isPaid = true;
-          verifiedAmountPaid = (order.amount_paid || 100) / 100;
-          const payments = await client.orders.fetchPayments(orderId);
-          const captured = (payments?.items || []).find((p) => p.status === 'captured' || p.status === 'authorized');
-          verifiedPaymentId = captured?.id || verifiedPaymentId;
-        }
-      } catch (orderErr) {
-        console.warn('Order check in verifyPaymentLink notice:', orderErr.message);
-      }
-    }
-
-    // 4. Fallback: Check Razorpay Payment directly if paymentId provided
-    if (!isPaid && paymentId) {
-      try {
-        const payment = await client.payments.fetch(paymentId);
-        if (payment && (payment.status === 'captured' || payment.status === 'authorized')) {
-          isPaid = true;
-          verifiedAmountPaid = (payment.amount || 100) / 100;
-          verifiedPaymentId = payment.id;
-          customerInfo = {
-            name: payment.notes?.name,
-            email: payment.email,
-            contact: payment.contact,
-          };
-        }
-      } catch (payErr) {
-        console.warn('Payment fetch in verifyPaymentLink notice:', payErr.message);
-      }
-    }
-
-    if (!isPaid) {
-      return res.json({
-        success: true,
-        isPaid: false,
-        status: 'unpaid',
-        message: 'Payment has not been completed yet.',
-      });
-    }
-
-    // Double check if paymentId is already recorded
-    if (verifiedPaymentId) {
-      const existing = await registrantRepo.findByPaymentId(verifiedPaymentId);
-      if (existing) {
-        return res.json({ success: true, isPaid: true, message: 'Pass already issued', data: existing });
-      }
-    }
-
-    // 5. Mint official HMAC-SHA256 digital entry pass
-    const cleanEmail = String(participantData.email || customerInfo.email || '').toLowerCase().trim();
-    const attendeeName = (participantData.name || customerInfo.name || 'Participant').trim();
-    const attendeePhone = participantData.phone ? String(participantData.phone).trim() : (customerInfo.contact || '');
-    const ticketType = participantData.ticketType || 'Hacker Pass';
-
-    const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
-    const uniqueId = `HS26-${rawUuid}`;
-    const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
-    const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
-    const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
-
-    const newRegistrant = await registrantRepo.create({
-      uniqueId,
-      name: attendeeName,
-      email: cleanEmail,
-      phone: attendeePhone,
-      ticketType,
-      teamName: participantData.teamName ? String(participantData.teamName).trim() : '',
-      track: participantData.track || 'AI & Agentic Systems',
-      githubUrl: participantData.githubUrl || '',
-      institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
-      formResponses: participantData.formResponses || {},
-      qrPayload,
-      qrSignature: signature,
-      qrCodeDataUrl,
-      verified: true,
-      verificationStatus: 'Verified',
-      paymentStatus: 'PAID',
-      paymentId: verifiedPaymentId || `pay_${Date.now()}`,
-      orderId: orderId || paymentLinkId || `ord_${Date.now()}`,
-      amountPaid: verifiedAmountPaid,
-      paidAt: new Date().toISOString(),
-      emailSent: false,
-      checkedIn: false,
-    });
-
-    console.log(`✅ [PAYMENT LINK PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via ${verifiedPaymentId}`);
-
-    // Dispatch pass email & WhatsApp notification asynchronously
-    configRepo.getConfig()
-      .then((cfg) => Promise.allSettled([
-        sendPassEmail(newRegistrant, cfg),
-        sendAutoPassWhatsApp(newRegistrant),
-      ]))
-      .then(() => registrantRepo.update(newRegistrant.uniqueId, { emailSent: true, emailSentAt: new Date().toISOString() }))
-      .catch((e) => console.warn('Dispatch notification notice:', e.message));
-
-    return res.status(201).json({
-      success: true,
-      isPaid: true,
-      message: `Payment Verified! Pass ${uniqueId} issued successfully.`,
-      data: newRegistrant,
-    });
-  } catch (error) {
-    console.error('verifyPaymentLink error:', error);
-    return res.status(500).json({ success: false, message: error.message });
   }
 };
