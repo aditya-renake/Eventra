@@ -856,55 +856,25 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
       </div>
 
       {/* Live Razorpay Payment Collection & Revenue Telemetry Panel */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0d121f 0%, #060910 100%)',
-        borderRadius: '18px',
-        border: '1px solid rgba(56, 189, 248, 0.3)',
-        padding: '24px',
-        marginBottom: '28px',
-        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.4)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+      <div className="dashboard-razorpay-panel">
         {/* Top Header & Reconciled Badge */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              boxShadow: '0 0 16px rgba(6, 182, 212, 0.45)',
-            }}>
+            <div className="razorpay-panel-icon">
               <CreditCard size={22} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#FFFFFF', margin: 0, letterSpacing: '-0.3px' }}>
+                <h2 className="razorpay-panel-title">
                   Live Razorpay Revenue & Payment Collection
                 </h2>
-                <span style={{
-                  fontSize: '10px',
-                  fontWeight: '800',
-                  background: 'rgba(34, 197, 94, 0.15)',
-                  color: '#22c55e',
-                  border: '1px solid rgba(34, 197, 94, 0.35)',
-                  borderRadius: '999px',
-                  padding: '2px 9px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+                <span className="razorpay-live-badge">
+                  <span className="razorpay-live-dot" />
                   {livePaymentStats?.gatewayMode || 'LIVE PRODUCTION'}
                 </span>
               </div>
-              <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
-                Reconciled telemetry for <strong style={{ color: '#FFFFFF' }}>{currentSelectedEvent?.name || selectedEventId}</strong> • Key <code style={{ color: '#38bdf8' }}>{livePaymentStats?.gatewayKeyId || 'rzp_live_Toe8X3rzRfnIsm'}</code>
+              <div className="razorpay-panel-subtitle">
+                Reconciled telemetry for <strong>{currentSelectedEvent?.name || selectedEventId}</strong> • Key <code className="razorpay-key-code">{livePaymentStats?.gatewayKeyId || 'rzp_live_Toe8X3rzRfnIsm'}</code>
               </div>
             </div>
           </div>
@@ -925,8 +895,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
                   message: `Synced live revenue & payment telemetry for ${currentSelectedEvent?.name || (selectedEventId === 'all' ? 'All Events' : selectedEventId)}.`,
                 });
               }}
-              className="btn btn-ghost btn-sm"
-              style={{ color: '#38bdf8', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              className="razorpay-sync-btn"
               title="Sync Live Razorpay Numbers"
             >
               <RefreshCw size={13} className={loadingPaymentStats ? 'spin' : ''} />
@@ -937,19 +906,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
               <button
                 type="button"
                 onClick={() => setShowLedgerModal(true)}
-                style={{
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.35)',
-                  color: '#38bdf8',
-                  borderRadius: '8px',
-                  padding: '7px 14px',
-                  fontSize: '12px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
+                className="razorpay-ledger-btn"
               >
                 <span>Live Payment Ledger ({livePaymentStats.transactions.length})</span>
                 <ArrowUpRight size={13} />
@@ -959,56 +916,56 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
         </div>
 
         {/* 4 Financial KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+        <div className="razorpay-metrics-grid">
           
           {/* Total Revenue */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="razorpay-metric-card">
+            <div className="razorpay-metric-label">
               Total Live Revenue
             </div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color: '#22c55e', margin: '6px 0 2px 0' }}>
+            <div className="razorpay-metric-value razorpay-metric-revenue">
               ₹{(livePaymentStats?.totalRevenue || 0).toLocaleString('en-IN')}
             </div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+            <div className="razorpay-metric-subtext">
               100% captured • Instant merchant bank settlement
             </div>
           </div>
 
           {/* Paid Orders */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="razorpay-metric-card">
+            <div className="razorpay-metric-label">
               Paid Orders
             </div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color: '#38bdf8', margin: '6px 0 2px 0' }}>
+            <div className="razorpay-metric-value razorpay-metric-orders">
               {livePaymentStats?.paidOrdersCount || 0}
             </div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+            <div className="razorpay-metric-subtext">
               {livePaymentStats?.freePassesCount || 0} complimentary / free passes
             </div>
           </div>
 
           {/* Average Ticket Size */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="razorpay-metric-card">
+            <div className="razorpay-metric-label">
               Average Order Value
             </div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color: '#a78bfa', margin: '6px 0 2px 0' }}>
+            <div className="razorpay-metric-value razorpay-metric-aov">
               ₹{livePaymentStats?.averageTicketValue || 0}
             </div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+            <div className="razorpay-metric-subtext">
               Gross average per paying attendee
             </div>
           </div>
 
           {/* Gateway Status */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="razorpay-metric-card">
+            <div className="razorpay-metric-label">
               Gateway Engine
             </div>
-            <div style={{ fontSize: '18px', fontWeight: '900', color: '#f59e0b', margin: '8px 0 4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CheckCircle2 size={18} color="#22c55e" /> Connected Live
+            <div className="razorpay-metric-value razorpay-metric-engine">
+              <CheckCircle2 size={18} className="razorpay-engine-icon" /> Connected Live
             </div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+            <div className="razorpay-metric-subtext">
               Zero-leak webhook • Instant HMAC pass issue
             </div>
           </div>
@@ -1017,11 +974,11 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
 
         {/* Ticket Tier Breakdown Bar if available */}
         {livePaymentStats?.ticketBreakdown && Object.keys(livePaymentStats.ticketBreakdown).length > 0 && (
-          <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase' }}>Pass Sales By Tier:</span>
+          <div className="razorpay-breakdown-bar">
+            <span className="razorpay-breakdown-label">Pass Sales By Tier:</span>
             {Object.entries(livePaymentStats.ticketBreakdown).map(([tierName, data]) => (
-              <span key={tierName} style={{ fontSize: '11px', background: 'rgba(255, 255, 255, 0.06)', padding: '3px 10px', borderRadius: '6px', color: '#E2E8F8', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                <strong style={{ color: '#38bdf8' }}>{tierName}:</strong> {data.count} passes (₹{data.revenue})
+              <span key={tierName} className="razorpay-tier-chip">
+                <strong className="razorpay-tier-chip-title">{tierName}:</strong> {data.count} passes (₹{data.revenue})
               </span>
             ))}
           </div>

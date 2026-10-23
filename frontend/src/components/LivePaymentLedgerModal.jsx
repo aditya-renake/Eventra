@@ -48,34 +48,22 @@ export const LivePaymentLedgerModal = ({ transactions = [], eventName = 'Event',
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', inset: 0, background: 'rgba(3, 7, 18, 0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, padding: '20px' }}>
+    <div className="modal-backdrop live-ledger-backdrop" onClick={onClose}>
       <div 
-        className="modal-card" 
+        className="modal-card live-ledger-modal" 
         onClick={(e) => e.stopPropagation()} 
-        style={{ 
-          background: '#0d121f', 
-          border: '1px solid rgba(56, 189, 248, 0.3)', 
-          borderRadius: '20px', 
-          maxWidth: '1000px', 
-          width: '100%', 
-          maxHeight: '90vh', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          overflow: 'hidden', 
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)' 
-        }}
       >
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#080c16' }}>
+        <div className="live-ledger-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <div className="live-ledger-icon">
               <CreditCard size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#fff', margin: 0 }}>
+              <h3 className="live-ledger-header-title">
                 Live Razorpay Payment Ledger
               </h3>
-              <p style={{ fontSize: '12px', color: '#9ca3af', margin: '2px 0 0 0' }}>
+              <p className="live-ledger-header-sub">
                 Reconciled captured transactions for <strong>{eventName}</strong> ({filtered.length} entries • ₹{totalFilteredRupees.toLocaleString('en-IN')})
               </p>
             </div>
@@ -93,7 +81,8 @@ export const LivePaymentLedgerModal = ({ transactions = [], eventName = 'Event',
             <button
               type="button"
               onClick={onClose}
-              style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '6px', borderRadius: '8px' }}
             >
               <X size={20} />
             </button>
@@ -101,39 +90,30 @@ export const LivePaymentLedgerModal = ({ transactions = [], eventName = 'Event',
         </div>
 
         {/* Search Bar */}
-        <div style={{ padding: '14px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', background: '#0b101c' }}>
+        <div className="live-ledger-search-box">
           <div style={{ position: 'relative' }}>
-            <Search size={15} color="#38bdf8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={15} color="#596EE6" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
+              className="live-ledger-search-input"
               placeholder="Search by Razorpay Payment ID (pay_...), Order ID, Name, Email, Phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                background: '#070a12',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '10px',
-                padding: '9px 14px 9px 36px',
-                color: '#fff',
-                fontSize: '13px',
-                outline: 'none',
-              }}
             />
           </div>
         </div>
 
         {/* Transactions Table */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+        <div className="live-ledger-table-wrap">
           {filtered.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
               No transactions match your search filter.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+              <table className="live-ledger-table">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#9ca3af', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
+                  <tr>
                     <th style={{ padding: '10px 12px' }}>Payment ID</th>
                     <th style={{ padding: '10px 12px' }}>Attendee</th>
                     <th style={{ padding: '10px 12px' }}>Pass Tier</th>
@@ -147,42 +127,35 @@ export const LivePaymentLedgerModal = ({ transactions = [], eventName = 'Event',
                   {filtered.map((t, idx) => {
                     const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now';
                     return (
-                      <tr 
-                        key={t.paymentId || idx}
-                        style={{ 
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          color: '#E2E8F0',
-                          transition: 'background 0.15s ease',
-                        }}
-                      >
-                        <td style={{ padding: '12px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: '#38bdf8' }}>
-                          <div>{t.paymentId}</div>
-                          {t.orderId && <div style={{ fontSize: '10px', color: '#64748b' }}>{t.orderId}</div>}
+                      <tr key={t.paymentId || idx}>
+                        <td style={{ padding: '12px' }}>
+                          <div className="live-ledger-pid">{t.paymentId}</div>
+                          {t.orderId && <div className="live-ledger-orderid">{t.orderId}</div>}
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: '800', color: '#FFFFFF' }}>{t.name || 'Attendee'}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t.email}</div>
-                          {t.contact && <div style={{ fontSize: '10px', color: '#64748b' }}>{t.contact}</div>}
+                          <div className="live-ledger-name">{t.name || 'Attendee'}</div>
+                          <div className="live-ledger-email">{t.email}</div>
+                          {t.contact && <div className="live-ledger-contact">{t.contact}</div>}
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <span style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
+                          <span className="live-ledger-tier-badge">
                             {t.ticketType || 'Standard Pass'}
                           </span>
                         </td>
-                        <td style={{ padding: '12px', fontSize: '13px', fontWeight: '900', color: '#22c55e' }}>
+                        <td className="live-ledger-amount">
                           ₹{t.amount || 0}
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <span style={{ textTransform: 'uppercase', fontSize: '10px', fontWeight: '800', color: '#cbd5e1', background: 'rgba(255, 255, 255, 0.06)', padding: '2px 6px', borderRadius: '4px' }}>
+                          <span className="live-ledger-method-badge">
                             {t.method || 'upi'}
                           </span>
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#22c55e', fontSize: '11px', fontWeight: '800' }}>
-                            <CheckCircle2 size={12} color="#22c55e" /> CAPTURED
+                          <span className="live-ledger-status-badge">
+                            <CheckCircle2 size={12} /> CAPTURED
                           </span>
                         </td>
-                        <td style={{ padding: '12px', fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        <td className="live-ledger-date" style={{ padding: '12px' }}>
                           {dateStr}
                         </td>
                       </tr>
@@ -195,7 +168,7 @@ export const LivePaymentLedgerModal = ({ transactions = [], eventName = 'Event',
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '14px 24px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: '#080c16', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#9ca3af' }}>
+        <div className="live-ledger-footer">
           <div>
             🔒 Live reconciliation with Razorpay merchant account • Instant zero-tamper settlement
           </div>
