@@ -610,8 +610,15 @@ export const getLivePaymentStats = async (req, res) => {
         allPayments.forEach((p) => {
           if (p.status === 'captured') {
             const pEventId = p.notes?.eventId ? String(p.notes.eventId).toLowerCase().trim() : null;
+            // Match if:
+            // 1. No specific event requested ('all' / lifetime)
+            // 2. Direct eventId tag on the Razorpay order matches
+            // 3. Or payment belongs to default flagship event ('eventra-2026') when untagged
+            // 4. Or paymentId / orderId is recorded in DB for this event
             const isMatch = !cleanEventId || 
+              cleanEventId === 'all' ||
               pEventId === cleanEventId || 
+              (!pEventId && (cleanEventId === 'eventra-2026' || cleanEventId === 'all')) ||
               dbPaymentsMap.has(p.id) || 
               (p.order_id && dbPaymentsMap.has(p.order_id));
 
@@ -630,7 +637,7 @@ export const getLivePaymentStats = async (req, res) => {
                 method: p.method || 'upi',
                 email: p.email || reg?.email || p.notes?.email || '',
                 name: reg?.name || p.notes?.name || 'Attendee',
-                contact: p.contact || reg?.phone || '',
+                contact: p.contact || reg?.phone || p.notes?.phone || '',
                 ticketType: reg?.ticketType || p.notes?.ticketType || 'Standard Pass',
                 createdAt: p.created_at ? new Date(p.created_at * 1000).toISOString() : new Date().toISOString(),
               });
@@ -643,10 +650,6 @@ export const getLivePaymentStats = async (req, res) => {
     }
 
     // 3. 100% Accurate Reconciled Stats (combine Razorpay live with verified DB records)
-    const effectiveRevenue = Math.max(dbRevenue, razorpayTotalRevenue);
-    const effectivePaidCount = Math.max(dbPaidCount, razorpayCapturedCount, matchedTransactions.length);
-    const averageOrderValue = effectivePaidCount > 0 ? Math.round(effectiveRevenue / effectivePaidCount) : 0;
-
     // Add any DB paid transactions that weren't already captured in matchedTransactions
     const existingTxIds = new Set(matchedTransactions.map((t) => t.paymentId));
     registrants.forEach((r) => {
@@ -667,11 +670,15 @@ export const getLivePaymentStats = async (req, res) => {
       }
     });
 
+    const totalReconciledRevenue = matchedTransactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+    const effectiveRevenue = Math.max(dbRevenue, razorpayTotalRevenue, totalReconciledRevenue);
+    const effectivePaidCount = Math.max(dbPaidCount, razorpayCapturedCount, matchedTransactions.length);
+    const averageOrderValue = effectivePaidCount > 0 ? Math.round(effectiveRevenue / effectivePaidCount) : 0;
+
     // Sort latest transactions first
     matchedTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    return res.json({
-      success: true,
+    const payload = {
       eventId: cleanEventId || 'all',
       gatewayConnected: razorpayConnected,
       gatewayKeyId: liveKeyId,
@@ -685,6 +692,12 @@ export const getLivePaymentStats = async (req, res) => {
       ticketBreakdown: listRes.stats?.ticketBreakdown || {},
       transactions: matchedTransactions.slice(0, 50),
       lastSyncedAt: new Date().toISOString(),
+    };
+
+    return res.json({
+      success: true,
+      data: payload,
+      ...payload,
     });
   } catch (error) {
     console.error('❌ getLivePaymentStats error:', error);

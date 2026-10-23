@@ -219,8 +219,9 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
     try {
       setLoadingPaymentStats(true);
       const res = await api.payment.getLiveStats(evId);
-      if (res?.data) {
-        setLivePaymentStats(res.data);
+      const statsData = res?.data || (res?.success ? res : res);
+      if (statsData && (statsData.totalRevenue !== undefined || statsData.transactions !== undefined)) {
+        setLivePaymentStats(statsData);
       }
     } catch (err) {
       console.warn('Live payment stats query warning:', err);
@@ -309,14 +310,17 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
     adminDisplayName = 'Operations Admin';
   }
 
-  const currentSelectedEvent = eventsList.find((ev) => (ev.id || ev.eventId) === selectedEventId);
+  const currentSelectedEvent = selectedEventId === 'all'
+    ? { id: 'all', eventId: 'all', name: 'All Events (Combined Collection)', category: 'Global', isFlagship: false }
+    : eventsList.find((ev) => (ev.id || ev.eventId) === selectedEventId);
   const isSelectedEventLiveOnSite = Boolean(
+    selectedEventId !== 'all' &&
     eventConfig?.activeEventId && String(eventConfig.activeEventId).toLowerCase() === String(selectedEventId).toLowerCase()
   );
 
   // Dynamic Tracks & Ticket Tiers for Filter Bar
   const availableTracks = React.useMemo(() => {
-    if (!currentSelectedEvent) return [];
+    if (!currentSelectedEvent || selectedEventId === 'all') return [];
     const list = new Set();
     if (Array.isArray(currentSelectedEvent.tracks)) {
       currentSelectedEvent.tracks.forEach((t) => t && list.add(t));
@@ -325,10 +329,10 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
       currentSelectedEvent.subEvents.forEach((s) => s?.name && list.add(s.name));
     }
     return Array.from(list);
-  }, [currentSelectedEvent]);
+  }, [currentSelectedEvent, selectedEventId]);
 
   const availableTicketTiers = React.useMemo(() => {
-    if (!currentSelectedEvent) return [];
+    if (!currentSelectedEvent || selectedEventId === 'all') return [];
     const list = new Set();
     if (Array.isArray(currentSelectedEvent.ticketTiers)) {
       currentSelectedEvent.ticketTiers.forEach((t) => t && list.add(t));
@@ -337,7 +341,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
       Object.keys(currentSelectedEvent.ticketPrices).forEach((t) => t && list.add(t));
     }
     return Array.from(list);
-  }, [currentSelectedEvent]);
+  }, [currentSelectedEvent, selectedEventId]);
 
   const handleMakeSelectedEventLive = async () => {
     if (!currentSelectedEvent) return;
@@ -507,6 +511,9 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
                   outline: 'none',
                 }}
               >
+                <option value="all" style={{ background: '#FFFFFF', color: '#29304A', fontWeight: 'bold' }}>
+                  🌐 All Events (Combined / Lifetime Collection)
+                </option>
                 {eventsList.map((ev) => (
                   <option key={ev.id || ev.eventId} value={ev.id || ev.eventId} style={{ background: '#FFFFFF', color: '#29304A' }}>
                     {ev.name} ({ev.category})
@@ -516,68 +523,72 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
             </div>
 
             {/* Flagship Promotion & Live on Site Indicator */}
-            {currentSelectedEvent?.isFlagship ? (
-              <span style={{ fontSize: '11px', fontWeight: '900', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', padding: '3px 12px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)' }}>
-                <Crown size={12} />
-                👑 ACTIVE FLAGSHIP EVENT
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleMakeFlagship}
-                style={{
-                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                  border: 'none',
-                  color: '#FFFFFF',
-                  borderRadius: '9999px',
-                  padding: '3px 12px',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)',
-                }}
-                title="Promote this event to be the primary Flagship Event featured on the homepage"
-              >
-                <Crown size={11} />
-                <span>⭐ Make Flagship Event</span>
-              </button>
+            {selectedEventId !== 'all' && (
+              currentSelectedEvent?.isFlagship ? (
+                <span style={{ fontSize: '11px', fontWeight: '900', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', padding: '3px 12px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)' }}>
+                  <Crown size={12} />
+                  👑 ACTIVE FLAGSHIP EVENT
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleMakeFlagship}
+                  style={{
+                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    borderRadius: '9999px',
+                    padding: '3px 12px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)',
+                  }}
+                  title="Promote this event to be the primary Flagship Event featured on the homepage"
+                >
+                  <Crown size={11} />
+                  <span>⭐ Make Flagship Event</span>
+                </button>
+              )
             )}
 
-            {isSelectedEventLiveOnSite ? (
-              <span style={{ fontSize: '10px', fontWeight: '800', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', borderRadius: '9999px', padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-                LIVE ON WEBSITE
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleMakeSelectedEventLive}
-                style={{
-                  background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
-                  border: 'none',
-                  color: '#FFFFFF',
-                  borderRadius: '9999px',
-                  padding: '3px 12px',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  boxShadow: '0 2px 8px rgba(89, 110, 230, 0.25)',
-                }}
-                title="Publish this event to the live website landing page and registration form"
-              >
-                <Zap size={11} />
-                <span>Publish to Live Site</span>
-              </button>
+            {selectedEventId !== 'all' && (
+              isSelectedEventLiveOnSite ? (
+                <span style={{ fontSize: '10px', fontWeight: '800', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', borderRadius: '9999px', padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                  LIVE ON WEBSITE
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleMakeSelectedEventLive}
+                  style={{
+                    background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    borderRadius: '9999px',
+                    padding: '3px 12px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 8px rgba(89, 110, 230, 0.25)',
+                  }}
+                  title="Publish this event to the live website landing page and registration form"
+                >
+                  <Zap size={11} />
+                  <span>Publish to Live Site</span>
+                </button>
+              )
             )}
 
             {/* Quick Edit, View & Delete Event Actions */}
-            {currentSelectedEvent && (
+            {currentSelectedEvent && selectedEventId !== 'all' && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <button
                   type="button"
@@ -901,7 +912,19 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => fetchPaymentStats(selectedEventId)}
+              onClick={async () => {
+                sounds.playClick();
+                await Promise.all([
+                  fetchPaymentStats(selectedEventId),
+                  fetchData(pagination.page, true),
+                ]);
+                sounds.playSuccess();
+                onShowToast?.({
+                  type: 'success',
+                  title: 'Razorpay Telemetry Reconciled 💳',
+                  message: `Synced live revenue & payment telemetry for ${currentSelectedEvent?.name || (selectedEventId === 'all' ? 'All Events' : selectedEventId)}.`,
+                });
+              }}
               className="btn btn-ghost btn-sm"
               style={{ color: '#38bdf8', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               title="Sync Live Razorpay Numbers"
