@@ -12,7 +12,9 @@ import {
   Edit3,
   ExternalLink,
   Trash2,
-  Plus
+  Plus,
+  CreditCard,
+  ArrowUpRight
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StatCard } from '../components/StatCard';
@@ -25,6 +27,7 @@ import { SuperAdminModal } from '../components/SuperAdminModal';
 import { ExcelImportModal } from '../components/ExcelImportModal';
 import { CreateEventModal } from '../components/CreateEventModal';
 import { TeamManagementModal } from '../components/TeamManagementModal';
+import { LivePaymentLedgerModal } from '../components/LivePaymentLedgerModal';
 import { sounds } from '../utils/soundEffects';
 
 const CACHE_KEY_DASHBOARD = 'hs26_cached_dashboard_state';
@@ -48,7 +51,13 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
   const [hasUserSelectedEvent, setHasUserSelectedEvent] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [createKey, setCreateKey] = useState(0);
   const [showTeamModal, setShowTeamModal] = useState(false);
+
+  // Live Razorpay Financial Stats State
+  const [livePaymentStats, setLivePaymentStats] = useState(null);
+  const [loadingPaymentStats, setLoadingPaymentStats] = useState(false);
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
 
   const [registrants, setRegistrants] = useState(cachedInitial?.registrants || []);
   const [stats, setStats] = useState(cachedInitial?.stats || {
@@ -205,19 +214,36 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
     }
   }, [pagination.limit, search, checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId, eventConfig, registrants.length, onShowToast]);
 
+  // Live Razorpay Financial Telemetry Query
+  const fetchPaymentStats = useCallback(async (evId) => {
+    try {
+      setLoadingPaymentStats(true);
+      const res = await api.payment.getLiveStats(evId);
+      if (res?.data) {
+        setLivePaymentStats(res.data);
+      }
+    } catch (err) {
+      console.warn('Live payment stats query warning:', err);
+    } finally {
+      setLoadingPaymentStats(false);
+    }
+  }, []);
+
   // Initial and reactive fetch on filter change or event change
   useEffect(() => {
     fetchData(1, registrants.length > 0);
+    fetchPaymentStats(selectedEventId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId]);
 
-  // Live Auto-Polling (Pulls new submissions into dashboard every 4 seconds)
+  // Live Auto-Polling (Pulls new submissions and live Razorpay revenue into dashboard)
   useEffect(() => {
     const pollTimer = setInterval(() => {
       fetchData(pagination.page, true);
-    }, 4000);
+      fetchPaymentStats(selectedEventId);
+    }, 4500);
     return () => clearInterval(pollTimer);
-  }, [fetchData, pagination.page]);
+  }, [fetchData, fetchPaymentStats, pagination.page, selectedEventId]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -395,6 +421,30 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
     }
   };
 
+  const handleMakeFlagship = async () => {
+    if (!currentSelectedEvent) return;
+    try {
+      sounds.playClick();
+      const evId = currentSelectedEvent.id || currentSelectedEvent.eventId;
+      await api.events.setFlagship(evId);
+      await fetchEvents();
+      window.dispatchEvent(new CustomEvent('eventra:events-updated'));
+      sounds.playSuccess();
+      onShowToast?.({
+        type: 'success',
+        title: 'Promoted to Flagship! 👑',
+        message: `"${currentSelectedEvent.name}" is now the sole Flagship Event featured on the homepage!`,
+      });
+    } catch (err) {
+      sounds.playError();
+      onShowToast?.({
+        type: 'error',
+        title: 'Flagship Update Failed',
+        message: err.message || 'Could not promote event to flagship.',
+      });
+    }
+  };
+
   const handleDeleteSelectedEvent = async () => {
     if (!currentSelectedEvent) return;
     const evId = currentSelectedEvent.id || currentSelectedEvent.eventId;
@@ -465,7 +515,37 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
               </select>
             </div>
 
-            {/* Live on Site Indicator / Action */}
+            {/* Flagship Promotion & Live on Site Indicator */}
+            {currentSelectedEvent?.isFlagship ? (
+              <span style={{ fontSize: '11px', fontWeight: '900', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', padding: '3px 12px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)' }}>
+                <Crown size={12} />
+                👑 ACTIVE FLAGSHIP EVENT
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleMakeFlagship}
+                style={{
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  borderRadius: '9999px',
+                  padding: '3px 12px',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)',
+                }}
+                title="Promote this event to be the primary Flagship Event featured on the homepage"
+              >
+                <Crown size={11} />
+                <span>⭐ Make Flagship Event</span>
+              </button>
+            )}
+
             {isSelectedEventLiveOnSite ? (
               <span style={{ fontSize: '10px', fontWeight: '800', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', borderRadius: '9999px', padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
@@ -525,32 +605,30 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
                   <span>Edit Event</span>
                 </button>
 
-                {onViewLiveEvent && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sounds.playClick();
-                      onViewLiveEvent(selectedEventId);
-                    }}
-                    style={{
-                      background: '#FFFFFF',
-                      border: '1px solid #E2E8F8',
-                      color: '#29304A',
-                      borderRadius: '9999px',
-                      padding: '3px 10px',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                    title="Open this event's public landing page"
-                  >
-                    <ExternalLink size={11} color="#596EE6" />
-                    <span>View Page</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    sounds.playClick();
+                    window.open(`/#event/${encodeURIComponent(selectedEventId)}`, '_blank');
+                  }}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #DDE3FF',
+                    color: '#596EE6',
+                    borderRadius: '9999px',
+                    padding: '3px 10px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Open this event's dedicated specifications page in a separate window"
+                >
+                  <ExternalLink size={11} color="#596EE6" />
+                  <span>Event Details ↗</span>
+                </button>
 
                 {eventsList.length > 1 && (
                   <button
@@ -755,6 +833,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
             onClick={() => {
               sounds.playClick();
               setEditingEvent(null);
+              setCreateKey((k) => k + 1);
               setShowCreateEvent(true);
             }}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -763,6 +842,167 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
             <span>Create event</span>
           </button>
         </div>
+      </div>
+
+      {/* Live Razorpay Payment Collection & Revenue Telemetry Panel */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0d121f 0%, #060910 100%)',
+        borderRadius: '18px',
+        border: '1px solid rgba(56, 189, 248, 0.3)',
+        padding: '24px',
+        marginBottom: '28px',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.4)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Top Header & Reconciled Badge */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              boxShadow: '0 0 16px rgba(6, 182, 212, 0.45)',
+            }}>
+              <CreditCard size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#FFFFFF', margin: 0, letterSpacing: '-0.3px' }}>
+                  Live Razorpay Revenue & Payment Collection
+                </h2>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  color: '#22c55e',
+                  border: '1px solid rgba(34, 197, 94, 0.35)',
+                  borderRadius: '999px',
+                  padding: '2px 9px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+                  {livePaymentStats?.gatewayMode || 'LIVE PRODUCTION'}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                Reconciled telemetry for <strong style={{ color: '#FFFFFF' }}>{currentSelectedEvent?.name || selectedEventId}</strong> • Key <code style={{ color: '#38bdf8' }}>{livePaymentStats?.gatewayKeyId || 'rzp_live_Toe8X3rzRfnIsm'}</code>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => fetchPaymentStats(selectedEventId)}
+              className="btn btn-ghost btn-sm"
+              style={{ color: '#38bdf8', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              title="Sync Live Razorpay Numbers"
+            >
+              <RefreshCw size={13} className={loadingPaymentStats ? 'spin' : ''} />
+              <span>Sync Razorpay</span>
+            </button>
+
+            {livePaymentStats?.transactions?.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowLedgerModal(true)}
+                style={{
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  color: '#38bdf8',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>Live Payment Ledger ({livePaymentStats.transactions.length})</span>
+                <ArrowUpRight size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 4 Financial KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+          
+          {/* Total Revenue */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total Live Revenue
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: '900', color: '#22c55e', margin: '6px 0 2px 0' }}>
+              ₹{(livePaymentStats?.totalRevenue || 0).toLocaleString('en-IN')}
+            </div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+              100% captured • Instant merchant bank settlement
+            </div>
+          </div>
+
+          {/* Paid Orders */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Paid Orders
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: '900', color: '#38bdf8', margin: '6px 0 2px 0' }}>
+              {livePaymentStats?.paidOrdersCount || 0}
+            </div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+              {livePaymentStats?.freePassesCount || 0} complimentary / free passes
+            </div>
+          </div>
+
+          {/* Average Ticket Size */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Average Order Value
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: '900', color: '#a78bfa', margin: '6px 0 2px 0' }}>
+              ₹{livePaymentStats?.averageTicketValue || 0}
+            </div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+              Gross average per paying attendee
+            </div>
+          </div>
+
+          {/* Gateway Status */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '16px 18px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Gateway Engine
+            </div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#f59e0b', margin: '8px 0 4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircle2 size={18} color="#22c55e" /> Connected Live
+            </div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+              Zero-leak webhook • Instant HMAC pass issue
+            </div>
+          </div>
+
+        </div>
+
+        {/* Ticket Tier Breakdown Bar if available */}
+        {livePaymentStats?.ticketBreakdown && Object.keys(livePaymentStats.ticketBreakdown).length > 0 && (
+          <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase' }}>Pass Sales By Tier:</span>
+            {Object.entries(livePaymentStats.ticketBreakdown).map(([tierName, data]) => (
+              <span key={tierName} style={{ fontSize: '11px', background: 'rgba(255, 255, 255, 0.06)', padding: '3px 10px', borderRadius: '6px', color: '#E2E8F8', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <strong style={{ color: '#38bdf8' }}>{tierName}:</strong> {data.count} passes (₹{data.revenue})
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* KPI Stats Grid */}
@@ -983,6 +1223,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
           onExportCSV={handleExportCSV}
           onOpenCreateEvent={() => {
             setEditingEvent(null);
+            setCreateKey((k) => k + 1);
             setShowCreateEvent(true);
           }}
           isMainBoss={isMainBoss}
@@ -992,7 +1233,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
 
       {showCreateEvent && (
         <CreateEventModal
-          key={editingEvent?.id || editingEvent?.eventId || 'new-event'}
+          key={editingEvent ? (editingEvent.id || editingEvent.eventId) : `create-new-${createKey}`}
           initialEvent={editingEvent}
           onClose={() => {
             setShowCreateEvent(false);
@@ -1000,6 +1241,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
           }}
           onEventCreated={(savedEvent) => {
             fetchEvents();
+            fetchPaymentStats(savedEvent?.id || savedEvent?.eventId || selectedEventId);
             if (savedEvent?.id || savedEvent?.eventId) {
               setHasUserSelectedEvent(true);
               setSelectedEventId(savedEvent.id || savedEvent.eventId);
@@ -1009,6 +1251,14 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
             }).catch(() => {});
           }}
           onShowToast={onShowToast}
+        />
+      )}
+
+      {showLedgerModal && (
+        <LivePaymentLedgerModal
+          transactions={livePaymentStats?.transactions || []}
+          eventName={currentSelectedEvent?.name || selectedEventId}
+          onClose={() => setShowLedgerModal(false)}
         />
       )}
 

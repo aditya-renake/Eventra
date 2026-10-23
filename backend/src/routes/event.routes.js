@@ -6,6 +6,7 @@ import {
   createClubEvent,
   updateClubEvent,
   deleteClubEvent,
+  setFlagshipEvent,
   getStaffList,
   createStaffMember,
   updateStaffMember,
@@ -25,6 +26,7 @@ router.get('/:id', getEventById);
 
 // Admin-only Event CRUD
 router.post('/', requireAuth, createClubEvent);
+router.post('/:id/flagship', requireAuth, setFlagshipEvent);
 router.put('/:id', requireAuth, updateClubEvent);
 router.delete('/:id', requireAuth, deleteClubEvent);
 

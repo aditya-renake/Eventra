@@ -83,6 +83,11 @@ export const api = {
         method: 'DELETE',
       });
     },
+    async setFlagship(id) {
+      return request(`/event/${encodeURIComponent(id)}/flagship`, {
+        method: 'POST',
+      });
+    },
     async getStaff() {
       return request('/event/admin/staff');
     },
@@ -259,6 +264,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+    },
+    async getLiveStats(eventId) {
+      const q = eventId && eventId !== 'all' ? `?eventId=${encodeURIComponent(eventId)}` : '';
+      return request(`/payment/live-stats${q}`);
     },
   },
 };

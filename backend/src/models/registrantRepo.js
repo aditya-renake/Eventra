@@ -200,6 +200,32 @@ export const registrantRepo = {
     const verifiedCount = items.filter((i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified').length;
     const verifiedPendingEmailCount = items.filter((i) => (i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified') && !i.emailSent).length;
 
+    // Accurate Event-scoped Financial Collection & Revenue
+    let totalRevenue = 0;
+    let paidRegistrantsCount = 0;
+    let freeRegistrantsCount = 0;
+    const ticketBreakdown = {};
+
+    items.forEach((item) => {
+      const amt = Number(item.amountPaid) || 0;
+      const isPaid = item.paymentStatus === 'PAID' || (amt > 0 && item.paymentId);
+      if (isPaid && amt > 0) {
+        totalRevenue += amt;
+        paidRegistrantsCount++;
+      } else {
+        freeRegistrantsCount++;
+      }
+
+      const tType = item.ticketType || 'Standard Pass';
+      if (!ticketBreakdown[tType]) {
+        ticketBreakdown[tType] = { count: 0, revenue: 0 };
+      }
+      ticketBreakdown[tType].count++;
+      if (isPaid && amt > 0) {
+        ticketBreakdown[tType].revenue += amt;
+      }
+    });
+
     // Additional UI Filters
     if (checkedIn !== undefined && checkedIn !== '') {
       const isChecked = checkedIn === 'true' || checkedIn === true;
@@ -274,6 +300,11 @@ export const registrantRepo = {
         pendingEmailCount: totalAll - emailSentCount,
         verifiedCount,
         verifiedPendingEmailCount,
+        totalRevenue,
+        paidRegistrantsCount,
+        freeRegistrantsCount,
+        averageOrderValue: paidRegistrantsCount > 0 ? Math.round(totalRevenue / paidRegistrantsCount) : 0,
+        ticketBreakdown,
       },
     };
   },

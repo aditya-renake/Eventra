@@ -188,6 +188,26 @@ export const purgeAllStaffExceptOwner = async (req, res) => {
 };
 
 /**
+ * Admin: Set event as the Flagship Event for homepage
+ */
+export const setFlagshipEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const targetEvent = await eventRepo.setFlagship(id);
+    if (!targetEvent) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+    return res.json({
+      success: true,
+      message: `"${targetEvent.name}" is now the Flagship Event on the homepage!`,
+      data: targetEvent,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to set flagship event', error: error.message });
+  }
+};
+
+/**
  * Public: Get dynamic event configuration (Registration Mode, Ticket Prices, Gateway)
  */
 export const getEventConfig = async (req, res) => {

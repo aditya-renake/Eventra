@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
   organizerPhone: '+91 9890829874',
   alternatePOC: '',
   themeColor: '#596EE6',
-  bannerUrl: '/gallery/futuristic_hackathon_1775424262777.png',
+  bannerUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80',
   registrationMode: 'native_payment',
   enablePaymentGateway: true,
   pricingType: 'paid',

@@ -55,6 +55,14 @@ export const DEFAULT_EVENTS = [
       'Cloud & Distributed Systems',
       'Open Innovation & Campus Tech',
     ],
+    schedule: [
+      { day: 'DAY 1', time: '07:30 AM', title: 'Express Gate Check-in & Breakfast', desc: 'Scan your digital QR pass at the main entrance to collect your badge and kit.' },
+      { day: 'DAY 1', time: '09:30 AM', title: 'Inauguration & Track Release', desc: 'Official keynote by dignitaries and release of problem statements in the Main Auditorium.' },
+      { day: 'DAY 1', time: '11:00 AM', title: '48-Hour Hackathon Commences ⚡', desc: 'Hacking begins with Gigabit Wi-Fi, high-density lab access, and uninterrupted power.' },
+      { day: 'DAY 2', time: '02:00 PM', title: 'Midway Mentor Review', desc: '1-on-1 architecture reviews and dry runs with industry engineers and startup founders.' },
+      { day: 'DAY 3', time: '11:00 AM', title: 'Code Freeze & Project Submission', desc: 'GitHub repositories frozen and demo verification completed.' },
+      { day: 'DAY 3', time: '03:00 PM', title: 'Grand Finale & Award Ceremony', desc: 'Top team live stage pitches and prize distribution.' },
+    ],
     subEvents: [],
     requiredFields: {
       fullName: true,
@@ -117,6 +125,12 @@ export const DEFAULT_EVENTS = [
       'Student Pass': 5,
     },
     tracks: ['Multi-Agent Systems', 'Model Fine-tuning', 'Vector Search'],
+    schedule: [
+      { day: 'DAY 1', time: '09:30 AM', title: 'Welcome & Environment Setup', desc: 'Colab, GPU keys, and agent framework initialization in Block 402 AI Lab.' },
+      { day: 'DAY 1', time: '11:00 AM', title: 'Multi-Agent Architectures Deep-Dive', desc: 'Hands-on orchestration of supervisor and worker LLM agent pipelines.' },
+      { day: 'DAY 2', time: '10:00 AM', title: 'Production Tool Calling & RAG Pipelines', desc: 'Building secure tool execution, vector storage, and long-term memory.' },
+      { day: 'DAY 2', time: '03:30 PM', title: 'Autonomous Swarm Hack & Showcase', desc: 'Build and deploy an autonomous campus agent demo live on stage.' },
+    ],
     subEvents: [],
     status: 'upcoming',
     isFlagship: false,
@@ -164,6 +178,12 @@ export const DEFAULT_EVENTS = [
       'VIP Lounge': 5,
     },
     tracks: ['Valorant 5v5', 'BGMI Squads'],
+    schedule: [
+      { day: 'DAY 1', time: '10:30 AM', title: 'LAN Seat Allocation & Ping Tests', desc: 'Rig check, peripherals verification, and low-latency LAN routing check.' },
+      { day: 'DAY 1', time: '12:00 PM', title: 'Valorant 5v5 Quarterfinals', desc: 'Bo3 elimination matches on high-refresh stage monitors.' },
+      { day: 'DAY 2', time: '11:00 AM', title: 'BGMI Squad LAN Championship', desc: '4 map matches with custom tournament lobbies and live broadcast.' },
+      { day: 'DAY 2', time: '06:00 PM', title: 'Grand Finals & Trophy Ceremony', desc: 'Championship trophy presentation and cash prize awards in Auditorium.' },
+    ],
     subEvents: [],
     status: 'upcoming',
     isFlagship: false,
@@ -230,8 +250,10 @@ export const eventRepo = {
           events = DEFAULT_EVENTS.filter((ev) => !deletedEventIds.has(ev.id));
         }
 
-        // Sort so newly created or live events appear prominently
+        // Sort so flagship event is first, then live, then latest
         events.sort((a, b) => {
+          if (a.isFlagship && !b.isFlagship) return -1;
+          if (b.isFlagship && !a.isFlagship) return 1;
           if (a.status === 'live' && b.status !== 'live') return -1;
           if (b.status === 'live' && a.status !== 'live') return 1;
           return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
@@ -375,6 +397,7 @@ export const eventRepo = {
       ticketTiers: tiers,
       ticketPrices,
       tracks,
+      schedule: Array.isArray(data.schedule) ? data.schedule : [],
       subEvents: Array.isArray(data.subEvents) ? data.subEvents : [],
       requiredFields: data.requiredFields || {
         fullName: true,
@@ -417,7 +440,89 @@ export const eventRepo = {
       DEFAULT_EVENTS.unshift(eventItem);
     }
 
+    if (data.isFlagship) {
+      await this.setFlagship(cleanId);
+    }
+
     return eventItem;
+  },
+
+  /**
+   * Set an event as the sole Flagship Event and sync with site config
+   */
+  async setFlagship(eventId) {
+    invalidateCache();
+    if (!eventId) return null;
+    const cleanId = String(eventId).toLowerCase().trim();
+    const collection = this.getCollection();
+
+    try {
+      const snapshot = await collection.get();
+      const batch = getFirestore().batch();
+      snapshot.docs.forEach((doc) => {
+        const docId = doc.id.toLowerCase().trim();
+        if (docId === cleanId) {
+          batch.update(doc.ref, { isFlagship: true, updatedAt: new Date().toISOString() });
+        } else if (doc.data().isFlagship) {
+          batch.update(doc.ref, { isFlagship: false, updatedAt: new Date().toISOString() });
+        }
+      });
+      await batch.commit();
+    } catch (e) {
+      console.warn('[eventRepo] setFlagship batch notice:', e.message);
+    }
+
+    DEFAULT_EVENTS.forEach((ev) => {
+      ev.isFlagship = ((ev.id || '').toLowerCase() === cleanId || (ev.slug || '').toLowerCase() === cleanId);
+    });
+    if (eventsMemoryCache) {
+      eventsMemoryCache.forEach((ev) => {
+        ev.isFlagship = ((ev.id || '').toLowerCase() === cleanId || (ev.slug || '').toLowerCase() === cleanId);
+      });
+    }
+
+    const targetEvent = await this.findById(cleanId);
+    if (targetEvent) {
+      targetEvent.isFlagship = true;
+      try {
+        const { configRepo } = await import('./configRepo.js');
+        const parsedFee = targetEvent.pricingType === 'free' ? 0 : (targetEvent.entryFee !== undefined ? Number(targetEvent.entryFee) : 5);
+        await configRepo.updateConfig({
+          activeEventId: cleanId,
+          eventName: targetEvent.name,
+          eventTagline: targetEvent.tagline || '',
+          eventDescription: targetEvent.description || '',
+          category: targetEvent.category || 'Hackathon',
+          structureType: targetEvent.structureType || 'single',
+          collegeName: targetEvent.collegeName || '',
+          clubName: targetEvent.clubName || '',
+          clubCode: targetEvent.clubCode || '',
+          eventDate: targetEvent.dateDisplay || 'Dates TBA',
+          eventTime: targetEvent.timeDisplay || 'Schedule TBA',
+          startDate: targetEvent.startDate || '',
+          endDate: targetEvent.endDate || '',
+          eventVenue: targetEvent.venue || 'Campus Venue',
+          venueHall: targetEvent.venueHall || '',
+          mapUrl: targetEvent.mapUrl || '',
+          meetingUrl: targetEvent.meetingUrl || '',
+          bannerUrl: targetEvent.bannerUrl || '',
+          themeColor: targetEvent.themeColor || '#596EE6',
+          entryFee: parsedFee,
+          pricingType: parsedFee === 0 ? 'free' : 'paid',
+          feeDisplay: targetEvent.feeDisplay || (parsedFee === 0 ? 'Free Entry Pass' : `₹${parsedFee} Entry Pass`),
+          totalCapacity: targetEvent.totalCapacity || 250,
+          ticketTiers: targetEvent.ticketTiers || ['Standard Pass'],
+          ticketPrices: targetEvent.ticketPrices || { 'Standard Pass': parsedFee },
+          tracks: targetEvent.tracks || [],
+          subEvents: targetEvent.subEvents || [],
+          schedule: targetEvent.schedule || [],
+        });
+      } catch (cfgErr) {
+        console.warn('[eventRepo] setFlagship config sync error:', cfgErr.message);
+      }
+    }
+
+    return targetEvent;
   },
 
   /**
@@ -439,6 +544,10 @@ export const eventRepo = {
       eventId: existing.eventId || cleanId,
       updatedAt: new Date().toISOString(),
     };
+
+    if (updates.schedule !== undefined) {
+      merged.schedule = Array.isArray(updates.schedule) ? updates.schedule : [];
+    }
 
     if (updates.ticketTiers && typeof updates.ticketTiers === 'string') {
       merged.ticketTiers = updates.ticketTiers.split(',').map((t) => t.trim()).filter(Boolean);
@@ -474,6 +583,10 @@ export const eventRepo = {
     const idx = DEFAULT_EVENTS.findIndex((ev) => ev.id === merged.id || ev.eventId === merged.id);
     if (idx >= 0) {
       DEFAULT_EVENTS[idx] = merged;
+    }
+
+    if (updates.isFlagship === true) {
+      await this.setFlagship(cleanId);
     }
 
     return merged;

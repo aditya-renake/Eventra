@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { InteractiveBackground } from './components/InteractiveBackground';
 import { EventLandingPage } from './pages/EventLandingPage';
+import { EventDetailsPage } from './pages/EventDetailsPage';
 import { DigitalPassPage } from './pages/DigitalPassPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ScannerPage } from './pages/ScannerPage';
@@ -43,7 +44,7 @@ export function App() {
         const evSlug = window.location.pathname.split('/event/')[1];
         if (evSlug) {
           setSelectedEventId(decodeURIComponent(evSlug));
-          setCurrentView('landing');
+          setCurrentView('event-details');
           return;
         }
       }
@@ -53,7 +54,7 @@ export function App() {
         if (evSlug && evSlug !== '[object object]') {
           setSelectedEventId(decodeURIComponent(evSlug));
         }
-        setCurrentView('landing');
+        setCurrentView('event-details');
         return;
       }
 
@@ -89,8 +90,10 @@ export function App() {
         const cleanSlug = path.replace(/^\/+|\/+$/g, '');
         if (cleanSlug && !cleanSlug.includes('.')) {
           setSelectedEventId(decodeURIComponent(cleanSlug));
+          setCurrentView('event-details');
+        } else {
+          setCurrentView('landing');
         }
-        setCurrentView('landing');
       } else if (path === '/' && (!hash || hash === '#' || hash === '#/')) {
         setCurrentView('landing');
       }
@@ -200,6 +203,15 @@ export function App() {
             selectedEventId={selectedEventId}
             onSelectEvent={handleSelectEvent}
             onNavigateToPass={handleNavigateToPass}
+            onNavigateToRegister={handleNavigateToRegister}
+            onShowToast={handleShowToast}
+          />
+        )}
+
+        {currentView === 'event-details' && (
+          <EventDetailsPage
+            eventId={selectedEventId}
+            onBackToHome={handleBackToLanding}
             onNavigateToRegister={handleNavigateToRegister}
             onShowToast={handleShowToast}
           />

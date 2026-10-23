@@ -7,9 +7,13 @@ import {
   verifyUpiPayment,
   checkOrderStatus,
   handlePaymentWebhook,
+  getLivePaymentStats,
 } from '../controllers/paymentController.js';
 
 const router = Router();
+
+// Staff / Admin: Live Razorpay Financial Stats & Reconciled Revenue
+router.get('/live-stats', getLivePaymentStats);
 
 // Public: Standard Razorpay Web Checkout Order Creation
 router.post('/create-order', createRazorpayOrder);

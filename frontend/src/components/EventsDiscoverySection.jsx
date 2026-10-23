@@ -202,15 +202,20 @@ export const EventsDiscoverySection = ({
             const isCurrentlyViewed = activeEventId && String(activeEventId).toLowerCase() === String(evId).toLowerCase();
             const isFree = ev.pricingType === 'free' || Number(ev.entryFee) === 0;
             const feeBadgeText = isFree ? 'Free Pass' : (ev.feeDisplay || `₹${ev.entryFee ?? 5} Pass`);
+            const isFlagship = Boolean(ev.isFlagship);
+
+            const handleOpenDetails = (e) => {
+              if (e) e.stopPropagation();
+              sounds.playClick();
+              const slugOrId = ev.slug || ev.id || ev.eventId;
+              window.open(`/#event/${encodeURIComponent(slugOrId)}`, '_blank');
+            };
 
             return (
               <article
                 key={evId}
                 className="event-card-item"
-                onClick={() => {
-                  sounds.playClick();
-                  if (onSelectEvent) onSelectEvent(ev);
-                }}
+                onClick={handleOpenDetails}
                 style={{
                   borderRadius: '18px',
                   overflow: 'hidden',
@@ -218,12 +223,16 @@ export const EventsDiscoverySection = ({
                   flexDirection: 'column',
                   background: '#FFFFFF',
                   cursor: 'pointer',
-                  border: isCurrentlyViewed
+                  border: isFlagship
+                    ? '2px solid #F59E0B'
+                    : isCurrentlyViewed
                     ? '2px solid #596EE6'
                     : isLive
                     ? '1px solid rgba(89, 110, 230, 0.35)'
                     : '1px solid #E2E8F8',
-                  boxShadow: isCurrentlyViewed
+                  boxShadow: isFlagship
+                    ? '0 14px 34px rgba(245, 158, 11, 0.22)'
+                    : isCurrentlyViewed
                     ? '0 14px 34px rgba(89, 110, 230, 0.2)'
                     : isLive
                     ? '0 10px 30px rgba(89, 110, 230, 0.12)'
@@ -244,6 +253,26 @@ export const EventsDiscoverySection = ({
                   {/* Status & Category Badges */}
                   <div style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {isFlagship && (
+                        <span
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '10px',
+                            fontWeight: '900',
+                            textTransform: 'uppercase',
+                            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                            color: '#FFFFFF',
+                            boxShadow: '0 2px 10px rgba(245, 158, 11, 0.4)',
+                            letterSpacing: '0.04em',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          👑 FLAGSHIP
+                        </span>
+                      )}
                       <span
                         style={{
                           padding: '4px 10px',
@@ -391,11 +420,7 @@ export const EventsDiscoverySection = ({
 
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        sounds.playClick();
-                        if (onSelectEvent) onSelectEvent(ev);
-                      }}
+                      onClick={handleOpenDetails}
                       className="btn btn-secondary"
                       style={{
                         padding: '10px',
@@ -408,9 +433,10 @@ export const EventsDiscoverySection = ({
                         justifyContent: 'center',
                         gap: '6px',
                       }}
+                      title="Open complete event specifications in separate window"
                     >
-                      <Eye size={13} color="#596EE6" />
-                      <span>{isCurrentlyViewed ? 'Viewing Details' : 'View Event'}</span>
+                      <span>Event Details</span>
+                      <ArrowUpRight size={13} color="#596EE6" />
                     </button>
                   </div>
 

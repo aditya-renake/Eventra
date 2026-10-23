@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, LayoutDashboard, Globe, LogOut, Lock, Menu, X, ShieldCheck, Flame, Compass, Ticket, Info, Trophy, Clock, Image as GalleryIcon } from 'lucide-react';
+import { QrCode, LayoutDashboard, Globe, LogOut, Lock, Menu, X, ShieldCheck, Flame, Compass, Ticket, Info, Trophy, Clock, Sparkles } from 'lucide-react';
 
 export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,39 +50,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
             className="pill-nav-item"
             style={{ textDecoration: 'none' }}
           >
-            ABOUT
-          </a>
-
-          <a
-            href="#tracks-section"
-            className="pill-nav-item"
-            style={{ textDecoration: 'none' }}
-          >
-            TRACKS
-          </a>
-
-          <a
-            href="#schedule-section"
-            className="pill-nav-item"
-            style={{ textDecoration: 'none' }}
-          >
-            TIMELINE
-          </a>
-
-          <a
-            href="#venue-section"
-            className="pill-nav-item"
-            style={{ textDecoration: 'none' }}
-          >
-            VENUE
-          </a>
-
-          <a
-            href="#gallery-section"
-            className="pill-nav-item"
-            style={{ textDecoration: 'none' }}
-          >
-            GALLERY
+            ABOUT EVENTRA
           </a>
 
           <a
@@ -199,7 +167,7 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
             style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
             onClick={() => handleNavClick('landing')}
           >
-            <Globe size={15} /> Home & Event Details
+            <Globe size={15} /> Eventra Home
           </button>
 
           <a
@@ -212,21 +180,12 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
           </a>
 
           <a
-            href="#tracks-section"
+            href="#about-section"
             className="btn btn-secondary btn-sm"
             style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', textDecoration: 'none' }}
             onClick={() => setMobileMenuOpen(false)}
           >
-            <Trophy size={15} color="#596EE6" /> Tracks & Prizes
-          </a>
-
-          <a
-            href="#schedule-section"
-            className="btn btn-secondary btn-sm"
-            style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px', textDecoration: 'none' }}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <Clock size={15} color="#596EE6" /> Event Timeline
+            <Info size={15} color="#596EE6" /> About Eventra
           </a>
 
           <a

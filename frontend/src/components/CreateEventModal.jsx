@@ -189,6 +189,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
         totalCapacity: initialEvent.totalCapacity || 250,
         ticketTiers: Array.isArray(initialEvent.ticketTiers) ? initialEvent.ticketTiers.join(', ') : (initialEvent.ticketTiers || ''),
         tracks: Array.isArray(initialEvent.tracks) ? initialEvent.tracks.join(', ') : (initialEvent.tracks || ''),
+        schedule: Array.isArray(initialEvent.schedule) ? initialEvent.schedule : [],
         subEvents: Array.isArray(initialEvent.subEvents) ? initialEvent.subEvents : [],
         requiredFields: initialEvent.requiredFields || {
           fullName: true,
@@ -252,6 +253,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
       totalCapacity: 250,
       ticketTiers: '',
       tracks: '',
+      schedule: [],
       subEvents: [], // Array of { id, name, category, fee, seats, coordinator }
 
       // Step 5: Questions & links
@@ -301,6 +303,73 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
     seats: 60,
     coordinator: '',
   });
+
+  // State for adding timeline schedule milestones dynamically in Step 2
+  const [newMilestone, setNewMilestone] = useState({
+    day: 'Day 1',
+    time: '09:00 AM',
+    title: '',
+    desc: '',
+  });
+
+  const handleAddMilestone = () => {
+    if (!newMilestone.title.trim()) {
+      onShowToast({ type: 'warning', title: 'Milestone Title Required', message: 'Please enter a title for the schedule milestone.' });
+      return;
+    }
+    sounds.playClick();
+    setFormData((prev) => ({
+      ...prev,
+      schedule: [
+        ...(prev.schedule || []),
+        {
+          day: newMilestone.day.trim() || 'Day 1',
+          time: newMilestone.time.trim() || '09:00 AM',
+          title: newMilestone.title.trim(),
+          desc: newMilestone.desc.trim() || 'Scheduled activity.',
+        },
+      ],
+    }));
+    setNewMilestone({ day: newMilestone.day || 'Day 1', time: '', title: '', desc: '' });
+  };
+
+  const handleRemoveMilestone = (idx) => {
+    sounds.playClick();
+    setFormData((prev) => ({
+      ...prev,
+      schedule: (prev.schedule || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const handleLoadPresetSchedule = () => {
+    sounds.playClick();
+    const cat = (formData.category || '').toLowerCase();
+    let preset = [];
+    if (cat.includes('work') || cat.includes('boot')) {
+      preset = [
+        { day: 'Day 1', time: '09:30 AM', title: 'Welcome & Environment Setup', desc: 'Lab workstation access, dev environment and dependencies initialization.' },
+        { day: 'Day 1', time: '11:00 AM', title: 'Deep-Dive Architecture Session', desc: 'Core technical concepts, framework walkthrough, and interactive coding.' },
+        { day: 'Day 2', time: '10:00 AM', title: 'Advanced Production Patterns', desc: 'Live building, debugging, and real-world deployment pipelines.' },
+        { day: 'Day 2', time: '03:30 PM', title: 'Project Demonstrations & Certification', desc: 'Participant showcase, feedback from mentors, and certificate issuance.' },
+      ];
+    } else if (cat.includes('gam') || cat.includes('esport')) {
+      preset = [
+        { day: 'Day 1', time: '10:00 AM', title: 'Player Pass Verification & Rig Setup', desc: 'LAN peripheral check, ping verification, and tournament briefing.' },
+        { day: 'Day 1', time: '11:30 AM', title: 'Qualifiers & Elimination Bracket', desc: 'Group stage elimination matches with live caster stream.' },
+        { day: 'Day 2', time: '01:00 PM', title: 'Semifinals & Grand Finals', desc: 'Championship finals broadcast on main stage projection.' },
+        { day: 'Day 2', time: '06:00 PM', title: 'Trophy Presentation & Awards', desc: 'Champion awards ceremony and cash prize distribution.' },
+      ];
+    } else {
+      preset = [
+        { day: 'Day 1', time: '08:00 AM', title: 'Gate Check-in & Breakfast', desc: 'Scan digital QR pass for verified badge and kit collection.' },
+        { day: 'Day 1', time: '09:30 AM', title: 'Inauguration & Track Release', desc: 'Welcome address by dignitaries and problem statements release.' },
+        { day: 'Day 1', time: '11:00 AM', title: 'Competition Commences ⚡', desc: 'Main track work begins with mentor checkpoints and lab access.' },
+        { day: 'Day 2', time: '03:00 PM', title: 'Final Demos & Award Ceremony', desc: 'Top team live stage pitches, winner announcements, and valedictory.' },
+      ];
+    }
+    setFormData((prev) => ({ ...prev, schedule: preset }));
+    onShowToast({ type: 'info', title: 'Schedule Pre-filled ✨', message: 'Loaded suggested schedule milestones for ' + formData.category });
+  };
 
   // Auto-generate share slug from Event Name
   const handleNameChange = (val) => {
@@ -505,6 +574,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
         ticketTiers: finalTiers,
         ticketPrices: ticketMap,
         tracks: finalTracks,
+        schedule: Array.isArray(formData.schedule) ? formData.schedule : [],
         totalCapacity: parseInt(formData.totalCapacity || 250, 10),
         dateDisplay: cleanDateDisplay,
         timeDisplay: cleanTimeDisplay,
@@ -518,6 +588,15 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
         : await api.events.create(payload);
 
       const savedEvent = res?.data || payload;
+
+      // If marked as Flagship, promote to flagship immediately
+      if (formData.isFlagship) {
+        try {
+          await api.events.setFlagship(savedEvent.id || eventIdClean);
+        } catch (fErr) {
+          console.warn('Could not promote event to flagship:', fErr);
+        }
+      }
 
       // If set as active live event on the platform, sync ALL event fields to dynamic site config
       if (formData.setActiveLive) {
@@ -1098,6 +1177,143 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
                   />
                 </div>
               )}
+
+              {/* Event Schedule & Timeline Milestones Builder */}
+              <div
+                style={{
+                  borderTop: '1px solid #1E283D',
+                  paddingTop: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={16} color="#3B82F6" />
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+                        Event Timeline & Schedule Milestones ({(formData.schedule || []).length})
+                      </h4>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#94A3B8', margin: '2px 0 0 0' }}>
+                      Add milestones for check-in, keynotes, hacking, submissions, and award ceremonies.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLoadPresetSchedule}
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: '11px', color: '#60A5FA', border: '1px solid rgba(96, 165, 250, 0.3)', padding: '4px 10px', borderRadius: '6px' }}
+                  >
+                    ✨ Auto-Load Recommended Schedule
+                  </button>
+                </div>
+
+                {/* Add Milestone Inputs */}
+                <div style={{ background: '#090D18', border: '1px solid #1E283D', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 140px 1fr auto', gap: '8px', alignItems: 'end' }}>
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>DAY / PHASE</label>
+                      <input
+                        type="text"
+                        className="wizard-input"
+                        placeholder="e.g. Day 1"
+                        value={newMilestone.day}
+                        onChange={(e) => setNewMilestone({ ...newMilestone, day: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>TIME</label>
+                      <input
+                        type="text"
+                        className="wizard-input"
+                        placeholder="e.g. 09:30 AM"
+                        value={newMilestone.time}
+                        onChange={(e) => setNewMilestone({ ...newMilestone, time: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>MILESTONE TITLE *</label>
+                      <input
+                        type="text"
+                        className="wizard-input"
+                        placeholder="e.g. Gate Check-in & Pass Verification"
+                        value={newMilestone.title}
+                        onChange={(e) => setNewMilestone({ ...newMilestone, title: e.target.value })}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddMilestone}
+                      style={{
+                        background: '#3B82F6',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        fontSize: '12px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        height: '38px',
+                      }}
+                    >
+                      <Plus size={14} /> Add
+                    </button>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>BRIEF DESCRIPTION (OPTIONAL)</label>
+                    <input
+                      type="text"
+                      className="wizard-input"
+                      placeholder="e.g. Scan digital QR pass at the entrance scanner to receive verified badge and event kit."
+                      value={newMilestone.desc}
+                      onChange={(e) => setNewMilestone({ ...newMilestone, desc: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Milestone Items List */}
+                {(formData.schedule || []).length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {(formData.schedule || []).map((ms, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: '#111827',
+                          border: '1px solid #1E283D',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                          <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(59, 130, 246, 0.2)', color: '#60A5FA', padding: '2px 8px', borderRadius: '4px', flexShrink: 0 }}>
+                            {ms.day} • {ms.time}
+                          </span>
+                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <strong style={{ fontSize: '12px', color: '#FFFFFF' }}>{ms.title}</strong>
+                            {ms.desc && <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '6px' }}>— {ms.desc}</span>}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMilestone(idx)}
+                          style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px', flexShrink: 0 }}
+                          title="Remove milestone"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
             </div>
           )}
@@ -1938,29 +2154,35 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
                   </select>
                 </div>
 
-                <div className="wizard-field">
-                  <label className="wizard-label">FLAGSHIP FEATURE ON HOMEPAGE</label>
+                <div className="wizard-field" style={{ gridColumn: 'span 2' }}>
                   <label
                     className="event-wizard-feature-toggle"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      background: '#090D18',
-                      border: '1px solid #1E283D',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      color: '#F8FAFC',
+                      gap: '12px',
+                      background: formData.isFlagship ? 'rgba(245, 158, 11, 0.12)' : '#090D18',
+                      border: formData.isFlagship ? '1px solid #F59E0B' : '1px solid #1E283D',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
                       cursor: 'pointer',
+                      transition: 'all 0.18s ease',
                     }}
                   >
                     <input
                       type="checkbox"
                       checked={formData.isFlagship}
                       onChange={(e) => setFormData({ ...formData, isFlagship: e.target.checked })}
+                      style={{ width: '18px', height: '18px', accentColor: '#F59E0B', cursor: 'pointer' }}
                     />
-                    <span>Highlight as Flagship College Event</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: formData.isFlagship ? '#F59E0B' : '#FFFFFF' }}>
+                        👑 Set as Sole Flagship Event on Homepage
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                        When enabled, only this event will be featured as the primary flagship spotlight on the homepage hero, while remaining events stay discoverable in the All Events Hub.
+                      </div>
+                    </div>
                   </label>
                 </div>
 
