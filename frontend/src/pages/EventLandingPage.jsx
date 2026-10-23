@@ -217,39 +217,8 @@ export const EventLandingPage = ({
       {/* Flagship Hero Section — ONLY the Flagship Event is displayed here */}
       <section className="event-hero" aria-labelledby="event-hero-title">
         <div className="event-hero-copy">
-          
-          {/* Flagship Kicker */}
-          <div className="event-hero-kicker" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '3px 10px',
-              borderRadius: '9999px',
-              fontSize: '11px',
-              fontWeight: '900',
-              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-              color: '#FFFFFF',
-              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-            }}>
-              <Crown size={12} />
-              FLAGSHIP EVENT
-            </span>
-            <span className="event-hero-kicker-divider">/</span>
-            <span style={{ fontWeight: '700', color: 'var(--eventra-ink, #29304A)' }}>
-              {clubName || collegeName || eventCategory}
-            </span>
-            {clubCode && (
-              <span style={{ fontSize: '10px', background: '#EEF0FF', color: '#596EE6', padding: '2px 8px', borderRadius: '999px', fontWeight: '800', border: '1px solid #DDE3FF' }}>
-                {clubCode}
-              </span>
-            )}
-          </div>
-
           {/* Hero Title */}
-          <h1 id="event-hero-title" style={{ marginTop: '12px', fontSize: 'clamp(32px, 5.5vw, 54px)', lineHeight: '1.15', fontWeight: '900', color: 'var(--eventra-ink, #29304A)', letterSpacing: '-0.03em' }}>
+          <h1 id="event-hero-title" style={{ marginTop: '0', fontSize: 'clamp(32px, 5.5vw, 54px)', lineHeight: '1.15', fontWeight: '900', color: 'var(--eventra-ink, #29304A)', letterSpacing: '-0.03em' }}>
             {eventName}{' '}
             <span style={{ color: '#596EE6', display: 'block', fontSize: 'clamp(22px, 3.8vw, 36px)', fontWeight: '800', marginTop: '6px' }}>
               {eventTagline ? `— ${eventTagline}` : `(${eventCategory})`}
