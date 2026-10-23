@@ -992,6 +992,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
 
       {showCreateEvent && (
         <CreateEventModal
+          key={editingEvent?.id || editingEvent?.eventId || 'new-event'}
           initialEvent={editingEvent}
           onClose={() => {
             setShowCreateEvent(false);

@@ -35,7 +35,9 @@ import {
   Send,
   Sliders,
   LayoutGrid,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
@@ -101,10 +103,26 @@ export const SuperAdminModal = ({
   // Registration Mode & Payment Gateway State
   const [regMode, setRegMode] = useState('native_payment');
   const [enablePayments, setEnablePayments] = useState(eventConfig?.enablePaymentGateway !== false);
-  const [hackerPrice, setHackerPrice] = useState(sourceEv.ticketPrices?.['Hacker Pass'] ?? sourceEv.entryFee ?? 5);
-  const [studentPrice, setStudentPrice] = useState(sourceEv.ticketPrices?.['Student Pass'] ?? sourceEv.entryFee ?? 5);
-  const [vipPrice, setVipPrice] = useState(sourceEv.ticketPrices?.['VIP Delegate'] ?? sourceEv.entryFee ?? 5);
-  const [judgePrice, setJudgePrice] = useState(sourceEv.ticketPrices?.['Judge / Mentor'] ?? sourceEv.entryFee ?? 5);
+  const [ticketPrices, setTicketPrices] = useState(() => {
+    if (sourceEv.ticketPrices && typeof sourceEv.ticketPrices === 'object' && Object.keys(sourceEv.ticketPrices).length > 0) {
+      return { ...sourceEv.ticketPrices };
+    }
+    if (Array.isArray(sourceEv.ticketTiers) && sourceEv.ticketTiers.length > 0) {
+      const init = {};
+      sourceEv.ticketTiers.forEach((tier) => {
+        init[tier] = sourceEv.entryFee ?? 5;
+      });
+      return init;
+    }
+    return {
+      'Hacker Pass': sourceEv.entryFee ?? 5,
+      'Student Pass': sourceEv.entryFee ?? 5,
+      'VIP Delegate': sourceEv.entryFee ?? 5,
+      'Judge / Mentor': sourceEv.entryFee ?? 5,
+    };
+  });
+  const [newTierName, setNewTierName] = useState('');
+  const [newTierPrice, setNewTierPrice] = useState(5);
   const [upiId, setUpiId] = useState(eventConfig?.upiId || 'tigeradi1504-1@okicici');
   const [upiPayeeName, setUpiPayeeName] = useState(eventConfig?.upiPayeeName || sourceEv.name || 'Eventra 2026');
   const [razorpayKeyId, setRazorpayKeyId] = useState(eventConfig?.razorpayKeyId || '');
@@ -123,11 +141,14 @@ export const SuperAdminModal = ({
       if (src.venue || src.eventVenue) setEventVenue(src.venue || src.eventVenue);
       if (src.organizerName !== undefined) setOrganizerName(src.organizerName || '');
       if (src.organizerEmail !== undefined) setOrganizerEmail(src.organizerEmail || '');
-      if (src.ticketPrices) {
-        if (src.ticketPrices['Hacker Pass'] !== undefined) setHackerPrice(src.ticketPrices['Hacker Pass']);
-        if (src.ticketPrices['Student Pass'] !== undefined) setStudentPrice(src.ticketPrices['Student Pass']);
-        if (src.ticketPrices['VIP Delegate'] !== undefined) setVipPrice(src.ticketPrices['VIP Delegate']);
-        if (src.ticketPrices['Judge / Mentor'] !== undefined) setJudgePrice(src.ticketPrices['Judge / Mentor']);
+      if (src.ticketPrices && typeof src.ticketPrices === 'object' && Object.keys(src.ticketPrices).length > 0) {
+        setTicketPrices({ ...src.ticketPrices });
+      } else if (Array.isArray(src.ticketTiers) && src.ticketTiers.length > 0) {
+        const generated = {};
+        src.ticketTiers.forEach((t) => {
+          generated[t] = src.entryFee !== undefined ? Number(src.entryFee) : 5;
+        });
+        setTicketPrices(generated);
       }
     }
     if (eventConfig) {
@@ -406,15 +427,19 @@ export const SuperAdminModal = ({
       setIsSavingConfig(true);
       const targetEvId = selectedEventId || activeEvent?.id || eventConfig?.activeEventId || 'eventra-2026';
 
-      let nextTicketPrices = {
-        'Hacker Pass': Number(hackerPrice) >= 0 ? Number(hackerPrice) : 5,
-        'Student Pass': Number(studentPrice) >= 0 ? Number(studentPrice) : 5,
-        'VIP Delegate': Number(vipPrice) >= 0 ? Number(vipPrice) : 5,
-        'Judge / Mentor': Number(judgePrice) >= 0 ? Number(judgePrice) : 5,
-      };
-      if (activeEvent?.ticketPrices && Object.keys(activeEvent.ticketPrices).length > 0 && !activeEvent.ticketPrices['Hacker Pass']) {
-        nextTicketPrices = { ...activeEvent.ticketPrices };
+      const cleanTicketPrices = {};
+      for (const [k, v] of Object.entries(ticketPrices)) {
+        const cleanName = String(k).trim();
+        const num = Number(v);
+        if (cleanName) {
+          cleanTicketPrices[cleanName] = !isNaN(num) && num >= 0 ? num : 0;
+        }
       }
+      if (Object.keys(cleanTicketPrices).length === 0) {
+        cleanTicketPrices['Standard Pass'] = 5;
+      }
+      const ticketTiersList = Object.keys(cleanTicketPrices);
+      const firstTierFee = cleanTicketPrices[ticketTiersList[0]] ?? 5;
 
       if (targetEvId) {
         await api.events.update(targetEvId, {
@@ -425,7 +450,10 @@ export const SuperAdminModal = ({
           venue: eventVenue ? eventVenue.trim() : 'Campus Venue',
           organizerName: organizerName ? organizerName.trim() : '',
           organizerEmail: organizerEmail ? organizerEmail.trim() : '',
-          ticketPrices: nextTicketPrices,
+          ticketTiers: ticketTiersList,
+          ticketPrices: cleanTicketPrices,
+          entryFee: firstTierFee,
+          pricingType: firstTierFee === 0 ? 'free' : 'paid',
         }).catch(() => {});
       }
 
@@ -444,7 +472,10 @@ export const SuperAdminModal = ({
         upiPayeeName: upiPayeeName ? upiPayeeName.trim() : 'Eventra 2026',
         razorpayKeyId: razorpayKeyId ? razorpayKeyId.trim() : '',
         razorpayKeySecret: razorpayKeySecret ? razorpayKeySecret.trim() : '',
-        ticketPrices: nextTicketPrices,
+        ticketTiers: ticketTiersList,
+        ticketPrices: cleanTicketPrices,
+        entryFee: firstTierFee,
+        pricingType: firstTierFee === 0 ? 'free' : 'paid',
       });
 
       window.dispatchEvent(new CustomEvent('eventra:events-updated'));
@@ -1207,61 +1238,142 @@ export const SuperAdminModal = ({
                   </label>
                 </div>
 
-                {/* Ticket Tier Pricing */}
+                {/* Dynamic Ticket Tier Pricing */}
                 {enablePayments && (
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--eventra-indigo)', marginBottom: '10px' }}>
-                      Ticket Tier Fees (INR ₹)
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--eventra-indigo)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>Ticket Tier Fees (INR ₹)</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+                          — Synchronized dynamically with attendee checkout
+                        </span>
+                      </div>
+                      <span className="badge badge-cyan" style={{ fontSize: '10px' }}>
+                        {Object.keys(ticketPrices).length} TIERS CONFIGURED
+                      </span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
-                      <div>
-                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                          Hacker Pass (₹)
-                        </label>
-                        <input 
-                          type="number" 
-                          className="input" 
-                          value={hackerPrice} 
-                          onChange={(e) => setHackerPrice(e.target.value)} 
-                          min="0"
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                      {Object.entries(ticketPrices).map(([tierName, price]) => (
+                        <div 
+                          key={tierName}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '10px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            position: 'relative'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '130px' }} title={tierName}>
+                              {tierName}
+                            </label>
+                            {Object.keys(ticketPrices).length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playClick();
+                                  setTicketPrices((prev) => {
+                                    const next = { ...prev };
+                                    delete next[tierName];
+                                    return next;
+                                  });
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  padding: '2px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  opacity: 0.8,
+                                }}
+                                title={`Delete ${tierName}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--eventra-indigo)' }}>₹</span>
+                            <input
+                              type="number"
+                              className="input"
+                              value={price}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setTicketPrices((prev) => ({
+                                  ...prev,
+                                  [tierName]: val === '' ? '' : Math.max(0, Number(val)),
+                                }));
+                              }}
+                              min="0"
+                              style={{ width: '100%', padding: '6px 10px', fontSize: '13px', fontWeight: '700' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Inline Add Ticket Tier */}
+                    <div style={{
+                      background: 'rgba(89, 110, 230, 0.06)',
+                      border: '1px dashed rgba(89, 110, 230, 0.3)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <div style={{ flex: '2', minWidth: '140px' }}>
+                        <input
+                          type="text"
+                          className="input"
+                          placeholder="New Tier Name (e.g. VIP Pass, Team Entry)"
+                          value={newTierName}
+                          onChange={(e) => setNewTierName(e.target.value)}
+                          style={{ width: '100%', fontSize: '12px' }}
                         />
                       </div>
-                      <div>
-                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                          Student Pass (₹)
-                        </label>
-                        <input 
-                          type="number" 
-                          className="input" 
-                          value={studentPrice} 
-                          onChange={(e) => setStudentPrice(e.target.value)} 
+                      <div style={{ width: '90px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--eventra-indigo)' }}>₹</span>
+                        <input
+                          type="number"
+                          className="input"
+                          placeholder="Fee"
+                          value={newTierPrice}
+                          onChange={(e) => setNewTierPrice(Math.max(0, Number(e.target.value)))}
                           min="0"
+                          style={{ width: '100%', fontSize: '12px' }}
                         />
                       </div>
-                      <div>
-                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                          VIP Delegate (₹)
-                        </label>
-                        <input 
-                          type="number" 
-                          className="input" 
-                          value={vipPrice} 
-                          onChange={(e) => setVipPrice(e.target.value)} 
-                          min="0"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                          Judge / Mentor (₹)
-                        </label>
-                        <input 
-                          type="number" 
-                          className="input" 
-                          value={judgePrice} 
-                          onChange={(e) => setJudgePrice(e.target.value)} 
-                          min="0"
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        onClick={() => {
+                          if (!newTierName.trim()) {
+                            onShowToast({ type: 'warning', title: 'Tier Name Required', message: 'Please enter a name for the new ticket tier.' });
+                            return;
+                          }
+                          const clean = newTierName.trim();
+                          setTicketPrices((prev) => ({
+                            ...prev,
+                            [clean]: Number(newTierPrice) >= 0 ? Number(newTierPrice) : 0,
+                          }));
+                          setNewTierName('');
+                          setNewTierPrice(5);
+                          sounds.playSuccess();
+                        }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', padding: '6px 12px' }}
+                      >
+                        <Plus size={14} /> Add Tier
+                      </button>
                     </div>
                   </div>
                 )}

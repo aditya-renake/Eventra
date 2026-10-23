@@ -46,6 +46,8 @@ app.use('/api/email', emailRoutes);
 app.use('/email', emailRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/event', eventRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/events', eventRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/payment', paymentRoutes);
 
