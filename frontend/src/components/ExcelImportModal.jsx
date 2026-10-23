@@ -2,22 +2,13 @@ import React, { useState, useRef } from 'react';
 import { 
   FileSpreadsheet, 
   Upload, 
-  CheckCircle2, 
-  AlertCircle, 
-  X, 
-  Mail, 
-  Users, 
-  Check, 
-  ArrowRight,
-  ShieldCheck,
-  Send,
-  FileText
+  X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
-export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) => {
+export const ExcelImportModal = ({ isOpen, eventId = 'eventra-2026', activeEvent = null, onClose, onRefresh, onShowToast }) => {
   const [file, setFile] = useState(null);
   const [parsedRows, setParsedRows] = useState([]);
   const [autoVerify, setAutoVerify] = useState(false);
@@ -27,6 +18,9 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
+
+  const defaultTrack = activeEvent?.tracks?.[0] || activeEvent?.subEvents?.[0]?.name || activeEvent?.category || 'General Track';
+  const defaultInstitution = activeEvent?.collegeName || '';
 
   const handleFileParse = async (selectedFile) => {
     if (!selectedFile) return;
@@ -44,7 +38,6 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
         throw new Error('No data rows found in the uploaded file.');
       }
 
-      // Smart Column Detection & Normalization
       const normalized = rawJson.map((row, idx) => {
         let name = '', email = '', phone = '', teamName = '', track = '', institution = '', utr = '';
         const formResponses = {};
@@ -62,7 +55,7 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
             phone = valStr;
           } else if (!teamName && kLower.includes('team')) {
             teamName = valStr;
-          } else if (!track && (kLower.includes('track') || kLower.includes('category') || kLower.includes('domain'))) {
+          } else if (!track && (kLower.includes('track') || kLower.includes('category') || kLower.includes('domain') || kLower.includes('event'))) {
             track = valStr;
           } else if (!institution && (kLower.includes('college') || kLower.includes('inst') || kLower.includes('university') || kLower.includes('school'))) {
             institution = valStr;
@@ -72,12 +65,12 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
         }
 
         return {
-          name: name || `Hacker #${idx + 1}`,
+          name: name || `Participant #${idx + 1}`,
           email: email || '',
           phone,
           teamName,
-          track: track || 'AI & Agentic Systems',
-          institution: institution || 'DYP DPU Pune',
+          track: track || defaultTrack,
+          institution: institution || defaultInstitution,
           utr,
           formResponses,
         };
@@ -131,12 +124,12 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
     setIsImporting(true);
 
     try {
-      const res = await api.registrants.bulkImport(parsedRows, autoVerify, sendAckEmail);
+      const res = await api.registrants.bulkImport(parsedRows, autoVerify, sendAckEmail, eventId);
       sounds.playSuccess();
       onShowToast({
         type: 'success',
         title: 'Import Successful! 🎉',
-        message: res.message || `Imported ${parsedRows.length} attendees to Eventra database.`,
+        message: res.message || `Imported ${parsedRows.length} attendees to ${activeEvent?.name || 'Eventra'}.`,
       });
       if (onRefresh) onRefresh();
       onClose();
@@ -167,10 +160,10 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#fff' }}>
-                Import External Excel / CSV Sheet
+                Import Excel / CSV — {activeEvent?.name || 'Event'}
               </h3>
               <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-                Upload any .xlsx, .xls, or .csv file to import attendees as Pending and send verification acknowledgement emails
+                Upload any .xlsx, .xls, or .csv file to import attendees into "{activeEvent?.name || eventId}"
               </p>
             </div>
           </div>
@@ -224,7 +217,7 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
                 <div>
                   <div style={{ fontWeight: '800', color: '#ffffff', fontSize: '14px' }}>{file.name}</div>
                   <div style={{ fontSize: '12px', color: '#4ade80' }}>
-                    ✅ {parsedRows.length} attendees ready for import (Status: ⏳ Verification Pending)
+                    ✅ {parsedRows.length} attendees ready for import into {activeEvent?.name || eventId}
                   </div>
                 </div>
               </div>
@@ -281,7 +274,6 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
                 ⚡ Import & Email Settings:
               </div>
 
-              {/* Option 1: Verification Pending Email */}
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '14px' }}>
                 <input
                   type="checkbox"
@@ -294,22 +286,11 @@ export const ExcelImportModal = ({ isOpen, onClose, onRefresh, onShowToast }) =>
                     ✉️ Send "Verification Pending / Registration Received" Acknowledgement Email (Recommended)
                   </div>
                   <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
-                    Emails each student confirming their registration is under review by the operations team. <strong>Does NOT send the QR pass.</strong>
+                    Emails each participant confirming their registration for {activeEvent?.name || 'the event'} is under review.
                   </div>
                 </div>
               </label>
 
-              {/* Option 2: Default Status Pending Info */}
-              <div style={{ background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: '#facc15' }}>
-                  ⏳ Default Import Status: Pending Verification
-                </div>
-                <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '2px' }}>
-                  All imported attendees start as <strong>Not Verified</strong>. You can verify them on the dashboard whenever you're ready to dispatch their official QR passes.
-                </div>
-              </div>
-
-              {/* Option 3: Override - Mark as Verified Directly */}
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"

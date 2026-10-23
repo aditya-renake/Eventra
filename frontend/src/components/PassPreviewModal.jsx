@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Download, 
@@ -11,17 +11,41 @@ import {
   MapPin, 
   Users, 
   RefreshCw,
-  Smartphone 
+  Smartphone,
+  Clock,
+  Mail,
+  Building2
 } from 'lucide-react';
-import { DYPDPULogo } from './CollegeLogos';
 import { api } from '../services/api';
 
-export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }) => {
+export const PassPreviewModal = ({ registrant, activeEvent = null, onClose, onShowToast, onRefresh }) => {
   const [isSending, setIsSending] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isVerified, setIsVerified] = useState(Boolean(registrant?.verified));
+  const [fullPassData, setFullPassData] = useState(null);
+
+  useEffect(() => {
+    const regId = registrant?.uniqueId || registrant?._id;
+    if (regId) {
+      api.registrants.getPublicPass(regId)
+        .then((res) => {
+          if (res?.data) setFullPassData(res.data);
+        })
+        .catch(() => {});
+    }
+  }, [registrant]);
 
   if (!registrant) return null;
+
+  const eventName = fullPassData?.eventName || activeEvent?.name || activeEvent?.eventName || 'Eventra';
+  const eventDate = fullPassData?.eventDate || activeEvent?.dateDisplay || activeEvent?.eventDate || 'Dates TBA';
+  const eventTime = fullPassData?.eventTime || activeEvent?.timeDisplay || activeEvent?.eventTime || '';
+  const eventVenue = fullPassData?.eventVenue || activeEvent?.venue || activeEvent?.eventVenue || 'Campus Venue';
+  const venueHall = fullPassData?.venueHall || activeEvent?.venueHall || '';
+  const organizerEmail = fullPassData?.organizerEmail || activeEvent?.organizerEmail || '';
+  const organizerPhone = fullPassData?.organizerPhone || activeEvent?.organizerPhone || '';
+  const qrDataUrl = registrant.qrCodeDataUrl || fullPassData?.qrCodeDataUrl;
+  const extraResponses = registrant.formResponses || fullPassData?.formResponses || {};
 
   const handleToggleVerification = async () => {
     try {
@@ -50,11 +74,12 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
   const handleSendEmail = async () => {
     try {
       setIsSending(true);
-      const res = await api.email.sendSingle(registrant._id);
+      const regId = registrant.uniqueId || registrant._id;
+      const res = await api.email.sendSingle(regId);
       onShowToast({
         type: 'success',
         title: 'Pass Email Sent! 🎟️',
-        message: `Pass dispatched from aditya.renake@outlook.com to ${registrant.email}`,
+        message: `Official QR pass dispatched for ${eventName} to ${registrant.email}`,
       });
       if (res.result?.previewUrl) {
         window.open(res.result.previewUrl, '_blank');
@@ -71,14 +96,17 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
     }
   };
 
+  const publicPassUrl = `${window.location.origin}/pass/${registrant.uniqueId}`;
+
   const handleSendWhatsApp = () => {
     const passUrl = publicPassUrl;
-    const message = `🎟️ *Eventra 2026 Digital Entry Pass*\n\n` +
+    const message = `🎟️ *${eventName} Digital Entry Pass*\n\n` +
       `👤 *Attendee:* ${registrant.name}\n` +
       `🎫 *Pass ID:* ${registrant.uniqueId}\n` +
       `🎟️ *Ticket Type:* ${registrant.ticketType}\n` +
-      `🏛️ *Venue:* Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune\n` +
-      `📅 *Dates:* October 16–18, 2026 (Check-in 07:30 AM IST)\n\n` +
+      (registrant.track ? `🎯 *Track / Activity:* ${registrant.track}\n` : '') +
+      `🏛️ *Venue:* ${eventVenue}${venueHall ? ` (${venueHall})` : ''}\n` +
+      `📅 *Dates:* ${eventDate}${eventTime ? ` (${eventTime})` : ''}\n\n` +
       `🔗 *View Verified QR Pass:* ${passUrl}\n\n` +
       `⚡ Show this QR code at the gate scanner for express entry.`;
 
@@ -98,17 +126,16 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
   };
 
   const handleDownloadQR = () => {
+    if (!qrDataUrl) return;
     const link = document.createElement('a');
-    link.download = `Eventra2026-Pass-${registrant.uniqueId}.png`;
-    link.href = registrant.qrCodeDataUrl;
+    link.download = `Eventra-Pass-${registrant.uniqueId}.png`;
+    link.href = qrDataUrl;
     link.click();
   };
 
   const handlePrint = () => {
     window.print();
   };
-
-  const publicPassUrl = `${window.location.origin}/pass/${registrant.uniqueId}`;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -118,7 +145,7 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Zap size={18} color="#22c55e" />
-            <span style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Official Digital Hacker Pass</span>
+            <span style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Official Digital Pass — {eventName}</span>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '6px' }}>
             <X size={18} />
@@ -135,8 +162,10 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '26px', width: 'auto', display: 'block' }} />
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', textTransform: 'uppercase' }}>
+                        {eventName}
+                      </span>
                       <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>VERIFIED PASS</span>
                     </div>
                     <div style={{ fontSize: '9px', color: '#a8b4ff', fontWeight: '800', marginTop: '1px' }}>OFFICIAL VERIFIED ENTRY PASS</div>
@@ -151,6 +180,11 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
                   {registrant.name}
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{registrant.email}</div>
+                {registrant.institution && (
+                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <Building2 size={11} color="#596EE6" /> {registrant.institution}
+                  </div>
+                )}
                 {registrant.teamName && (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '6px', fontSize: '12px', color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.1)', padding: '3px 12px', borderRadius: '999px' }}>
                     <Users size={12} /> Team: {registrant.teamName}
@@ -189,11 +223,17 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
               {/* QR Code Container */}
               <div style={{ textAlign: 'center', margin: '18px 0' }}>
                 <div style={{ background: '#ffffff', padding: '14px', borderRadius: '16px', display: 'inline-block', boxShadow: '0 10px 30px rgba(0,0,0,0.6)' }}>
-                  <img
-                    src={registrant.qrCodeDataUrl}
-                    alt={`Pass QR for ${registrant.uniqueId}`}
-                    style={{ width: '200px', height: '200px', display: 'block' }}
-                  />
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt={`Pass QR for ${registrant.uniqueId}`}
+                      style={{ width: '200px', height: '200px', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: '12px' }}>
+                      Loading QR...
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#a8b4ff', fontWeight: '800', marginTop: '12px', letterSpacing: '1px' }}>
@@ -205,14 +245,36 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
                 </div>
               </div>
 
+              {/* Extra Form Responses if collected */}
+              {Object.keys(extraResponses).length > 0 && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '11px', color: '#CBD5E1' }}>
+                  {Object.entries(extraResponses).map(([k, v]) => (
+                    v ? (
+                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                        <span style={{ color: '#94A3B8' }}>{k}:</span>
+                        <strong style={{ color: '#FFFFFF', textAlign: 'right' }}>{String(v)}</strong>
+                      </div>
+                    ) : null
+                  ))}
+                </div>
+              )}
+
               {/* Event Metadata Footer */}
-              <div style={{ background: '#030712', borderRadius: '10px', padding: '12px 16px', border: '1px solid var(--border-subtle)', fontSize: '11px', color: 'var(--text-muted)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '4px' }}>
-                  <MapPin size={13} color="#596EE6" style={{ marginTop: '2px', flexShrink: 0 }} /> Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune
+              <div style={{ background: '#030712', borderRadius: '10px', padding: '12px 16px', border: '1px solid var(--border-subtle)', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                  <MapPin size={13} color="#596EE6" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <span>{eventVenue}{venueHall ? ` (${venueHall})` : ''}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Calendar size={13} color="#a8b4ff" /> Check-in: Oct 16, 07:30 AM IST • Bring Laptop & ID
+                  <Calendar size={13} color="#a8b4ff" style={{ flexShrink: 0 }} />
+                  <span>{eventDate}{eventTime ? ` • ${eventTime}` : ''}</span>
                 </div>
+                {(organizerEmail || organizerPhone) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Mail size={13} color="#22d3ee" style={{ flexShrink: 0 }} />
+                    <span>{[organizerEmail, organizerPhone].filter(Boolean).join(' • ')}</span>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -240,23 +302,25 @@ export const PassPreviewModal = ({ registrant, onClose, onShowToast, onRefresh }
               </button>
             </div>
 
-            <button className="btn btn-secondary" onClick={handleDownloadQR} title="Download QR PNG">
-              <Download size={15} /> Download
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleDownloadQR} title="Download QR PNG">
+                <Download size={15} /> Download
+              </button>
 
-            <button className="btn btn-secondary" onClick={handlePrint} title="Print Badge">
-              <Printer size={15} /> Print
-            </button>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handlePrint} title="Print Badge">
+                <Printer size={15} /> Print
+              </button>
 
-            <a
-              href={publicPassUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-ghost"
-              title="Open Public Pass Portal"
-            >
-              <ExternalLink size={15} />
-            </a>
+              <a
+                href={publicPassUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost"
+                title="Open Public Pass Portal"
+              >
+                <ExternalLink size={15} />
+              </a>
+            </div>
           </div>
 
         </div>

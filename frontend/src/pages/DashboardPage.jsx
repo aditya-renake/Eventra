@@ -3,19 +3,16 @@ import {
   Users, 
   CheckCircle2, 
   Mail, 
-  Percent, 
   Search, 
   Filter, 
   RefreshCw, 
-  FileSpreadsheet, 
-  Send, 
-  Sliders, 
-  Download,
   Zap,
   ShieldCheck,
-  QrCode,
-  CheckSquare,
-  Crown
+  Crown,
+  Edit3,
+  ExternalLink,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StatCard } from '../components/StatCard';
@@ -40,13 +37,17 @@ const getInitialCachedData = () => {
   return null;
 };
 
-export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
+export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEvent }) => {
   const cachedInitial = getInitialCachedData();
 
   // Multi-Event State
   const [eventsList, setEventsList] = useState([]);
-  const [selectedEventId, setSelectedEventId] = useState('eventra-2026');
+  const [selectedEventId, setSelectedEventId] = useState(
+    cachedInitial?.eventConfig?.activeEventId || 'eventra-2026'
+  );
+  const [hasUserSelectedEvent, setHasUserSelectedEvent] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [showTeamModal, setShowTeamModal] = useState(false);
 
   const [registrants, setRegistrants] = useState(cachedInitial?.registrants || []);
@@ -89,18 +90,39 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   const [superAdminTab, setSuperAdminTab] = useState('operations');
   const [eventConfig, setEventConfig] = useState(cachedInitial?.eventConfig || null);
 
-  // Fetch Events Catalog
+  // Fetch Events Catalog & Active Config
   const fetchEvents = useCallback(async () => {
     try {
-      const res = await api.events.getAll();
-      setEventsList(res.data || []);
+      const [evRes, cfgRes] = await Promise.all([
+        api.events.getAll().catch(() => null),
+        api.event.getConfig().catch(() => null),
+      ]);
+      const list = evRes?.data || [];
+      setEventsList(list);
+
+      if (cfgRes?.data) {
+        setEventConfig(cfgRes.data);
+        if (!hasUserSelectedEvent && cfgRes.data.activeEventId) {
+          setSelectedEventId(cfgRes.data.activeEventId);
+        }
+      }
     } catch (e) {
       console.warn('fetchEvents error:', e);
     }
-  }, []);
+  }, [hasUserSelectedEvent]);
 
   useEffect(() => {
     fetchEvents();
+    const handleEventsUpdated = (e) => {
+      fetchEvents();
+      const updatedEv = e?.detail;
+      if (updatedEv && (updatedEv.id || updatedEv.eventId)) {
+        setSelectedEventId(updatedEv.id || updatedEv.eventId);
+        setHasUserSelectedEvent(true);
+      }
+    };
+    window.addEventListener('eventra:events-updated', handleEventsUpdated);
+    return () => window.removeEventListener('eventra:events-updated', handleEventsUpdated);
   }, [fetchEvents]);
 
   useEffect(() => {
@@ -154,7 +176,6 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         setPagination(nextPagination);
         setStats(nextStats);
 
-        // Update instant local session cache
         try {
           sessionStorage.setItem(
             CACHE_KEY_DASHBOARD,
@@ -206,11 +227,11 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
   const handleExportCSV = async () => {
     try {
       sounds.playClick();
-      await api.registrants.downloadCSV();
+      await api.registrants.downloadCSV(selectedEventId);
       onShowToast?.({
         type: 'success',
         title: 'Export Complete 📊',
-        message: 'Attendee list exported to CSV successfully.',
+        message: `Attendee list for "${currentSelectedEvent?.name || selectedEventId}" exported to CSV successfully.`,
       });
     } catch (err) {
       sounds.playError();
@@ -264,41 +285,105 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
   const currentSelectedEvent = eventsList.find((ev) => (ev.id || ev.eventId) === selectedEventId);
   const isSelectedEventLiveOnSite = Boolean(
-    (eventConfig?.activeEventId && eventConfig.activeEventId === selectedEventId) ||
-    (currentSelectedEvent && eventConfig?.eventName === currentSelectedEvent.name)
+    eventConfig?.activeEventId && String(eventConfig.activeEventId).toLowerCase() === String(selectedEventId).toLowerCase()
   );
+
+  // Dynamic Tracks & Ticket Tiers for Filter Bar
+  const availableTracks = React.useMemo(() => {
+    if (!currentSelectedEvent) return [];
+    const list = new Set();
+    if (Array.isArray(currentSelectedEvent.tracks)) {
+      currentSelectedEvent.tracks.forEach((t) => t && list.add(t));
+    }
+    if (Array.isArray(currentSelectedEvent.subEvents)) {
+      currentSelectedEvent.subEvents.forEach((s) => s?.name && list.add(s.name));
+    }
+    return Array.from(list);
+  }, [currentSelectedEvent]);
+
+  const availableTicketTiers = React.useMemo(() => {
+    if (!currentSelectedEvent) return [];
+    const list = new Set();
+    if (Array.isArray(currentSelectedEvent.ticketTiers)) {
+      currentSelectedEvent.ticketTiers.forEach((t) => t && list.add(t));
+    }
+    if (currentSelectedEvent.ticketPrices && typeof currentSelectedEvent.ticketPrices === 'object') {
+      Object.keys(currentSelectedEvent.ticketPrices).forEach((t) => t && list.add(t));
+    }
+    return Array.from(list);
+  }, [currentSelectedEvent]);
 
   const handleMakeSelectedEventLive = async () => {
     if (!currentSelectedEvent) return;
     try {
       sounds.playClick();
-      const ticketMap = {};
-      const tiers = currentSelectedEvent.ticketTiers || ['Standard Pass'];
-      tiers.forEach((t) => {
-        ticketMap[t] = currentSelectedEvent.entryFee !== undefined ? Number(currentSelectedEvent.entryFee) : 5;
-      });
+      const ev = currentSelectedEvent;
+      const parsedFee = ev.pricingType === 'free' ? 0 : (ev.entryFee !== undefined ? Number(ev.entryFee) : 5);
+      const tiers = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0 ? ev.ticketTiers : ['Standard Pass'];
+      const ticketMap = ev.ticketPrices && Object.keys(ev.ticketPrices).length > 0
+        ? ev.ticketPrices
+        : Object.fromEntries(tiers.map((t) => [t, parsedFee]));
 
       const res = await api.event.updateConfig({
-        eventName: currentSelectedEvent.name,
-        eventTagline: currentSelectedEvent.tagline || `${currentSelectedEvent.category} Event`,
-        eventDate: currentSelectedEvent.dateDisplay || 'Dates TBA',
-        eventTime: currentSelectedEvent.timeDisplay || 'Schedule TBA',
-        eventVenue: currentSelectedEvent.venue || 'Campus Venue',
-        organizerEmail: currentSelectedEvent.organizerEmail || '',
-        organizerName: currentSelectedEvent.clubName
-          ? `${currentSelectedEvent.clubName} (${currentSelectedEvent.organizerName})`
-          : (currentSelectedEvent.organizerName || 'Campus Organizer'),
+        activeEventId: ev.id || ev.eventId,
+        eventName: ev.name,
+        eventTagline: ev.tagline || `${ev.category || 'Campus'} Event`,
+        eventDescription: ev.description || '',
+        category: ev.category || 'Hackathon',
+        structureType: ev.structureType || 'single',
+        collegeName: ev.collegeName || '',
+        clubName: ev.clubName || '',
+        clubCode: ev.clubCode || '',
+        mode: ev.mode || 'in_person',
+        startDate: ev.startDate || '',
+        endDate: ev.endDate || '',
+        eventDate: ev.dateDisplay || 'Dates TBA',
+        eventTime: ev.timeDisplay || 'Schedule TBA',
+        eventVenue: ev.venue || 'Campus Venue',
+        venueHall: ev.venueHall || '',
+        mapUrl: ev.mapUrl || '',
+        meetingUrl: ev.meetingUrl || '',
+        organizerEmail: ev.organizerEmail || '',
+        organizerName: ev.organizerName || 'Campus Organizer',
+        organizerRole: ev.organizerRole || '',
+        organizerPhone: ev.organizerPhone || '',
+        alternatePOC: ev.alternatePOC || '',
+        themeColor: ev.themeColor || '#596EE6',
+        bannerUrl: ev.bannerUrl || '',
+        pricingType: parsedFee === 0 ? 'free' : 'paid',
+        entryFee: parsedFee,
+        feeDisplay: ev.feeDisplay || (parsedFee === 0 ? 'Free Entry Pass' : `₹${parsedFee} Entry Pass`),
+        totalCapacity: ev.totalCapacity || 250,
+        ticketTiers: tiers,
         ticketPrices: ticketMap,
-        activeEventId: currentSelectedEvent.id || currentSelectedEvent.eventId,
-        bannerUrl: currentSelectedEvent.bannerUrl || '',
+        tracks: Array.isArray(ev.tracks) ? ev.tracks : [],
+        subEvents: Array.isArray(ev.subEvents) ? ev.subEvents : [],
+        requiredFields: ev.requiredFields || {
+          fullName: true,
+          email: true,
+          phone: true,
+          college: true,
+          branch: false,
+          year: false,
+          prn: false,
+          github: false,
+          linkedin: false,
+        },
+        customQuestion: ev.customQuestion || '',
+        whatsappUrl: ev.whatsappUrl || '',
+        discordUrl: ev.discordUrl || '',
+        brochureUrl: ev.brochureUrl || '',
+        socialUrl: ev.socialUrl || '',
+        enablePaymentGateway: Object.values(ticketMap).some((v) => Number(v) > 0),
       });
 
       setEventConfig(res.data);
+      window.dispatchEvent(new CustomEvent('eventra:events-updated', { detail: ev }));
       sounds.playSuccess();
       onShowToast({
         type: 'success',
         title: 'Event Published Live! 🚀',
-        message: `"${currentSelectedEvent.name}" is now the active live event on the website.`,
+        message: `"${ev.name}" is now the active live event on the website with all its configured details.`,
       });
     } catch (err) {
       sounds.playError();
@@ -306,6 +391,35 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         type: 'error',
         title: 'Publish Failed',
         message: err.message || 'Could not update live active event.',
+      });
+    }
+  };
+
+  const handleDeleteSelectedEvent = async () => {
+    if (!currentSelectedEvent) return;
+    const evId = currentSelectedEvent.id || currentSelectedEvent.eventId;
+    if (!window.confirm(`Are you sure you want to delete "${currentSelectedEvent.name}"?`)) return;
+    try {
+      sounds.playClick();
+      await api.events.delete(evId);
+      const remaining = eventsList.filter((e) => (e.id || e.eventId) !== evId);
+      setEventsList(remaining);
+      const nextEv = remaining[0];
+      if (nextEv) {
+        setSelectedEventId(nextEv.id || nextEv.eventId);
+      }
+      window.dispatchEvent(new CustomEvent('eventra:events-updated'));
+      onShowToast({
+        type: 'success',
+        title: 'Event Deleted',
+        message: `"${currentSelectedEvent.name}" has been removed.`,
+      });
+    } catch (err) {
+      sounds.playError();
+      onShowToast({
+        type: 'error',
+        title: 'Delete Failed',
+        message: err.message || 'Could not delete event.',
       });
     }
   };
@@ -327,7 +441,10 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
                 value={selectedEventId}
                 onChange={(e) => {
                   sounds.playClick();
+                  setHasUserSelectedEvent(true);
                   setSelectedEventId(e.target.value);
+                  setTrackFilter('all');
+                  setTicketFilter('all');
                   setSelectedIds([]);
                 }}
                 style={{
@@ -379,6 +496,87 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
               </button>
             )}
 
+            {/* Quick Edit, View & Delete Event Actions */}
+            {currentSelectedEvent && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sounds.playClick();
+                    setEditingEvent(currentSelectedEvent);
+                    setShowCreateEvent(true);
+                  }}
+                  style={{
+                    background: '#EEF0FF',
+                    border: '1px solid #DDE3FF',
+                    color: '#596EE6',
+                    borderRadius: '9999px',
+                    padding: '3px 10px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Edit all details of this event in the 6-step wizard"
+                >
+                  <Edit3 size={11} />
+                  <span>Edit Event</span>
+                </button>
+
+                {onViewLiveEvent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sounds.playClick();
+                      onViewLiveEvent(selectedEventId);
+                    }}
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #E2E8F8',
+                      color: '#29304A',
+                      borderRadius: '9999px',
+                      padding: '3px 10px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Open this event's public landing page"
+                  >
+                    <ExternalLink size={11} color="#596EE6" />
+                    <span>View Page</span>
+                  </button>
+                )}
+
+                {eventsList.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelectedEvent}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      color: '#EF4444',
+                      borderRadius: '9999px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}
+                    title="Delete this event"
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
+              </div>
+            )}
+
             {isMainBoss ? (
               <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#EEF0FF', color: '#596EE6', border: '1px solid #DDE3FF', fontWeight: '800' }}>
                 <Crown size={12} color="#596EE6" /> MAIN EVENT ORGANIZER
@@ -389,13 +587,14 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             <span className="badge badge-dyp">EVENTRA OPS</span>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Multi-Event Campus Engine • Native Attendee Ingestion • Express Gate Check-In • Role-Based Delegation
+            {currentSelectedEvent
+              ? `${currentSelectedEvent.name} • ${currentSelectedEvent.dateDisplay || 'Dates TBA'} • ${currentSelectedEvent.venue || 'Campus Venue'}`
+              : 'Multi-Event Campus Engine • Native Attendee Ingestion • Express Gate Check-In • Role-Based Delegation'}
           </p>
         </div>
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Operations Command Center (Houses Team & Roles, Gate Scanner, Import Excel/CSV, Google Sheet Webhook Script, Bulk Email, Templates & CSV Export) */}
           <button
             className="btn btn-sm"
             onClick={() => {
@@ -427,7 +626,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         </div>
       </div>
 
-      {/* Personalized Admin Greeting Banner (Uniform for All Admins) */}
+      {/* Personalized Admin Greeting Banner */}
       <div className="dashboard-welcome" style={{
         background: 'linear-gradient(90deg, rgba(34, 211, 238, 0.12) 0%, rgba(34, 197, 94, 0.08) 50%, rgba(6, 8, 14, 0.85) 100%)',
         border: '1px solid rgba(34, 211, 238, 0.3)',
@@ -465,7 +664,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
               </span>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Native Event Registration • Real-Time Gate Check-In & Attendee Pass Management
+              Managing: <strong style={{ color: '#fff' }}>{currentSelectedEvent?.name || 'Eventra'}</strong> • Real-Time Gate Check-In & Attendee Pass Management
             </div>
           </div>
         </div>
@@ -518,22 +717,52 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         </div>
       </div>
 
-      {/* Quick Create Event Banner (Screenshot 4) */}
+      {/* Quick Create / Edit Event Banner */}
       <div className="dashboard-create-event-banner">
         <div>
-          <h3 className="banner-title">Create event</h3>
-          <p className="banner-subtitle">Start here. Stats stay below this action.</p>
+          <h3 className="banner-title">Create or manage campus events</h3>
+          <p className="banner-subtitle">
+            Launch a new event with custom dates, venue, poster, sub-events, and registration questions — or edit "{currentSelectedEvent?.name || 'your active event'}".
+          </p>
         </div>
-        <button
-          type="button"
-          className="banner-btn"
-          onClick={() => {
-            sounds.playClick();
-            setShowCreateEvent(true);
-          }}
-        >
-          Create event
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {currentSelectedEvent && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                sounds.playClick();
+                setEditingEvent(currentSelectedEvent);
+                setShowCreateEvent(true);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                fontWeight: '800',
+                fontSize: '13px',
+              }}
+            >
+              <Edit3 size={15} />
+              <span>Edit "{currentSelectedEvent.name}"</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="banner-btn"
+            onClick={() => {
+              sounds.playClick();
+              setEditingEvent(null);
+              setShowCreateEvent(true);
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Plus size={16} />
+            <span>Create event</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
@@ -541,7 +770,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         <StatCard
           title="Total Registrations"
           value={stats.totalRegistrants}
-          subtitle="Real-time verified intake"
+          subtitle={`Intake for ${currentSelectedEvent?.name || 'active event'}`}
           icon={Users}
           color="emerald"
         />
@@ -558,7 +787,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         <StatCard
           title="Passes Dispatched"
           value={stats.emailSentCount}
-          subtitle="Sent via tigeradi1504@gmail.com"
+          subtitle={`Sent via ${currentSelectedEvent?.organizerEmail || 'event mailer'}`}
           icon={Mail}
           color="violet"
         />
@@ -566,7 +795,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         <StatCard
           title="Pending Pass Delivery"
           value={stats.pendingEmailCount}
-          subtitle="Hackers awaiting QR email pass"
+          subtitle="Attendees awaiting QR email pass"
           icon={Zap}
           color="amber"
         />
@@ -625,19 +854,32 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
             <option value="false">Unsent Only</option>
           </select>
 
-          {/* Track filter */}
+          {/* Dynamic Ticket Tier filter */}
+          {availableTicketTiers.length > 0 && (
+            <select
+              className="input-control select-control"
+              style={{ width: '170px' }}
+              value={ticketFilter}
+              onChange={(e) => setTicketFilter(e.target.value)}
+            >
+              <option value="all">Pass Tier: All</option>
+              {availableTicketTiers.map((tier) => (
+                <option key={tier} value={tier}>{tier}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Dynamic Track / Sub-Event filter */}
           <select
             className="input-control select-control"
-            style={{ width: '180px' }}
+            style={{ width: '185px' }}
             value={trackFilter}
             onChange={(e) => setTrackFilter(e.target.value)}
           >
-            <option value="all">Track: All</option>
-            <option value="AI & Agentic Systems">AI & Agentic Systems</option>
-            <option value="Cybersecurity & Privacy">Cybersecurity & Privacy</option>
-            <option value="Web3 & Decentralized">Web3 & Decentralized</option>
-            <option value="Fintech & Open Finance">Fintech & Open Finance</option>
-            <option value="Open Innovation">Open Innovation</option>
+            <option value="all">Track / Activity: All</option>
+            {availableTracks.map((track) => (
+              <option key={track} value={track}>{track}</option>
+            ))}
           </select>
 
           <button type="submit" className="btn btn-secondary btn-sm" style={{ padding: '10px 16px' }}>
@@ -665,6 +907,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       {selectedPassRegistrant && (
         <PassPreviewModal
           registrant={selectedPassRegistrant}
+          activeEvent={currentSelectedEvent || eventConfig}
           onClose={() => setSelectedPassRegistrant(null)}
           onShowToast={onShowToast}
           onRefresh={() => fetchData(pagination.page)}
@@ -674,6 +917,8 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       {showExcelImport && (
         <ExcelImportModal
           isOpen={showExcelImport}
+          eventId={selectedEventId}
+          activeEvent={currentSelectedEvent}
           onClose={() => setShowExcelImport(false)}
           onShowToast={onShowToast}
           onRefresh={() => fetchData(pagination.page)}
@@ -682,6 +927,8 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
       {showWebhookGuide && (
         <WebhookGuideModal
+          eventId={selectedEventId}
+          activeEvent={currentSelectedEvent}
           onClose={() => setShowWebhookGuide(false)}
           onShowToast={onShowToast}
           onRefresh={() => fetchData(pagination.page)}
@@ -691,6 +938,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
       {showEmailTemplate && (
         <EmailTemplateModal
           config={eventConfig}
+          activeEvent={currentSelectedEvent}
           onClose={() => setShowEmailTemplate(false)}
           onShowToast={onShowToast}
           onSaveConfig={() => api.event.getConfig().then((res) => setEventConfig(res.data))}
@@ -699,6 +947,8 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
       {showBulkEmail && (
         <BulkEmailModal
+          eventId={selectedEventId}
+          activeEvent={currentSelectedEvent}
           pendingCount={stats.pendingEmailCount}
           totalCount={stats.totalRegistrants}
           verifiedCount={stats.verifiedCount}
@@ -715,11 +965,13 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
         <SuperAdminModal
           currentUser={currentUser}
           eventConfig={eventConfig}
+          activeEvent={currentSelectedEvent}
+          selectedEventId={selectedEventId}
           onClose={() => setShowSuperAdminModal(false)}
           onShowToast={onShowToast}
           onRefreshData={() => {
+            fetchEvents();
             fetchData(pagination.page);
-            api.event.getConfig().then((res) => setEventConfig(res.data)).catch(() => {});
           }}
           initialTab={superAdminTab}
           onNavigateToScanner={onNavigateToScanner}
@@ -729,7 +981,10 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
           onOpenBulkEmail={() => setShowBulkEmail(true)}
           onOpenEmailTemplate={() => setShowEmailTemplate(true)}
           onExportCSV={handleExportCSV}
-          onOpenCreateEvent={() => setShowCreateEvent(true)}
+          onOpenCreateEvent={() => {
+            setEditingEvent(null);
+            setShowCreateEvent(true);
+          }}
           isMainBoss={isMainBoss}
           selectedCount={selectedIds.length}
         />
@@ -737,11 +992,16 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner }) => {
 
       {showCreateEvent && (
         <CreateEventModal
-          onClose={() => setShowCreateEvent(false)}
-          onEventCreated={(newEvent) => {
+          initialEvent={editingEvent}
+          onClose={() => {
+            setShowCreateEvent(false);
+            setEditingEvent(null);
+          }}
+          onEventCreated={(savedEvent) => {
             fetchEvents();
-            if (newEvent?.id || newEvent?.eventId) {
-              setSelectedEventId(newEvent.id || newEvent.eventId);
+            if (savedEvent?.id || savedEvent?.eventId) {
+              setHasUserSelectedEvent(true);
+              setSelectedEventId(savedEvent.id || savedEvent.eventId);
             }
             api.event.getConfig().then((res) => {
               if (res?.data) setEventConfig(res.data);

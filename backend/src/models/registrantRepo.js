@@ -184,14 +184,23 @@ export const registrantRepo = {
       lastCacheTime = now;
     }
 
-    // Total counts across all items
+    // Scope by eventId FIRST so event-specific KPI stats are accurate
+    if (eventId && eventId !== 'all') {
+      const cleanEventId = String(eventId).toLowerCase().trim();
+      items = items.filter((item) => {
+        const itemEvId = (item.eventId || 'eventra-2026').toLowerCase().trim();
+        return itemEvId === cleanEventId;
+      });
+    }
+
+    // Event-scoped KPI counts
     const totalAll = items.length;
     const checkedInCount = items.filter((i) => i.checkedIn).length;
     const emailSentCount = items.filter((i) => i.emailSent).length;
     const verifiedCount = items.filter((i) => i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified').length;
     const verifiedPendingEmailCount = items.filter((i) => (i.verified === true || String(i.verificationStatus).toLowerCase() === 'verified') && !i.emailSent).length;
 
-    // Filters
+    // Additional UI Filters
     if (checkedIn !== undefined && checkedIn !== '') {
       const isChecked = checkedIn === 'true' || checkedIn === true;
       items = items.filter((item) => Boolean(item.checkedIn) === isChecked);
@@ -213,14 +222,6 @@ export const registrantRepo = {
 
     if (track && track !== 'all') {
       items = items.filter((item) => item.track === track);
-    }
-
-    if (eventId && eventId !== 'all') {
-      const cleanEventId = String(eventId).toLowerCase().trim();
-      items = items.filter((item) => {
-        const itemEvId = (item.eventId || 'eventra-2026').toLowerCase().trim();
-        return itemEvId === cleanEventId;
-      });
     }
 
     if (search && search.trim() !== '') {

@@ -1,39 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  ShieldCheck, 
   QrCode, 
-  CheckCircle2, 
   Clock, 
   History, 
-  RotateCcw, 
-  User, 
-  Users, 
-  Volume2 
+  RotateCcw
 } from 'lucide-react';
 import { QRScanner } from '../components/QRScanner';
 import { api } from '../services/api';
 
 export const ScannerPage = ({ onShowToast }) => {
   const [recentScans, setRecentScans] = useState([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeEventName, setActiveEventName] = useState('Eventra');
 
   const fetchRecentScans = useCallback(async () => {
     try {
-      setIsRefreshing(true);
       const res = await api.checkin.getRecent();
       setRecentScans(res.data || []);
     } catch (err) {
       console.warn('Failed to load recent scans:', err);
-    } finally {
-      setIsRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     fetchRecentScans();
+    api.event.getConfig()
+      .then((res) => {
+        if (res?.data?.eventName) setActiveEventName(res.data.eventName);
+      })
+      .catch(() => {});
   }, [fetchRecentScans]);
 
-  const handleScanCompleted = (scanResponse) => {
+  const handleScanCompleted = () => {
     fetchRecentScans();
   };
 
@@ -69,7 +66,7 @@ export const ScannerPage = ({ onShowToast }) => {
           <QrCode size={13} color="#22d3ee" /> EVENTRA GATE ENTRY SCANNER • LIVE OPERATIONAL TERMINAL
         </div>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
-          Eventra 2026 Check-in Terminal
+          {activeEventName} Check-in Terminal
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
           Official Event Gates • Live anti-forgery cryptographic QR verification
@@ -126,7 +123,7 @@ export const ScannerPage = ({ onShowToast }) => {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="badge badge-emerald" style={{ fontSize: '10px' }}>
-                      {item.ticketType || 'Hacker'}
+                      {item.ticketType || 'Standard Pass'}
                     </span>
                     <button
                       className="btn btn-ghost btn-sm"

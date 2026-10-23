@@ -13,6 +13,7 @@ import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'l
 export function App() {
   const [currentView, setCurrentView] = useState('landing');
   const [activePassId, setActivePassId] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(null);
   const [user, setUser] = useState(() => api.auth.getUser());
   const [toasts, setToasts] = useState([]);
 
@@ -20,7 +21,8 @@ export function App() {
   useEffect(() => {
     const syncRoute = () => {
       const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
+      const rawHash = window.location.hash || '';
+      const hash = rawHash.toLowerCase();
       const existingUser = api.auth.getUser();
       const isAuth = api.auth.isAuthenticated();
 
@@ -35,6 +37,24 @@ export function App() {
           setCurrentView('pass');
           return;
         }
+      }
+
+      if (path.startsWith('/event/')) {
+        const evSlug = window.location.pathname.split('/event/')[1];
+        if (evSlug) {
+          setSelectedEventId(decodeURIComponent(evSlug));
+          setCurrentView('landing');
+          return;
+        }
+      }
+
+      if (hash.startsWith('#event/') || hash.startsWith('#/event/')) {
+        const evSlug = rawHash.replace(/^#\/?event\//i, '').split('?')[0];
+        if (evSlug && evSlug !== '[object object]') {
+          setSelectedEventId(decodeURIComponent(evSlug));
+        }
+        setCurrentView('landing');
+        return;
       }
 
       if (path === '/dashboard' || hash === '#dashboard' || hash === '#/dashboard') {
@@ -57,7 +77,20 @@ export function App() {
           setCurrentView('login');
         }
       } else if (path === '/register' || hash.startsWith('#register') || hash.startsWith('#/register')) {
+        if (rawHash.includes('event=')) {
+          const q = new URLSearchParams(rawHash.split('?')[1] || '').get('event');
+          if (q && q.toLowerCase() !== '[object object]') {
+            setSelectedEventId(q);
+          }
+        }
         setCurrentView('register');
+      } else if (path !== '/' && !['/dashboard', '/scanner', '/login', '/register'].includes(path)) {
+        // Support short share links like eventra.live/<slug>
+        const cleanSlug = path.replace(/^\/+|\/+$/g, '');
+        if (cleanSlug && !cleanSlug.includes('.')) {
+          setSelectedEventId(decodeURIComponent(cleanSlug));
+        }
+        setCurrentView('landing');
       } else if (path === '/' && (!hash || hash === '#' || hash === '#/')) {
         setCurrentView('landing');
       }
@@ -102,9 +135,33 @@ export function App() {
 
   const handleBackToLanding = () => {
     window.history.pushState({}, '', '/');
-    window.location.hash = '';
+    window.location.hash = selectedEventId ? `#event/${selectedEventId}` : '';
     setActivePassId(null);
     setCurrentView('landing');
+  };
+
+  const handleNavigateToRegister = (maybeEventId) => {
+    const cleanId = typeof maybeEventId === 'string' && maybeEventId !== '[object Object]'
+      ? maybeEventId
+      : selectedEventId;
+    if (cleanId) {
+      setSelectedEventId(cleanId);
+      window.location.hash = `#register?event=${encodeURIComponent(cleanId)}`;
+    } else {
+      window.location.hash = '#register';
+    }
+    setCurrentView('register');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectEvent = (eventOrId) => {
+    const id = typeof eventOrId === 'string' ? eventOrId : (eventOrId?.id || eventOrId?.eventId || eventOrId?.slug);
+    if (id) {
+      setSelectedEventId(id);
+      window.location.hash = `#event/${encodeURIComponent(id)}`;
+      setCurrentView('landing');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleLoginSuccess = (loggedInUser) => {
@@ -140,17 +197,17 @@ export function App() {
       <main className={`app-view app-view-${currentView}`} style={{ flex: 1 }}>
         {currentView === 'landing' && (
           <EventLandingPage
+            selectedEventId={selectedEventId}
+            onSelectEvent={handleSelectEvent}
             onNavigateToPass={handleNavigateToPass}
-            onNavigateToRegister={(eventId) => {
-              window.location.hash = eventId ? `#register?event=${eventId}` : '#register';
-              setCurrentView('register');
-            }}
+            onNavigateToRegister={handleNavigateToRegister}
             onShowToast={handleShowToast}
           />
         )}
 
         {currentView === 'register' && (
           <RegistrationPage
+            selectedEventId={selectedEventId}
             onRegistrationSuccess={(passId) => {
               handleNavigateToPass(passId);
             }}
@@ -174,6 +231,9 @@ export function App() {
               onNavigateToScanner={() => {
                 window.location.hash = '#scanner';
                 setCurrentView('scanner');
+              }}
+              onViewLiveEvent={(evId) => {
+                handleSelectEvent(evId);
               }}
             />
           ) : (

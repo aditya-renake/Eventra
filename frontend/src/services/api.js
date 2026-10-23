@@ -64,7 +64,7 @@ export const api = {
       return request(`/event${query ? `?${query}` : ''}`);
     },
     async getById(id) {
-      return request(`/event/${id}`);
+      return request(`/event/${encodeURIComponent(id)}`);
     },
     async create(eventData) {
       return request('/event', {
@@ -73,13 +73,13 @@ export const api = {
       });
     },
     async update(id, updates) {
-      return request(`/event/${id}`, {
+      return request(`/event/${encodeURIComponent(id)}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
       });
     },
     async delete(id) {
-      return request(`/event/${id}`, {
+      return request(`/event/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
     },
@@ -116,7 +116,7 @@ export const api = {
       return request(`/registrants${query ? `?${query}` : ''}`);
     },
     async getPublicPass(uniqueId) {
-      return request(`/registrants/pass/${uniqueId}`);
+      return request(`/registrants/pass/${encodeURIComponent(uniqueId)}`);
     },
     async create(data) {
       return request('/registrants', {
@@ -159,13 +159,21 @@ export const api = {
         body: JSON.stringify(formData),
       });
     },
-    exportCSVUrl() {
-      const token = localStorage.getItem('hs26_auth_token');
-      return `/api/registrants/export/csv?token=${encodeURIComponent(token || '')}`;
+    async submitWebhook(formData) {
+      return request('/registrants/webhook', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
     },
-    async downloadCSV() {
+    exportCSVUrl(eventId) {
       const token = localStorage.getItem('hs26_auth_token');
-      const response = await fetch('/api/registrants/export/csv', {
+      const evParam = eventId && eventId !== 'all' ? `&eventId=${encodeURIComponent(eventId)}` : '';
+      return `/api/registrants/export/csv?token=${encodeURIComponent(token || '')}${evParam}`;
+    },
+    async downloadCSV(eventId) {
+      const token = localStorage.getItem('hs26_auth_token');
+      const query = eventId && eventId !== 'all' ? `?eventId=${encodeURIComponent(eventId)}` : '';
+      const response = await fetch(`/api/registrants/export/csv${query}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) throw new Error('Failed to export CSV. Please ensure you are logged in.');
@@ -173,7 +181,7 @@ export const api = {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `eventra-2026-registrants.csv`;
+      a.download = `${eventId || 'eventra-2026'}-registrants.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

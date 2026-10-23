@@ -1,14 +1,13 @@
 import { eventRepo } from '../models/eventRepo.js';
 import { staffRepo } from '../models/staffRepo.js';
-import { registrantRepo } from '../models/registrantRepo.js';
 
 /**
- * Public & Staff: Get all club events (Edge CDN cached for concurrent viewers)
+ * Public & Staff: Get all club events (Fresh real-time response)
  */
 export const getClubEvents = async (req, res) => {
   try {
     const { category, status, search } = req.query;
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const events = await eventRepo.getAll({ category, status, search });
     return res.json({ success: true, data: events });
   } catch (error) {
@@ -17,12 +16,12 @@ export const getClubEvents = async (req, res) => {
 };
 
 /**
- * Public: Get single event details by eventId (Edge CDN cached)
+ * Public: Get single event details by eventId (Fresh real-time response)
  */
 export const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const eventItem = await eventRepo.findById(id);
     if (!eventItem) {
       return res.status(404).json({ success: false, message: 'Event not found' });
@@ -193,6 +192,7 @@ export const purgeAllStaffExceptOwner = async (req, res) => {
  */
 export const getEventConfig = async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const { configRepo } = await import('../models/configRepo.js');
     const config = await configRepo.getConfig();
     return res.json({ success: true, data: config });

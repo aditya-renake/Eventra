@@ -8,12 +8,16 @@ import {
   MapPin, 
   Users, 
   Mail, 
+  Phone,
   ArrowLeft, 
   Sparkles,
   Smartphone,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  Radio,
+  Building2,
+  ExternalLink
 } from 'lucide-react';
-import { DYPDPULogo } from '../components/CollegeLogos';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
@@ -40,11 +44,20 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
     }
   }, [uniqueId]);
 
+  const eventName = passData?.eventName || 'Eventra';
+  const eventDate = passData?.eventDate || 'Dates TBA';
+  const eventTime = passData?.eventTime || '';
+  const eventVenue = passData?.eventVenue || 'Campus Venue';
+  const venueHall = passData?.venueHall || '';
+  const organizerEmail = passData?.organizerEmail || '';
+  const organizerPhone = passData?.organizerPhone || '';
+  const organizerName = passData?.clubName || passData?.organizerName || '';
+
   const handleDownload = () => {
     if (!passData) return;
     sounds.playClick();
     const link = document.createElement('a');
-    link.download = `Eventra2026-${passData.uniqueId}.png`;
+    link.download = `Eventra-Pass-${passData.uniqueId}.png`;
     link.href = passData.qrCodeDataUrl;
     link.click();
     if (onShowToast) {
@@ -60,12 +73,13 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
     if (!passData) return;
     sounds.playClick();
     const passUrl = window.location.href;
-    const message = `🎟️ *Eventra 2026 Digital Entry Pass*\n\n` +
+    const message = `🎟️ *${eventName} Digital Entry Pass*\n\n` +
       `👤 *Attendee:* ${passData.name}\n` +
       `🎫 *Pass ID:* ${passData.uniqueId}\n` +
       `🎟️ *Ticket Type:* ${passData.ticketType}\n` +
-      `🏛️ *Venue:* Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune\n` +
-      `📅 *Dates:* October 16–18, 2026 (Check-in 07:30 AM IST)\n\n` +
+      (passData.track ? `🎯 *Track / Activity:* ${passData.track}\n` : '') +
+      `🏛️ *Venue:* ${eventVenue}${venueHall ? ` (${venueHall})` : ''}\n` +
+      `📅 *Dates:* ${eventDate}${eventTime ? ` (${eventTime})` : ''}\n\n` +
       `🔗 *Open Verified QR Pass:* ${passUrl}\n\n` +
       `⚡ Present this QR pass at the entrance scanner for express check-in.`;
 
@@ -118,8 +132,32 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
       
       {/* Back Button */}
       <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginBottom: '16px' }}>
-        <ArrowLeft size={15} /> Event Home
+        <ArrowLeft size={15} /> Back to {eventName}
       </button>
+
+      {/* Live Broadcast Banner if active */}
+      {passData.broadcastNotice && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(89, 110, 230, 0.15) 0%, rgba(16, 185, 129, 0.12) 100%)',
+          border: '1px solid rgba(89, 110, 230, 0.45)',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          fontSize: '12px',
+          color: '#E2E8F0',
+        }}>
+          <Radio size={16} color="#22c55e" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong style={{ color: '#4ade80', display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Live Organizer Update
+            </strong>
+            <span>{passData.broadcastNotice}</span>
+          </div>
+        </div>
+      )}
 
       {/* Holographic Digital Pass Ticket */}
       <div className="holo-ticket">
@@ -130,11 +168,15 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img src="/eventra-logo.svg" alt="Eventra" style={{ height: '28px', width: 'auto', display: 'block' }} />
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px' }}>EVENTRA 2026</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '15px', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', textTransform: 'uppercase' }}>
+                    {eventName}
+                  </span>
                   <span className="badge badge-dyp" style={{ fontSize: '9px', padding: '1px 6px' }}>VERIFIED PASS</span>
                 </div>
-                <div style={{ fontSize: '9px', color: '#a8b4ff', fontWeight: '800', marginTop: '1px' }}>OFFICIAL EVENT GATE ENTRY ACCESS</div>
+                <div style={{ fontSize: '9px', color: '#a8b4ff', fontWeight: '800', marginTop: '1px', textTransform: 'uppercase' }}>
+                  {organizerName ? `ORGANIZED BY ${organizerName}` : 'OFFICIAL EVENT GATE ENTRY ACCESS'}
+                </div>
               </div>
             </div>
             <span className="badge badge-emerald">{passData.ticketType}</span>
@@ -146,12 +188,24 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
               {passData.name}
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{passData.email}</div>
-            
-            {passData.teamName && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '8px', fontSize: '12px', color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.12)', padding: '4px 14px', borderRadius: '999px' }}>
-                <Users size={13} /> Team: <strong>{passData.teamName}</strong>
+            {passData.institution && (
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <Building2 size={12} color="#596EE6" /> {passData.institution}
               </div>
             )}
+            
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+              {passData.teamName && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.12)', padding: '4px 12px', borderRadius: '999px' }}>
+                  <Users size={13} /> Team: <strong>{passData.teamName}</strong>
+                </div>
+              )}
+              {passData.track && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#A5B4FC', background: 'rgba(89, 110, 230, 0.15)', padding: '4px 12px', borderRadius: '999px' }}>
+                  <Sparkles size={12} /> {passData.track}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* QR Code Container */}
@@ -186,20 +240,30 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
             )}
           </div>
 
-          {/* Details */}
-          <div style={{ background: '#030712', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-subtle)', fontSize: '12px', color: 'var(--text-muted)', marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Calendar size={14} color="#596EE6" />
-              <span><strong>Dates:</strong> October 16 - 18, 2026 (Check-in 07:30 AM IST)</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-              <MapPin size={14} color="#596EE6" style={{ marginTop: '2px', flexShrink: 0 }} />
-              <span><strong>Venue:</strong> Eventra Arena • Main Stage & Hack Labs</span>
-            </div>
+          {/* Dynamic Event Details Box */}
+          <div style={{ background: '#030712', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-subtle)', fontSize: '12px', color: 'var(--text-muted)', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Mail size={14} color="#a78bfa" />
-              <span><strong>Contact:</strong> aditya.renake@outlook.com</span>
+              <Calendar size={14} color="#596EE6" style={{ flexShrink: 0 }} />
+              <span><strong>Dates:</strong> {eventDate}</span>
             </div>
+            {eventTime && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={14} color="#596EE6" style={{ flexShrink: 0 }} />
+                <span><strong>Timings:</strong> {eventTime}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <MapPin size={14} color="#596EE6" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <span><strong>Venue:</strong> {eventVenue}{venueHall ? ` (${venueHall})` : ''}</span>
+            </div>
+            {(organizerEmail || organizerPhone) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <Mail size={14} color="#a78bfa" style={{ flexShrink: 0 }} />
+                <span>
+                  <strong>POC Contact:</strong> {[organizerEmail, organizerPhone].filter(Boolean).join(' • ')}
+                </span>
+              </div>
+            )}
           </div>
 
         </div>
@@ -214,6 +278,18 @@ export const DigitalPassPage = ({ uniqueId, onBack, onShowToast }) => {
         >
           <Smartphone size={16} /> Get Pass on WhatsApp
         </button>
+
+        {passData.whatsappUrl && (
+          <a
+            href={passData.whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-secondary"
+            style={{ width: '100%', textDecoration: 'none', justifyContent: 'center' }}
+          >
+            <ExternalLink size={15} color="#25D366" /> Join Official Participant WhatsApp Group
+          </a>
+        )}
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleDownload}>

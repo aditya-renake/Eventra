@@ -6,21 +6,21 @@ import {
   Sparkles, 
   Send, 
   Terminal, 
-  Code2,
-  CheckCircle2,
-  ShieldCheck,
   Webhook
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
-export const WebhookGuideModal = ({ onClose, onShowToast }) => {
+export const WebhookGuideModal = ({ eventId = 'eventra-2026', activeEvent = null, onClose, onShowToast, onRefresh }) => {
+  const defaultTrack = activeEvent?.tracks?.[0] || activeEvent?.subEvents?.[0]?.name || activeEvent?.category || 'General Track';
+  const defaultTier = activeEvent?.ticketTiers?.[0] || 'Standard Pass';
+
   const [copied, setCopied] = useState(false);
   const [simName, setSimName] = useState('Ankit Verma');
   const [simEmail, setSimEmail] = useState('ankit.verma@example.com');
   const [simPhone, setSimPhone] = useState('+91 98980 12345');
-  const [simTeam, setSimTeam] = useState('HyperScale Labs');
-  const [simTrack, setSimTrack] = useState('AI & Agentic Systems');
+  const [simTeam, setSimTeam] = useState('Team Alpha');
+  const [simTrack, setSimTrack] = useState(defaultTrack);
   const [isSimulating, setIsSimulating] = useState(false);
 
   const webhookUrl = `${window.location.origin}/api/registrants/webhook`;
@@ -28,13 +28,14 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
   const webhookCurlExample = `curl -X POST "${webhookUrl}" \\
   -H "Content-Type: application/json" \\
   -d '{
+    "eventId": "${eventId}",
     "name": "Ankit Verma",
     "email": "ankit.verma@example.com",
     "phone": "+91 98980 12345",
-    "ticketType": "Hacker Pass",
-    "teamName": "HyperScale Labs",
-    "track": "AI & Agentic Systems",
-    "institution": "Dr. D. Y. Patil Institute of Technology, Pune"
+    "ticketType": "${defaultTier}",
+    "teamName": "Team Alpha",
+    "track": "${defaultTrack}",
+    "institution": "${activeEvent?.collegeName || 'Campus Institution'}"
   }'`;
 
   const handleCopyCode = () => {
@@ -65,13 +66,14 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
       sounds.playClick();
 
       const mockPayload = {
+        eventId,
         name: simName.trim(),
         email: simEmail.trim(),
         phone: simPhone.trim(),
-        ticketType: 'Hacker Pass',
+        ticketType: defaultTier,
         teamName: simTeam.trim(),
         track: simTrack,
-        institution: 'Campus Delegate',
+        institution: activeEvent?.collegeName || 'Campus Delegate',
         formResponses: {
           'Full Name': simName.trim(),
           'Email': simEmail.trim(),
@@ -82,13 +84,14 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
         },
       };
 
-      const res = await api.registrants.submitWebhook(mockPayload);
+      const res = await api.registrants.simulateGoogleFormWebhook(mockPayload);
       sounds.playSuccess();
       onShowToast({
         type: 'success',
         title: 'Webhook Ingested! ⚡',
         message: `Pass created for ${mockPayload.name} (${res.data?.uniqueId || 'HS26-XXXXXX'}).`,
       });
+      if (onRefresh) onRefresh();
       onClose();
     } catch (err) {
       sounds.playError();
@@ -102,6 +105,10 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
     }
   };
 
+  const trackOptions = Array.isArray(activeEvent?.tracks) && activeEvent.tracks.length > 0
+    ? activeEvent.tracks
+    : [defaultTrack];
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '780px' }}>
@@ -113,7 +120,7 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
               <Webhook size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: '#fff' }}>Eventra REST Ingestion &amp; Webhook Bridge</div>
+              <div style={{ fontSize: '17px', fontWeight: '800', color: '#fff' }}>Eventra REST Ingestion — {activeEvent?.name || 'Event'}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Real-time automatic intake from external forms &amp; registration systems</div>
             </div>
           </div>
@@ -136,13 +143,13 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
             <div style={{ background: '#0b0f19', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: '#06b6d4', textTransform: 'uppercase' }}>Format</div>
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>JSON Body</div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Include name, email, phone, teamName, track, and ticketType.</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Include eventId ("{eventId}"), name, email, phone, and track.</p>
             </div>
 
             <div style={{ background: '#0b0f19', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: '#a78bfa', textTransform: 'uppercase' }}>Output</div>
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginTop: '2px' }}>Instant Cryptographic Pass</div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Generates HMAC-SHA256 digital QR ticket and queues confirmation email.</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Generates HMAC-SHA256 digital QR ticket and dispatches acknowledgement email.</p>
             </div>
           </div>
 
@@ -150,7 +157,7 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
           <div style={{ position: 'relative', marginBottom: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#080d1a', padding: '8px 16px', borderTopLeftRadius: '10px', borderTopRightRadius: '10px', border: '1px solid var(--border-subtle)', borderBottom: 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                <Terminal size={14} /> cURL Ingestion Request
+                <Terminal size={14} /> cURL Ingestion Request ({activeEvent?.name || eventId})
               </div>
               <button className="btn btn-sm btn-primary" onClick={handleCopyCode} style={{ padding: '4px 12px', fontSize: '11px' }}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -170,7 +177,7 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
               <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>Interactive Webhook Ingestion Simulator</span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Test your endpoint directly. This dispatches an instant simulated attendee to <code style={{ color: 'var(--eventra-indigo)', background: '#030712', padding: '2px 6px', borderRadius: '4px' }}>POST /api/registrants/webhook</code> and issues a live verified pass.
+              Test your endpoint directly for <strong>{activeEvent?.name || eventId}</strong>.
             </p>
 
             <form onSubmit={handleRunSimulation} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
@@ -209,11 +216,9 @@ export const WebhookGuideModal = ({ onClose, onShowToast }) => {
                 value={simTrack}
                 onChange={(e) => setSimTrack(e.target.value)}
               >
-                <option value="AI & Agentic Systems">AI &amp; Agentic Systems</option>
-                <option value="Cybersecurity & Privacy">Cybersecurity &amp; Privacy</option>
-                <option value="Web3 & Decentralized Tech">Web3 &amp; Decentralized Tech</option>
-                <option value="Cloud & Distributed Systems">Cloud &amp; Distributed Systems</option>
-                <option value="Open Innovation & Campus Tech">Open Innovation</option>
+                {trackOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
 
               <button

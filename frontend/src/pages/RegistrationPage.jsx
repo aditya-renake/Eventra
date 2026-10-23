@@ -21,51 +21,73 @@ import {
   AlertCircle,
   Smartphone,
   RefreshCw,
+  Calendar,
+  Clock,
+  Globe,
+  HelpCircle,
+  Layers,
+  Hash,
+  GraduationCap,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
 const DEFAULT_CONFIG = {
+  eventId: 'eventra-2026',
   eventName: 'Eventra 2026',
+  eventTagline: "India's Flagship 48-Hour National Hackathon",
+  eventDescription: 'Choose your pass, fill in your attendee details, and receive your cryptographically signed QR entry pass.',
+  category: 'Hackathon',
+  structureType: 'single',
+  collegeName: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+  clubName: 'ACES',
   eventDate: 'October 16 - 18, 2026',
+  eventTime: '09:00 AM IST',
   eventVenue: 'Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune',
+  venueHall: '',
   enablePaymentGateway: true,
+  pricingType: 'paid',
+  entryFee: 5,
+  ticketTiers: ['Standard Pass'],
   ticketPrices: {
-    'Hacker Pass': 5,
-    'Student Pass': 5,
-    'VIP Delegate': 5,
-    'Judge / Mentor': 5,
+    'Standard Pass': 5,
   },
+  tracks: ['General Track'],
+  subEvents: [],
+  requiredFields: {
+    fullName: true,
+    email: true,
+    phone: true,
+    college: true,
+    branch: false,
+    year: false,
+    prn: false,
+    github: false,
+    linkedin: false,
+  },
+  customQuestion: '',
 };
-
-const TRACKS = [
-  'AI & Agentic Systems',
-  'Cybersecurity & Privacy',
-  'Web3 & Decentralized Tech',
-  'Cloud & Distributed Systems',
-  'Open Innovation & Campus Tech',
-];
 
 const TIER_DETAILS = {
   'Hacker Pass': {
     badge: 'MOST POPULAR',
-    detail: 'The full 48-hour build experience.',
-    features: ['48-hour hackathon access', 'Meals and hacker kit', 'Digital QR entry pass'],
+    detail: 'The full hackathon build experience.',
+    features: ['Full event access', 'Mentorship & workspace', 'Digital QR entry pass'],
   },
   'Student Pass': {
     badge: 'STUDENT PASS',
-    detail: 'A focused pass for student attendees.',
-    features: ['Hackathon entry', 'Mentorship and workshops', 'Participation certificate'],
+    detail: 'Official pass for student attendees.',
+    features: ['Event entry', 'Sessions & activities', 'Participation certificate'],
   },
   'VIP Delegate': {
     badge: 'ALL ACCESS',
-    detail: 'Extra access for guests and delegates.',
-    features: ['All event access', 'VIP lounge access', 'Priority demo area'],
+    detail: 'Priority access for guests and delegates.',
+    features: ['All event access', 'VIP seating & networking', 'Digital QR entry pass'],
   },
   'Judge / Mentor': {
     badge: 'INVITED GUEST',
-    detail: 'For invited judges and mentors.',
-    features: ['Judge and mentor access', 'Digital QR entry pass', 'Event schedule access'],
+    detail: 'For invited judges, speakers, and mentors.',
+    features: ['Judge & mentor access', 'Digital QR entry pass', 'VIP hospitality'],
   },
 };
 
@@ -106,7 +128,7 @@ const loadRazorpay = () => new Promise((resolve) => {
   }, { once: true });
 });
 
-export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onShowToast }) => {
+export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBackToLanding, onShowToast }) => {
   const formRef = useRef(null);
   const [eventConfig, setEventConfig] = useState(DEFAULT_CONFIG);
   const [step, setStep] = useState(0);
@@ -115,10 +137,15 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     email: '',
     phone: '',
     institution: '',
-    ticketType: 'Hacker Pass',
-    track: TRACKS[0],
+    ticketType: 'Standard Pass',
+    track: 'General Track',
     teamName: '',
     githubUrl: '',
+    branch: '',
+    year: '',
+    prn: '',
+    linkedinUrl: '',
+    customAnswer: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -130,8 +157,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
   useEffect(() => {
     let mounted = true;
 
-    // Check if a specific event is requested via URL hash or query params
     const getRequestedEventId = () => {
+      if (selectedEventId && selectedEventId !== '[object Object]') return selectedEventId;
       const hash = window.location.hash || '';
       const search = window.location.search || '';
       let targetId = null;
@@ -144,50 +171,91 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       return targetId;
     };
 
-    const requestedEventId = getRequestedEventId();
+    const loadEventForRegistration = async () => {
+      try {
+        const cfgRes = await api.event.getConfig().catch(() => null);
+        const cfg = cfgRes?.data || {};
+        const targetId = getRequestedEventId() || cfg.activeEventId || 'eventra-2026';
 
-    if (requestedEventId) {
-      api.events.getById(requestedEventId)
-        .then((res) => {
-          if (mounted && res?.data) {
-            const ev = res.data;
-            const ticketMap = {};
-            const tiers = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0 ? ev.ticketTiers : ['Standard Pass'];
-            tiers.forEach((tier) => {
-              ticketMap[tier] = ev.entryFee !== undefined ? Number(ev.entryFee) : 5;
+        const evRes = await api.events.getById(targetId).catch(() => null);
+        const ev = evRes?.data;
+
+        if (!mounted) return;
+
+        if (ev) {
+          const isFree = ev.pricingType === 'free' || Number(ev.entryFee) === 0;
+          const baseFee = isFree ? 0 : (ev.entryFee !== undefined ? Number(ev.entryFee) : 5);
+          const subEvents = Array.isArray(ev.subEvents) ? ev.subEvents : [];
+          const hasSubEvents = ev.structureType === 'sub-events' && subEvents.length > 0;
+
+          const tiers = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0
+            ? ev.ticketTiers
+            : (hasSubEvents ? subEvents.map((s) => s.name) : ['Standard Pass']);
+
+          const ticketMap = {};
+          if (ev.ticketPrices && typeof ev.ticketPrices === 'object' && Object.keys(ev.ticketPrices).length > 0) {
+            Object.entries(ev.ticketPrices).forEach(([k, v]) => {
+              ticketMap[k] = isFree ? 0 : (Number(v) >= 0 ? Number(v) : baseFee);
             });
-            setEventConfig((current) => ({
-              ...current,
-              eventName: ev.name,
-              eventTagline: ev.tagline || '',
-              eventDate: ev.dateDisplay || '',
-              eventVenue: ev.venue || '',
-              ticketPrices: ticketMap,
-              eventId: ev.id || ev.eventId,
-              customQuestion: ev.customQuestion || '',
-              requiredFields: ev.requiredFields || null,
-            }));
+          } else if (hasSubEvents) {
+            subEvents.forEach((s) => {
+              ticketMap[s.name] = isFree ? 0 : (Number(s.fee) >= 0 ? Number(s.fee) : baseFee);
+            });
+          } else {
+            tiers.forEach((tier) => {
+              ticketMap[tier] = baseFee;
+            });
           }
-        })
-        .catch(() => {
-          api.event.getConfig()
-            .then((res) => {
-              if (mounted && res?.data) setEventConfig((current) => ({ ...current, ...res.data }));
-            })
-            .catch(() => {});
-        });
-    } else {
-      api.event.getConfig()
-        .then((res) => {
-          if (mounted && res?.data) setEventConfig((current) => ({ ...current, ...res.data }));
-        })
-        .catch(() => {});
-    }
 
+          const tracksList = Array.isArray(ev.tracks) && ev.tracks.length > 0
+            ? ev.tracks
+            : (hasSubEvents ? subEvents.map((s) => s.name) : [ev.category || 'General Track']);
+
+          setEventConfig({
+            ...DEFAULT_CONFIG,
+            ...cfg,
+            eventId: ev.id || ev.eventId,
+            eventName: ev.name || cfg.eventName || 'Eventra 2026',
+            eventTagline: ev.tagline || cfg.eventTagline || '',
+            eventDescription: ev.description || cfg.eventDescription || '',
+            category: ev.category || cfg.category || 'Event',
+            structureType: ev.structureType || 'single',
+            collegeName: ev.collegeName || cfg.collegeName || '',
+            clubName: ev.clubName || cfg.clubName || '',
+            clubCode: ev.clubCode || cfg.clubCode || '',
+            eventDate: ev.dateDisplay || cfg.eventDate || 'Dates TBA',
+            eventTime: ev.timeDisplay || cfg.eventTime || '',
+            eventVenue: ev.venue || cfg.eventVenue || 'Campus Venue',
+            venueHall: ev.venueHall || cfg.venueHall || '',
+            pricingType: isFree ? 'free' : 'paid',
+            entryFee: baseFee,
+            enablePaymentGateway: isFree ? false : (cfg.enablePaymentGateway !== false),
+            ticketTiers: tiers,
+            ticketPrices: ticketMap,
+            tracks: tracksList,
+            subEvents,
+            requiredFields: ev.requiredFields || cfg.requiredFields || DEFAULT_CONFIG.requiredFields,
+            customQuestion: ev.customQuestion !== undefined ? ev.customQuestion : (cfg.customQuestion || ''),
+          });
+        } else if (cfg && Object.keys(cfg).length > 0) {
+          setEventConfig((current) => ({
+            ...current,
+            ...cfg,
+            eventId: cfg.activeEventId || 'eventra-2026',
+            tracks: Array.isArray(cfg.tracks) && cfg.tracks.length > 0 ? cfg.tracks : [cfg.category || 'General Track'],
+            subEvents: Array.isArray(cfg.subEvents) ? cfg.subEvents : [],
+          }));
+        }
+      } catch (err) {
+        console.warn('Error loading event for registration:', err);
+      }
+    };
+
+    loadEventForRegistration();
     return () => { mounted = false; };
-  }, []);
+  }, [selectedEventId]);
 
-  // Restore any pending order from session on initial page mount (e.g. if mobile browser tab reloaded)
+  // Restore any pending order from session on initial page mount
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem('eventra_active_order');
@@ -214,7 +282,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     } catch (e) {}
   }, []);
 
-  // Mobile app-switch auto-recovery: Poll when user returns from UPI app (GPay / PhonePe) to browser tab
+  // Mobile app-switch auto-recovery
   useEffect(() => {
     const handleReturnToTab = async () => {
       if (document.visibilityState === 'visible' && pendingOrder?.orderId) {
@@ -240,21 +308,57 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
   }, [pendingOrder, formData]);
 
   const ticketOptions = useMemo(() => {
-    const prices = eventConfig.ticketPrices || DEFAULT_CONFIG.ticketPrices;
+    const isEventFree = eventConfig.pricingType === 'free' || Number(eventConfig.entryFee) === 0;
+    const prices = eventConfig.ticketPrices && Object.keys(eventConfig.ticketPrices).length > 0
+      ? eventConfig.ticketPrices
+      : { 'Standard Pass': isEventFree ? 0 : (eventConfig.entryFee ?? 5) };
+
+    const subEvents = Array.isArray(eventConfig.subEvents) ? eventConfig.subEvents : [];
+
     return Object.entries(prices).map(([type, price]) => {
-      const p = Number(price);
-      const finalPrice = !isNaN(p) && p >= 0 ? p : 5;
+      const p = isEventFree ? 0 : Number(price);
+      const finalPrice = !isNaN(p) && p >= 0 ? p : 0;
+      const matchedSub = subEvents.find((s) => s.name === type);
+
+      if (matchedSub) {
+        return {
+          type,
+          price: finalPrice,
+          badge: (matchedSub.category || 'SUB-EVENT').toUpperCase(),
+          detail: `${matchedSub.category || 'Competition'} • Coordinator: ${matchedSub.coordinator || 'Event Team'}`,
+          features: [
+            `Capacity: ${matchedSub.seats || 60} seats`,
+            'Official QR entry pass',
+            'Participation certificate',
+          ],
+        };
+      }
+
       return {
         type,
         price: finalPrice,
         ...(TIER_DETAILS[type] || {
-          badge: finalPrice === 0 ? 'FREE PASS' : 'EVENT PASS',
-          detail: `Access for ${eventConfig.eventName || 'Eventra 2026'}.`,
-          features: ['Event access', 'Digital QR entry pass'],
+          badge: finalPrice === 0 ? 'FREE PASS' : 'OFFICIAL PASS',
+          detail: `Verified entry pass for ${eventConfig.eventName || 'this event'}.`,
+          features: [
+            `Full ${eventConfig.category || 'event'} access`,
+            'Cryptographic QR entry pass',
+            'Instant email & WhatsApp pass',
+          ],
         }),
       };
     });
-  }, [eventConfig.ticketPrices, eventConfig.eventName]);
+  }, [eventConfig]);
+
+  const availableTracks = useMemo(() => {
+    if (Array.isArray(eventConfig.subEvents) && eventConfig.subEvents.length > 0) {
+      return eventConfig.subEvents.map((s) => s.name);
+    }
+    if (Array.isArray(eventConfig.tracks) && eventConfig.tracks.length > 0) {
+      return eventConfig.tracks;
+    }
+    return [eventConfig.category || 'General Track'];
+  }, [eventConfig]);
 
   useEffect(() => {
     if (ticketOptions.length && !ticketOptions.some((ticket) => ticket.type === formData.ticketType)) {
@@ -262,13 +366,47 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     }
   }, [ticketOptions, formData.ticketType]);
 
+  useEffect(() => {
+    if (availableTracks.length && !availableTracks.includes(formData.track)) {
+      setFormData((current) => ({ ...current, track: availableTracks[0] }));
+    }
+  }, [availableTracks, formData.track]);
+
   const selectedTier = ticketOptions.find((tier) => tier.type === formData.ticketType) || ticketOptions[0];
-  const paymentEnabled = eventConfig.enablePaymentGateway !== false;
-  const amountDue = paymentEnabled ? (selectedTier?.price ?? 5) : 0;
+  const paymentEnabled = eventConfig.enablePaymentGateway !== false && eventConfig.pricingType !== 'free';
+  const amountDue = paymentEnabled ? (selectedTier?.price ?? 0) : 0;
+
+  const reqFields = eventConfig.requiredFields || DEFAULT_CONFIG.requiredFields;
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      // If user picks a sub-event as ticketType and it's also in tracks, keep track in sync
+      if (field === 'ticketType' && availableTracks.includes(value)) {
+        updated.track = value;
+      }
+      return updated;
+    });
     setErrorMsg('');
+  };
+
+  const buildParticipantPayload = () => {
+    const formResponses = {};
+    if (formData.branch) formResponses['Department / Branch'] = formData.branch.trim();
+    if (formData.year) formResponses['Year of Study'] = formData.year.trim();
+    if (formData.prn) formResponses['PRN / Roll Number'] = formData.prn.trim();
+    if (formData.linkedinUrl) formResponses['LinkedIn Profile'] = formData.linkedinUrl.trim();
+    if (eventConfig.customQuestion && formData.customAnswer) {
+      formResponses[eventConfig.customQuestion] = formData.customAnswer.trim();
+    }
+
+    return {
+      ...formData,
+      institution: formData.institution.trim() || eventConfig.collegeName || 'Campus Participant',
+      formResponses,
+      amountPaid: amountDue,
+      eventId: eventConfig.eventId || eventConfig.activeEventId || 'eventra-2026',
+    };
   };
 
   const handleContinue = () => {
@@ -290,10 +428,11 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
   const verifyOrderStatusWithRetry = async (orderId, maxAttempts = 3) => {
     if (!orderId) return false;
+    const payloadData = buildParticipantPayload();
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         setIsLoading(true);
-        const checkRes = await api.payment.checkOrderStatus(orderId, formData);
+        const checkRes = await api.payment.checkOrderStatus(orderId, payloadData);
         if (checkRes.isPaid && checkRes.data) {
           try {
             sessionStorage.removeItem('eventra_active_order');
@@ -325,15 +464,14 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       const razorpayKey = orderRes?.key_id || orderRes?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Toe8X3rzRfnIsm';
       const effectiveOrderId = orderRes?.order_id || orderRes?.orderId;
 
-      // Clean mobile contact to strict 10 digits for seamless UPI intent dispatch
       const rawPhone = String(formData.phone || '').replace(/\D/g, '');
       const cleanContact = rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
       const cleanEmail = String(formData.email || '').trim().toLowerCase();
+      const participantPayload = buildParticipantPayload();
 
-      // Persist in session storage for mobile app-switch recovery
       const pendingData = {
         orderId: effectiveOrderId,
-        formData,
+        formData: participantPayload,
         amountDue,
         timestamp: Date.now(),
       };
@@ -347,7 +485,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
         amount: orderRes?.amount || (amountDue * 100),
         currency: orderRes?.currency || 'INR',
         order_id: effectiveOrderId,
-        name: eventConfig.eventName || 'Eventra 2026',
+        name: eventConfig.eventName || 'Eventra',
         description: `${formData.ticketType} Entry Pass (₹${amountDue})`,
         image: `${window.location.origin}/eventra-icon.png`,
         prefill: {
@@ -356,16 +494,15 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
           contact: cleanContact,
         },
         theme: {
-          color: '#596EE6',
+          color: eventConfig.themeColor || '#596EE6',
           backdrop_color: 'rgba(15, 23, 42, 0.85)',
         },
         modal: {
-          confirm_close: true,     // Prevents accidental back-swipe from cancelling without confirmation
-          backdropclose: false,    // Prevents accidental taps outside on mobile touch screens
+          confirm_close: true,
+          backdropclose: false,
           escape: false,
-          handleback: true,        // Handles Android hardware back button gracefully
+          handleback: true,
           ondismiss: async () => {
-            // Auto-check with bank/Razorpay if user paid in GPay/PhonePe before modal was closed
             if (effectiveOrderId) {
               const verified = await verifyOrderStatusWithRetry(effectiveOrderId, 3);
               if (verified) return;
@@ -392,11 +529,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
               razorpay_payment_id: response.razorpay_payment_id,
               signature: response.razorpay_signature,
               razorpay_signature: response.razorpay_signature,
-              participantData: {
-                ...formData,
-                amountPaid: amountDue,
-                eventId: eventConfig.eventId || eventConfig.activeEventId || 'eventra-2026',
-              },
+              participantData: participantPayload,
             });
 
             try {
@@ -406,7 +539,6 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
             completeRegistration(verifyRes.data.uniqueId, 'Payment verified! Your official entry pass has been issued.');
           } catch (error) {
-            // Auto-recovery
             const verified = await verifyOrderStatusWithRetry(response?.razorpay_order_id || effectiveOrderId, 3);
             if (verified) return;
 
@@ -462,11 +594,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
       setIsLoading(true);
       setErrorMsg('');
 
-      const orderRes = await api.payment.createOrder({
-        ...formData,
-        amountPaid: amountDue,
-        eventId: eventConfig.eventId || eventConfig.activeEventId || 'eventra-2026',
-      });
+      const participantPayload = buildParticipantPayload();
+      const orderRes = await api.payment.createOrder(participantPayload);
 
       if (orderRes?.isFree) {
         completeRegistration(orderRes.data?.uniqueId || orderRes.uniqueId, 'Registration successful!');
@@ -486,6 +615,8 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
     }
   };
 
+  const hasSubEvents = Array.isArray(eventConfig.subEvents) && eventConfig.subEvents.length > 0;
+
   return (
     <div className="registration-page">
       <div className="registration-orb registration-orb-one" aria-hidden="true" />
@@ -503,12 +634,22 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
       <main className="registration-shell">
         <div className="registration-intro">
-          <div className="registration-eyebrow"><Sparkles size={14} /> {eventConfig.eventName || 'Eventra 2026'}</div>
-          <h1>Your next big idea<br /><span>starts here.</span></h1>
-          <p>Save your place at the 48-hour student hackathon. Choose a pass, tell us a little about yourself, and you’re all set.</p>
-          <div className="registration-event-meta">
-            <span><Ticket size={15} /> {eventConfig.eventDate || DEFAULT_CONFIG.eventDate}</span>
-            <span><MapPin size={15} /> Eventra Live Stage</span>
+          <div className="registration-eyebrow">
+            <Sparkles size={14} /> {eventConfig.eventName || 'Eventra'}
+            {eventConfig.clubName && ` • ${eventConfig.clubName}`}
+          </div>
+          <h1>
+            {eventConfig.eventName || 'Event Registration'}
+            <br />
+            <span>{eventConfig.eventTagline || `Official ${eventConfig.category || 'Event'} Pass`}</span>
+          </h1>
+          <p>
+            {eventConfig.eventDescription || 'Select your pass tier, fill in your participant details, and receive your cryptographically verified QR entry pass.'}
+          </p>
+          <div className="registration-event-meta" style={{ flexWrap: 'wrap', gap: '12px' }}>
+            <span><Calendar size={15} /> {eventConfig.eventDate || 'Dates TBA'}</span>
+            {eventConfig.eventTime && <span><Clock size={15} /> {eventConfig.eventTime}</span>}
+            <span><MapPin size={15} /> {eventConfig.eventVenue || 'Campus Venue'}{eventConfig.venueHall ? ` (${eventConfig.venueHall})` : ''}</span>
           </div>
         </div>
 
@@ -562,15 +703,20 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
             {step === 0 && (
               <section className="registration-form-step" aria-labelledby="pass-heading">
                 <div className="registration-section-heading">
-                  <div><span className="registration-overline">STEP 01 · PASS</span><h2 id="pass-heading">Pick your pass</h2></div>
+                  <div>
+                    <span className="registration-overline">STEP 01 · PASS</span>
+                    <h2 id="pass-heading">{hasSubEvents ? 'Pick your pass or sub-event' : 'Pick your pass'}</h2>
+                  </div>
                   <span className="registration-section-icon"><Ticket size={20} /></span>
                 </div>
-                <p className="registration-section-note">Choose the pass that fits how you’ll join Eventra.</p>
+                <p className="registration-section-note">
+                  Choose the pass tier {hasSubEvents ? 'or sub-event activity ' : ''}for <strong>{eventConfig.eventName}</strong>.
+                </p>
 
                 <div className="registration-ticket-grid">
                   {ticketOptions.map((tier) => {
                     const isSelected = formData.ticketType === tier.type;
-                    const price = tier.price || 5;
+                    const price = tier.price ?? 0;
                     return (
                       <label key={tier.type} className={`registration-tier ${isSelected ? 'is-selected' : ''}`}>
                         <input
@@ -592,18 +738,24 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   })}
                 </div>
 
-                <div className="registration-field-block">
-                  <label htmlFor="registration-track">Choose your problem track</label>
-                  <select
-                    id="registration-track"
-                    className="input-control registration-select"
-                    value={formData.track}
-                    onChange={(e) => handleInputChange('track', e.target.value)}
-                  >
-                    {TRACKS.map((track) => <option key={track} value={track}>{track}</option>)}
-                  </select>
-                  <small>You can refine your idea and team during the event.</small>
-                </div>
+                {availableTracks.length > 0 && (
+                  <div className="registration-field-block">
+                    <label htmlFor="registration-track">
+                      {hasSubEvents ? 'Choose your sub-event / activity' : 'Choose your track / category'}
+                    </label>
+                    <select
+                      id="registration-track"
+                      className="input-control registration-select"
+                      value={formData.track}
+                      onChange={(e) => handleInputChange('track', e.target.value)}
+                    >
+                      {availableTracks.map((track) => (
+                        <option key={track} value={track}>{track}</option>
+                      ))}
+                    </select>
+                    <small>Your selected {hasSubEvents ? 'sub-event' : 'track'} will be printed on your digital QR pass.</small>
+                  </div>
+                )}
               </section>
             )}
 
@@ -613,35 +765,203 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   <div><span className="registration-overline">STEP 02 · ATTENDEE</span><h2 id="details-heading">A few details about you</h2></div>
                   <span className="registration-section-icon"><UserRound size={20} /></span>
                 </div>
-                <p className="registration-section-note">We’ll use these details to prepare your entry pass and event updates.</p>
+                <p className="registration-section-note">We’ll use these details to generate your entry pass and send event updates.</p>
 
                 <div className="registration-fields-grid">
                   <div className="registration-field-block">
                     <label htmlFor="registration-name">Full name <span>*</span></label>
-                    <div className="registration-input-wrap"><UserRound size={16} /><input id="registration-name" className="input-control" autoComplete="name" placeholder="Your name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} required /></div>
+                    <div className="registration-input-wrap">
+                      <UserRound size={16} />
+                      <input
+                        id="registration-name"
+                        className="input-control"
+                        autoComplete="name"
+                        placeholder="Your full name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
+
                   <div className="registration-field-block">
                     <label htmlFor="registration-email">Email address <span>*</span></label>
-                    <div className="registration-input-wrap"><Mail size={16} /><input id="registration-email" className="input-control" type="email" autoComplete="email" placeholder="you@college.edu" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} required /></div>
+                    <div className="registration-input-wrap">
+                      <Mail size={16} />
+                      <input
+                        id="registration-email"
+                        className="input-control"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@college.edu"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
+
                   <div className="registration-field-block">
                     <label htmlFor="registration-phone">Mobile / WhatsApp <span>*</span></label>
-                    <div className="registration-input-wrap"><Phone size={16} /><input id="registration-phone" className="input-control" type="tel" autoComplete="tel" inputMode="tel" placeholder="Your mobile number" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} required /></div>
+                    <div className="registration-input-wrap">
+                      <Phone size={16} />
+                      <input
+                        id="registration-phone"
+                        className="input-control"
+                        type="tel"
+                        autoComplete="tel"
+                        inputMode="tel"
+                        placeholder="Your 10-digit mobile number"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="registration-field-block">
-                    <label htmlFor="registration-institution">College / institution <span>*</span></label>
-                    <div className="registration-input-wrap"><Building2 size={16} /><input id="registration-institution" className="input-control" autoComplete="organization" placeholder="College or institution" value={formData.institution} onChange={(e) => handleInputChange('institution', e.target.value)} required /></div>
-                  </div>
+
+                  {reqFields.college !== false && (
+                    <div className="registration-field-block">
+                      <label htmlFor="registration-institution">College / institution <span>*</span></label>
+                      <div className="registration-input-wrap">
+                        <Building2 size={16} />
+                        <input
+                          id="registration-institution"
+                          className="input-control"
+                          autoComplete="organization"
+                          placeholder={eventConfig.collegeName || 'College or institution'}
+                          value={formData.institution}
+                          onChange={(e) => handleInputChange('institution', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {reqFields.branch && (
+                    <div className="registration-field-block">
+                      <label htmlFor="registration-branch">Department / Branch <span>*</span></label>
+                      <div className="registration-input-wrap">
+                        <Layers size={16} />
+                        <input
+                          id="registration-branch"
+                          className="input-control"
+                          placeholder="e.g. Computer Engineering / AI & DS"
+                          value={formData.branch}
+                          onChange={(e) => handleInputChange('branch', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {reqFields.year && (
+                    <div className="registration-field-block">
+                      <label htmlFor="registration-year">Year of Study <span>*</span></label>
+                      <div className="registration-input-wrap">
+                        <GraduationCap size={16} />
+                        <select
+                          id="registration-year"
+                          className="input-control registration-select"
+                          value={formData.year}
+                          onChange={(e) => handleInputChange('year', e.target.value)}
+                          required
+                        >
+                          <option value="">Select Year</option>
+                          <option value="FE (First Year)">FE (First Year)</option>
+                          <option value="SE (Second Year)">SE (Second Year)</option>
+                          <option value="TE (Third Year)">TE (Third Year)</option>
+                          <option value="BE / BTech (Final Year)">BE / BTech (Final Year)</option>
+                          <option value="Postgraduate / Other">Postgraduate / Other</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {reqFields.prn && (
+                    <div className="registration-field-block">
+                      <label htmlFor="registration-prn">PRN / Roll Number / College ID <span>*</span></label>
+                      <div className="registration-input-wrap">
+                        <Hash size={16} />
+                        <input
+                          id="registration-prn"
+                          className="input-control"
+                          placeholder="Enter your PRN or Roll Number"
+                          value={formData.prn}
+                          onChange={(e) => handleInputChange('prn', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="registration-field-block">
                     <label htmlFor="registration-team">Team name <small>Optional</small></label>
-                    <div className="registration-input-wrap"><UsersRound size={16} /><input id="registration-team" className="input-control" placeholder="Leave blank if solo" value={formData.teamName} onChange={(e) => handleInputChange('teamName', e.target.value)} /></div>
+                    <div className="registration-input-wrap">
+                      <UsersRound size={16} />
+                      <input
+                        id="registration-team"
+                        className="input-control"
+                        placeholder="Leave blank if registering solo"
+                        value={formData.teamName}
+                        onChange={(e) => handleInputChange('teamName', e.target.value)}
+                      />
+                    </div>
                   </div>
+
                   <div className="registration-field-block">
-                    <label htmlFor="registration-github">GitHub profile <small>Optional</small></label>
-                    <div className="registration-input-wrap"><Github size={16} /><input id="registration-github" className="input-control" type="url" placeholder="https://github.com/you" value={formData.githubUrl} onChange={(e) => handleInputChange('githubUrl', e.target.value)} /></div>
+                    <label htmlFor="registration-github">
+                      GitHub / Portfolio {reqFields.github ? <span>*</span> : <small>Optional</small>}
+                    </label>
+                    <div className="registration-input-wrap">
+                      <Github size={16} />
+                      <input
+                        id="registration-github"
+                        className="input-control"
+                        type="url"
+                        placeholder="https://github.com/you"
+                        value={formData.githubUrl}
+                        onChange={(e) => handleInputChange('githubUrl', e.target.value)}
+                        required={Boolean(reqFields.github)}
+                      />
+                    </div>
                   </div>
+
+                  {reqFields.linkedin && (
+                    <div className="registration-field-block">
+                      <label htmlFor="registration-linkedin">LinkedIn Profile URL <span>*</span></label>
+                      <div className="registration-input-wrap">
+                        <Globe size={16} />
+                        <input
+                          id="registration-linkedin"
+                          className="input-control"
+                          type="url"
+                          placeholder="https://linkedin.com/in/you"
+                          value={formData.linkedinUrl}
+                          onChange={(e) => handleInputChange('linkedinUrl', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {eventConfig.customQuestion && (
+                    <div className="registration-field-block" style={{ gridColumn: '1 / -1' }}>
+                      <label htmlFor="registration-custom">{eventConfig.customQuestion} <span>*</span></label>
+                      <div className="registration-input-wrap">
+                        <HelpCircle size={16} />
+                        <input
+                          id="registration-custom"
+                          className="input-control"
+                          placeholder="Your answer"
+                          value={formData.customAnswer}
+                          onChange={(e) => handleInputChange('customAnswer', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="registration-privacy-note"><ShieldCheck size={16} /><span>Your details are used for event registration and pass delivery.</span></div>
+                <div className="registration-privacy-note"><ShieldCheck size={16} /><span>Your details are used for event registration and official QR pass delivery.</span></div>
               </section>
             )}
 
@@ -651,7 +971,7 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   <div><span className="registration-overline">STEP 03 · REVIEW</span><h2 id="review-heading">Looking good?</h2></div>
                   <span className="registration-section-icon"><BadgeCheck size={20} /></span>
                 </div>
-                <p className="registration-section-note">Review your pass and attendee details before you finish.</p>
+                <p className="registration-section-note">Review your pass and attendee details before confirming your spot at <strong>{eventConfig.eventName}</strong>.</p>
 
                 <div className="registration-review-card">
                   <div className="registration-review-top"><span className="registration-review-label">YOUR PASS</span><button type="button" onClick={() => setStep(0)}>Edit pass</button></div>
@@ -662,8 +982,14 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                     <div><dt>Name</dt><dd>{formData.name}</dd></div>
                     <div><dt>Email</dt><dd>{formData.email}</dd></div>
                     <div><dt>Mobile</dt><dd>{formData.phone}</dd></div>
-                    <div><dt>Institution</dt><dd>{formData.institution}</dd></div>
+                    {formData.institution && <div><dt>Institution</dt><dd>{formData.institution}</dd></div>}
+                    {formData.branch && <div><dt>Branch</dt><dd>{formData.branch}</dd></div>}
+                    {formData.year && <div><dt>Year</dt><dd>{formData.year}</dd></div>}
+                    {formData.prn && <div><dt>PRN / ID</dt><dd>{formData.prn}</dd></div>}
                     {formData.teamName && <div><dt>Team</dt><dd>{formData.teamName}</dd></div>}
+                    {eventConfig.customQuestion && formData.customAnswer && (
+                      <div><dt>{eventConfig.customQuestion}</dt><dd>{formData.customAnswer}</dd></div>
+                    )}
                   </dl>
                 </div>
 
@@ -672,7 +998,6 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   <span>{amountDue > 0 ? 'You’ll continue to secure checkout to complete your registration.' : 'Your digital QR pass will be created as soon as you confirm.'}</span>
                 </div>
 
-                {/* Mobile In-App Browser Guidance Banner */}
                 {isInAppBrowser && amountDue > 0 && (
                   <div style={{
                     marginTop: '14px',
@@ -694,7 +1019,6 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                   </div>
                 )}
 
-                {/* Pending Order Auto-Recovery Card */}
                 {pendingOrder?.orderId && (
                   <div style={{
                     marginTop: '14px',
@@ -752,13 +1076,6 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
                     </div>
                   </div>
                 )}
-
-                {amountDue > 0 && String(import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_').startsWith('rzp_test_') && (
-                  <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(247, 208, 112, 0.08)', border: '1px solid rgba(247, 208, 112, 0.25)', fontSize: '12px', color: '#fef08a', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1.5 }}>
-                    <AlertCircle size={16} style={{ flexShrink: 0, color: '#facc15' }} />
-                    <span><strong>Razorpay Test Sandbox:</strong> Real UPI apps (GPay / PhonePe) will say <em>"Invalid QR"</em> on test codes. To test without real money: inside the popup, select <strong>UPI ID</strong> and enter <code>success@razorpay</code>, or select <strong>Card / NetBanking</strong> & click <strong>Success</strong>. (To accept real mobile UPI payments, switch to Razorpay Live keys in Admin).</span>
-                  </div>
-                )}
               </section>
             )}
 
@@ -778,19 +1095,27 @@ export const RegistrationPage = ({ onRegistrationSuccess, onBackToLanding, onSho
 
           <aside className="registration-summary">
             <div className="registration-summary-heading"><span>YOUR EVENT</span><span className="registration-live-dot" /> <small>Registration portal</small></div>
-            <div className="registration-summary-event">{eventConfig.eventName || 'Eventra 2026'}</div>
-            <div className="registration-summary-subtitle">48 hours to build something remarkable.</div>
+            <div className="registration-summary-event">{eventConfig.eventName || 'Eventra'}</div>
+            <div className="registration-summary-subtitle">
+              {eventConfig.eventTagline || `${eventConfig.eventDate || 'Upcoming Event'} • ${eventConfig.eventVenue || 'Campus Venue'}`}
+            </div>
             <div className="registration-summary-rule" />
-            <div className="registration-summary-line"><Ticket size={16} /><span>{selectedTier?.type || 'Hacker Pass'}</span><strong>{amountDue === 0 ? 'Free' : `₹${amountDue}`}</strong></div>
+            <div className="registration-summary-line"><Ticket size={16} /><span>{selectedTier?.type || 'Standard Pass'}</span><strong>{amountDue === 0 ? 'Free' : `₹${amountDue}`}</strong></div>
             <div className="registration-summary-line"><Sparkles size={16} /><span>{formData.track}</span></div>
+            {eventConfig.eventDate && (
+              <div className="registration-summary-line"><Calendar size={16} /><span>{eventConfig.eventDate}</span></div>
+            )}
+            {eventConfig.eventVenue && (
+              <div className="registration-summary-line"><MapPin size={16} /><span>{eventConfig.eventVenue}</span></div>
+            )}
             <div className="registration-summary-rule" />
             <div className="registration-total"><span>Total due</span><strong>{amountDue === 0 ? 'Free' : `₹${amountDue}`}</strong></div>
-            <div className="registration-summary-foot"><ShieldCheck size={14} /> {amountDue > 0 ? 'Secure payment powered by Razorpay' : 'No payment required'}</div>
-            <div className="registration-summary-perks"><div><CheckCircle2 size={15} /> Digital entry pass</div><div><CheckCircle2 size={15} /> Event updates by email</div></div>
+            <div className="registration-summary-foot"><ShieldCheck size={14} /> {amountDue > 0 ? 'Secure payment powered by Razorpay' : 'Free official pass — no payment required'}</div>
+            <div className="registration-summary-perks"><div><CheckCircle2 size={15} /> Digital QR entry pass</div><div><CheckCircle2 size={15} /> Instant email & WhatsApp pass</div></div>
           </aside>
         </form>
 
-        <div className="registration-footer-note"><Lock size={13} /> Your registration details stay with the Eventra event team.</div>
+        <div className="registration-footer-note"><Lock size={13} /> Your registration details stay with the {eventConfig.clubName || eventConfig.eventName || 'Eventra'} organizing team.</div>
       </main>
     </div>
   );

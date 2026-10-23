@@ -1,5 +1,5 @@
 import { registrantRepo } from '../models/registrantRepo.js';
-import { configRepo } from '../models/configRepo.js';
+import { resolveEventContext } from './registrantController.js';
 import { verifyQRPayload } from '../services/qrService.js';
 import { sendCheckinConfirmationEmail } from '../services/emailService.js';
 import { sendAutoCheckinMessage } from '../services/messagingService.js';
@@ -20,7 +20,6 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
-    // Extract potential unique ID from token (e.g. HS26.v1.HS26-8A3F1B.abcdef or raw HS26-8A3F1B)
     let searchId = rawInput;
     if (rawInput.startsWith('HS26.v1.')) {
       const parts = rawInput.split('.');
@@ -29,7 +28,6 @@ export const scanCheckin = async (req, res) => {
       }
     }
 
-    // Fast DynamoDB lookup
     let registrant = await registrantRepo.findByIdOrEmail(searchId);
     if (!registrant && searchId !== rawInput) {
       registrant = await registrantRepo.findByIdOrEmail(rawInput);
@@ -43,7 +41,6 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
-    // Cryptographic Anti-Forgery Signature Verification
     const verification = verifyQRPayload(rawInput, registrant);
     if (!verification.valid && verification.forged) {
       return res.status(400).json({
@@ -58,7 +55,6 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
-    // Check if already checked in (Duplicate Scan Protection)
     if (registrant.checkedIn) {
       return res.status(200).json({
         success: false,
@@ -83,7 +79,6 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
-    // Perform Check-in atomically with Firestore Transaction (Prevents concurrent race conditions)
     const staffName = req.user ? req.user.name : (req.body.scannedBy || 'Gate Scanner');
     const atomicResult = await registrantRepo.checkinAtomic(registrant.uniqueId, {
       staffName,
@@ -116,17 +111,15 @@ export const scanCheckin = async (req, res) => {
     }
 
     const updated = atomicResult.registrant;
+    const eventCtx = await resolveEventContext(updated.eventId);
 
-    console.log(`✅ [CHECK-IN APPROVED] ${updated.name} (${updated.uniqueId}) checked in by ${staffName} (Live Photo: ${Boolean(livePhoto)})`);
+    console.log(`✅ [CHECK-IN APPROVED] ${updated.name} (${updated.uniqueId}) checked in by ${staffName}`);
 
-    // Asynchronously dispatch instant Check-in Confirmation Email with live photo
-    configRepo.getConfig()
-      .then((cfg) => sendCheckinConfirmationEmail(updated, cfg))
+    sendCheckinConfirmationEmail(updated, eventCtx)
       .then(() => console.log(`📧 [AUTO-DISPATCH] Check-in confirmation email delivered to ${updated.email}`))
       .catch((mailErr) => console.warn(`⚠️ [AUTO-DISPATCH NOTICE] Check-in confirmation email: ${mailErr.message}`));
 
-    // Asynchronously dispatch instant WhatsApp / SMS Notification
-    sendAutoCheckinMessage(updated)
+    sendAutoCheckinMessage(updated, eventCtx)
       .then((msgRes) => console.log(`📱 [AUTO-DISPATCH] Check-in message result for ${updated.name}:`, msgRes.provider))
       .catch((msgErr) => console.warn(`⚠️ [AUTO-DISPATCH NOTICE] Check-in message error: ${msgErr.message}`));
 
@@ -135,7 +128,7 @@ export const scanCheckin = async (req, res) => {
       status: 'SUCCESS',
       emailNotificationSent: true,
       hasLivePhoto: Boolean(livePhoto),
-      message: `✅ Check-in Approved: Welcome to Eventra 2026, ${updated.name}! Live photo verified & confirmation email dispatched.`,
+      message: `✅ Check-in Approved: Welcome to ${eventCtx.eventName || 'Eventra'}, ${updated.name}!`,
       registrant: {
         _id: updated.uniqueId,
         uniqueId: updated.uniqueId,
@@ -158,9 +151,6 @@ export const scanCheckin = async (req, res) => {
   }
 };
 
-/**
- * Check-in status lookup by ID
- */
 export const getCheckinStatus = async (req, res) => {
   try {
     const { uniqueId } = req.params;
@@ -183,9 +173,6 @@ export const getCheckinStatus = async (req, res) => {
   }
 };
 
-/**
- * Undo Check-in (Revert in case of gate mis-scan)
- */
 export const undoCheckin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -211,9 +198,6 @@ export const undoCheckin = async (req, res) => {
   }
 };
 
-/**
- * Get recent check-ins stream for gate monitor
- */
 export const getRecentScans = async (req, res) => {
   try {
     const recents = await registrantRepo.getRecentCheckins(20);

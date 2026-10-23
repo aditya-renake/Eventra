@@ -2,7 +2,7 @@ import { getFirestore } from '../config/firebase.js';
 
 let eventsMemoryCache = null;
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 5000;
+const CACHE_TTL_MS = 3000;
 
 function invalidateCache() {
   eventsMemoryCache = null;
@@ -13,19 +13,41 @@ export const DEFAULT_EVENTS = [
   {
     id: 'eventra-2026',
     eventId: 'eventra-2026',
+    slug: 'eventra-2026',
     name: 'Eventra 2026',
     tagline: "India's Flagship 48-Hour National Hackathon • ACES DIT Pune",
     category: 'Hackathon',
+    structureType: 'single',
+    collegeName: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+    clubName: 'ACES (Association of Computer Engineering Students)',
+    clubCode: 'ACES-DIT',
     description: '48-hour continuous hackathon with ₹15,00,000+ prize pool, Gigabit Wi-Fi, mentorship, and high-density computing labs at Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune.',
     bannerUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80',
-    startDate: '2026-10-16T09:00:00.000Z',
-    endDate: '2026-10-18T18:00:00.000Z',
+    themeColor: '#596EE6',
+    mode: 'in_person',
+    startDate: '2026-10-16T09:00',
+    endDate: '2026-10-18T18:00',
     dateDisplay: 'October 16 – 18, 2026',
     timeDisplay: '09:00 AM IST (Gate Check-in starts 07:30 AM)',
     venue: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
-    organizerName: 'ACES (Association of Computer Engineering Students)',
+    venueHall: 'DIT Main Auditorium & High-Density Compute Labs',
+    mapUrl: 'https://maps.google.com/?q=Dr.+D.+Y.+Patil+Institute+of+Technology+Pimpri+Pune',
+    meetingUrl: '',
+    organizerName: 'Aditya Renake',
+    organizerRole: 'Lead Operations & Main Event Organizer',
     organizerEmail: 'tigeradi1504@gmail.com',
-    ticketTiers: ['Hacker Pass', 'VIP Delegate', 'Judge Pass', 'Mentor'],
+    organizerPhone: '+91 9890829874',
+    alternatePOC: '',
+    pricingType: 'paid',
+    entryFee: 5,
+    feeDisplay: '₹5 Entry Pass',
+    ticketTiers: ['Hacker Pass', 'Student Pass', 'VIP Delegate', 'Judge / Mentor'],
+    ticketPrices: {
+      'Hacker Pass': 5,
+      'Student Pass': 5,
+      'VIP Delegate': 5,
+      'Judge / Mentor': 5,
+    },
     tracks: [
       'AI & Agentic Systems',
       'Cybersecurity & Privacy',
@@ -33,71 +55,127 @@ export const DEFAULT_EVENTS = [
       'Cloud & Distributed Systems',
       'Open Innovation & Campus Tech',
     ],
+    subEvents: [],
+    requiredFields: {
+      fullName: true,
+      email: true,
+      phone: true,
+      college: true,
+      branch: false,
+      year: false,
+      prn: false,
+      github: false,
+      linkedin: false,
+    },
+    customQuestion: '',
+    whatsappUrl: '',
+    discordUrl: '',
+    brochureUrl: '',
+    socialUrl: '',
     status: 'live',
     isFlagship: true,
     totalCapacity: 500,
     assignedEventHeads: ['adityarenake'],
     assignedScanners: ['adityarenake'],
-    entryFee: 5,
-    feeDisplay: '₹5 Entry Pass',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: 'ai-agents-workshop-2026',
     eventId: 'ai-agents-workshop-2026',
+    slug: 'ai-agents-workshop-2026',
     name: 'AI & Multi-Agent Swarms Bootcamp',
     tagline: 'Deep Dive into LLM Orchestration, LangChain & Autonomous Workflows',
     category: 'Workshop',
+    structureType: 'single',
+    collegeName: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+    clubName: 'ACES Technical Council',
+    clubCode: 'ACES-AI',
     description: 'Hands-on 2-day technical bootcamp where students build autonomous agent swarms, tool-calling agents, and production RAG pipelines with live GPU workstations.',
     bannerUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-    startDate: '2026-11-05T10:00:00.000Z',
-    endDate: '2026-11-06T17:00:00.000Z',
+    themeColor: '#8B5CF6',
+    mode: 'in_person',
+    startDate: '2026-11-05T10:00',
+    endDate: '2026-11-06T17:00',
     dateDisplay: 'November 5 – 6, 2026',
     timeDisplay: '10:00 AM – 05:00 PM IST',
     venue: 'ACES High-Performance AI Lab (Block 402), DIT Pune',
-    organizerName: 'ACES Technical Council',
+    venueHall: 'Block 402 AI Lab',
+    mapUrl: 'https://maps.google.com/?q=Dr.+D.+Y.+Patil+Institute+of+Technology+Pimpri+Pune',
+    meetingUrl: '',
+    organizerName: 'Aditya Renake',
+    organizerRole: 'Technical Lead',
     organizerEmail: 'tigeradi1504@gmail.com',
+    organizerPhone: '+91 9890829874',
+    alternatePOC: '',
+    pricingType: 'paid',
+    entryFee: 5,
+    feeDisplay: '₹5 Bootcamp Pass',
     ticketTiers: ['Workshop Pass', 'Student Pass'],
+    ticketPrices: {
+      'Workshop Pass': 5,
+      'Student Pass': 5,
+    },
     tracks: ['Multi-Agent Systems', 'Model Fine-tuning', 'Vector Search'],
+    subEvents: [],
     status: 'upcoming',
     isFlagship: false,
     totalCapacity: 120,
     assignedEventHeads: ['adityarenake'],
     assignedScanners: ['adityarenake'],
-    entryFee: 5,
-    feeDisplay: '₹5 Bootcamp Pass',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: 'aces-esports-cup-2026',
     eventId: 'aces-esports-cup-2026',
+    slug: 'aces-esports-cup-2026',
     name: 'ACES Inter-College Esports Arena',
     tagline: 'Valorant & BGMI LAN Championship with Live Stage Projection',
     category: 'Gaming',
+    structureType: 'single',
+    collegeName: 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+    clubName: 'ACES Sports & Esports Committee',
+    clubCode: 'ACES-LAN',
     description: 'High-octane collegiate LAN esports championship featuring 32 shortlisted teams competing on ultra-low latency fiber networks with live shoutcasting.',
     bannerUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
-    startDate: '2026-11-20T11:00:00.000Z',
-    endDate: '2026-11-21T20:00:00.000Z',
+    themeColor: '#10B981',
+    mode: 'in_person',
+    startDate: '2026-11-20T11:00',
+    endDate: '2026-11-21T20:00',
     dateDisplay: 'November 20 – 21, 2026',
     timeDisplay: '11:00 AM – 08:00 PM IST',
     venue: 'DIT Main Auditorium & ACES Esports Zone, Pimpri, Pune',
-    organizerName: 'ACES Sports & Esports Committee',
+    venueHall: 'DIT Main Auditorium',
+    mapUrl: 'https://maps.google.com/?q=Dr.+D.+Y.+Patil+Institute+of+Technology+Pimpri+Pune',
+    meetingUrl: '',
+    organizerName: 'Aditya Renake',
+    organizerRole: 'Esports Lead',
     organizerEmail: 'tigeradi1504@gmail.com',
+    organizerPhone: '+91 9890829874',
+    alternatePOC: '',
+    pricingType: 'paid',
+    entryFee: 5,
+    feeDisplay: '₹5 Arena Pass',
     ticketTiers: ['Player Pass', 'Spectator Pass', 'VIP Lounge'],
+    ticketPrices: {
+      'Player Pass': 5,
+      'Spectator Pass': 5,
+      'VIP Lounge': 5,
+    },
     tracks: ['Valorant 5v5', 'BGMI Squads'],
+    subEvents: [],
     status: 'upcoming',
     isFlagship: false,
     totalCapacity: 350,
     assignedEventHeads: ['adityarenake'],
     assignedScanners: ['adityarenake'],
-    entryFee: 5,
-    feeDisplay: '₹5 Arena Pass',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
 ];
+
+const deletedEventIds = new Set();
 
 export const eventRepo = {
   getCollection() {
@@ -116,7 +194,9 @@ export const eventRepo = {
       if (snapshot.empty) {
         console.log('🌱 [eventRepo] Seeding initial ACES events catalog...');
         for (const ev of DEFAULT_EVENTS) {
-          await collection.doc(ev.id).set(ev);
+          if (!deletedEventIds.has(ev.id)) {
+            await collection.doc(ev.id).set(ev);
+          }
         }
       }
     } catch (e) {
@@ -139,18 +219,29 @@ export const eventRepo = {
         const collection = this.getCollection();
         const snapshot = await collection.get();
         snapshot.docs.forEach((doc) => {
-          events.push({ id: doc.id, eventId: doc.id, ...doc.data() });
+          const data = doc.data();
+          const docId = doc.id;
+          if (!deletedEventIds.has(docId)) {
+            events.push({ ...data, id: docId, eventId: docId });
+          }
         });
 
         if (events.length === 0) {
-          events = [...DEFAULT_EVENTS];
+          events = DEFAULT_EVENTS.filter((ev) => !deletedEventIds.has(ev.id));
         }
+
+        // Sort so newly created or live events appear prominently
+        events.sort((a, b) => {
+          if (a.status === 'live' && b.status !== 'live') return -1;
+          if (b.status === 'live' && a.status !== 'live') return 1;
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
 
         eventsMemoryCache = events;
         lastCacheTime = now;
       } catch (e) {
         console.warn('[eventRepo] getAll fallback to defaults:', e.message);
-        events = [...DEFAULT_EVENTS];
+        events = DEFAULT_EVENTS.filter((ev) => !deletedEventIds.has(ev.id));
       }
     }
 
@@ -169,7 +260,9 @@ export const eventRepo = {
         (ev) =>
           (ev.name && ev.name.toLowerCase().includes(s)) ||
           (ev.tagline && ev.tagline.toLowerCase().includes(s)) ||
-          (ev.category && ev.category.toLowerCase().includes(s))
+          (ev.category && ev.category.toLowerCase().includes(s)) ||
+          (ev.clubName && ev.clubName.toLowerCase().includes(s)) ||
+          (ev.collegeName && ev.collegeName.toLowerCase().includes(s))
       );
     }
 
@@ -182,21 +275,28 @@ export const eventRepo = {
   async findById(eventId) {
     if (!eventId) return null;
     const cleanId = String(eventId).toLowerCase().trim();
+    if (!cleanId || cleanId === '[object object]') return null;
+
     const all = await this.getAll();
-    const match = all.find((ev) => ev.id === cleanId || ev.eventId === cleanId);
+    const match = all.find(
+      (ev) =>
+        String(ev.id || '').toLowerCase() === cleanId ||
+        String(ev.eventId || '').toLowerCase() === cleanId ||
+        String(ev.slug || '').toLowerCase() === cleanId
+    );
     if (match) return match;
 
     try {
       const collection = this.getCollection();
       const doc = await collection.doc(cleanId).get();
       if (doc.exists) {
-        return { id: doc.id, eventId: doc.id, ...doc.data() };
+        return { ...doc.data(), id: doc.id, eventId: doc.id };
       }
     } catch (e) {
       console.warn('[eventRepo] findById error:', e.message);
     }
 
-    return DEFAULT_EVENTS.find((ev) => ev.id === cleanId) || null;
+    return DEFAULT_EVENTS.find((ev) => ev.id === cleanId || ev.slug === cleanId) || null;
   },
 
   /**
@@ -204,21 +304,101 @@ export const eventRepo = {
    */
   async create(data) {
     invalidateCache();
-    const cleanId = (data.eventId || data.id || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-')).toLowerCase().trim();
+    const rawId = data.eventId || data.id || data.slug || data.name || `event-${Date.now()}`;
+    const cleanId = String(rawId)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || `event-${Date.now()}`;
+
+    deletedEventIds.delete(cleanId);
+
+    const parsedEntryFee = data.pricingType === 'free'
+      ? 0
+      : (data.entryFee !== undefined && !isNaN(Number(data.entryFee)) ? Math.max(0, Number(data.entryFee)) : 5);
+
+    const tiers = Array.isArray(data.ticketTiers) && data.ticketTiers.length > 0
+      ? data.ticketTiers
+      : (typeof data.ticketTiers === 'string' && data.ticketTiers.trim()
+          ? data.ticketTiers.split(',').map((t) => t.trim()).filter(Boolean)
+          : ['Standard Pass']);
+
+    const tracks = Array.isArray(data.tracks) && data.tracks.length > 0
+      ? data.tracks
+      : (typeof data.tracks === 'string' && data.tracks.trim()
+          ? data.tracks.split(',').map((t) => t.trim()).filter(Boolean)
+          : ['General Track']);
+
+    let ticketPrices = {};
+    if (data.ticketPrices && typeof data.ticketPrices === 'object' && Object.keys(data.ticketPrices).length > 0) {
+      for (const [k, v] of Object.entries(data.ticketPrices)) {
+        const num = Number(v);
+        ticketPrices[k] = !isNaN(num) && num >= 0 ? num : parsedEntryFee;
+      }
+    } else {
+      tiers.forEach((t) => {
+        ticketPrices[t] = parsedEntryFee;
+      });
+    }
 
     const eventItem = {
       ...data,
       id: cleanId,
       eventId: cleanId,
+      slug: data.slug || cleanId,
       name: data.name.trim(),
+      tagline: data.tagline ? data.tagline.trim() : (data.description ? data.description.trim().slice(0, 120) : ''),
+      description: data.description ? data.description.trim() : '',
       category: data.category || 'Workshop',
-      status: data.status || 'upcoming',
-      ticketTiers: data.ticketTiers || ['Standard Pass'],
-      tracks: data.tracks || ['General Track'],
-      totalCapacity: parseInt(data.totalCapacity || 200, 10),
-      assignedEventHeads: Array.isArray(data.assignedEventHeads) ? data.assignedEventHeads : [],
-      assignedScanners: Array.isArray(data.assignedScanners) ? data.assignedScanners : [],
-      createdAt: new Date().toISOString(),
+      structureType: data.structureType || 'single',
+      collegeName: data.collegeName ? data.collegeName.trim() : '',
+      clubName: data.clubName ? data.clubName.trim() : '',
+      clubCode: data.clubCode ? data.clubCode.trim() : '',
+      mode: data.mode || 'in_person',
+      startDate: data.startDate || '',
+      endDate: data.endDate || '',
+      dateDisplay: data.dateDisplay || 'Dates TBA',
+      timeDisplay: data.timeDisplay || 'Schedule TBA',
+      venue: data.venue ? data.venue.trim() : 'Campus Venue',
+      venueHall: data.venueHall ? data.venueHall.trim() : '',
+      mapUrl: data.mapUrl ? data.mapUrl.trim() : '',
+      meetingUrl: data.meetingUrl ? data.meetingUrl.trim() : '',
+      themeColor: data.themeColor || '#596EE6',
+      bannerUrl: data.bannerUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80',
+      organizerName: data.organizerName ? data.organizerName.trim() : '',
+      organizerRole: data.organizerRole ? data.organizerRole.trim() : '',
+      organizerEmail: data.organizerEmail ? data.organizerEmail.trim() : '',
+      organizerPhone: data.organizerPhone ? data.organizerPhone.trim() : '',
+      alternatePOC: data.alternatePOC ? data.alternatePOC.trim() : '',
+      pricingType: parsedEntryFee === 0 ? 'free' : (data.pricingType || 'paid'),
+      entryFee: parsedEntryFee,
+      feeDisplay: data.feeDisplay || (parsedEntryFee === 0 ? 'Free Entry Pass' : `₹${parsedEntryFee} Entry Pass`),
+      ticketTiers: tiers,
+      ticketPrices,
+      tracks,
+      subEvents: Array.isArray(data.subEvents) ? data.subEvents : [],
+      requiredFields: data.requiredFields || {
+        fullName: true,
+        email: true,
+        phone: true,
+        college: true,
+        branch: false,
+        year: false,
+        prn: false,
+        github: false,
+        linkedin: false,
+      },
+      customQuestion: data.customQuestion ? data.customQuestion.trim() : '',
+      whatsappUrl: data.whatsappUrl ? data.whatsappUrl.trim() : '',
+      discordUrl: data.discordUrl ? data.discordUrl.trim() : '',
+      brochureUrl: data.brochureUrl ? data.brochureUrl.trim() : '',
+      socialUrl: data.socialUrl ? data.socialUrl.trim() : '',
+      status: data.status || 'live',
+      isFlagship: Boolean(data.isFlagship),
+      allowSpotRegistration: data.allowSpotRegistration !== false,
+      totalCapacity: parseInt(data.totalCapacity || 250, 10),
+      assignedEventHeads: Array.isArray(data.assignedEventHeads) ? data.assignedEventHeads : ['adityarenake'],
+      assignedScanners: Array.isArray(data.assignedScanners) ? data.assignedScanners : ['adityarenake'],
+      createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
@@ -255,10 +435,47 @@ export const eventRepo = {
     const merged = {
       ...existing,
       ...updates,
+      id: existing.id || cleanId,
+      eventId: existing.eventId || cleanId,
       updatedAt: new Date().toISOString(),
     };
 
-    await collection.doc(cleanId).set(merged, { merge: true });
+    if (updates.ticketTiers && typeof updates.ticketTiers === 'string') {
+      merged.ticketTiers = updates.ticketTiers.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+    if (updates.tracks && typeof updates.tracks === 'string') {
+      merged.tracks = updates.tracks.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+
+    if (updates.pricingType === 'free' || (updates.entryFee !== undefined && Number(updates.entryFee) === 0)) {
+      merged.pricingType = 'free';
+      merged.entryFee = 0;
+      merged.feeDisplay = 'Free Entry Pass';
+    } else if (updates.entryFee !== undefined && !isNaN(Number(updates.entryFee))) {
+      merged.entryFee = Number(updates.entryFee);
+      merged.pricingType = merged.entryFee === 0 ? 'free' : 'paid';
+      merged.feeDisplay = updates.feeDisplay || (merged.entryFee === 0 ? 'Free Entry Pass' : `₹${merged.entryFee} Entry Pass`);
+    }
+
+    if (!updates.ticketPrices && Array.isArray(merged.ticketTiers)) {
+      const nextPrices = {};
+      merged.ticketTiers.forEach((tier) => {
+        nextPrices[tier] = merged.entryFee !== undefined ? Number(merged.entryFee) : 5;
+      });
+      merged.ticketPrices = nextPrices;
+    }
+
+    try {
+      await collection.doc(merged.id).set(merged);
+    } catch (e) {
+      console.warn('[eventRepo] update notice:', e.message);
+    }
+
+    const idx = DEFAULT_EVENTS.findIndex((ev) => ev.id === merged.id || ev.eventId === merged.id);
+    if (idx >= 0) {
+      DEFAULT_EVENTS[idx] = merged;
+    }
+
     return merged;
   },
 
@@ -269,8 +486,17 @@ export const eventRepo = {
     invalidateCache();
     if (!eventId) return false;
     const cleanId = String(eventId).toLowerCase().trim();
-    const collection = this.getCollection();
-    await collection.doc(cleanId).delete();
+    deletedEventIds.add(cleanId);
+    const idx = DEFAULT_EVENTS.findIndex((ev) => ev.id === cleanId || ev.eventId === cleanId);
+    if (idx >= 0) {
+      DEFAULT_EVENTS.splice(idx, 1);
+    }
+    try {
+      const collection = this.getCollection();
+      await collection.doc(cleanId).delete();
+    } catch (e) {
+      console.warn('[eventRepo] delete notice:', e.message);
+    }
     return true;
   },
 };

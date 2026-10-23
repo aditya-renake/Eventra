@@ -1,5 +1,5 @@
 import { registrantRepo } from '../models/registrantRepo.js';
-import { configRepo } from '../models/configRepo.js';
+import { resolveEventContext } from './registrantController.js';
 import { sendPassEmail, sendBulkPassEmails, buildPassEmailHtml } from '../services/emailService.js';
 import { sendAutoPassWhatsApp } from '../services/messagingService.js';
 
@@ -23,12 +23,11 @@ export const sendSinglePassEmail = async (req, res) => {
       });
     }
 
-    const config = await configRepo.getConfig();
+    const eventCtx = await resolveEventContext(registrant.eventId);
 
-    // Dual Parallel Dispatch: Simultaneously send Email and WhatsApp pass
     const [emailRes, whatsappRes] = await Promise.allSettled([
-      sendPassEmail(registrant, config),
-      sendAutoPassWhatsApp(registrant),
+      sendPassEmail(registrant, eventCtx),
+      sendAutoPassWhatsApp(registrant, eventCtx),
     ]);
 
     if (emailRes.status === 'rejected') {
@@ -76,9 +75,9 @@ export const sendSinglePassEmail = async (req, res) => {
  */
 export const sendBulkEmails = async (req, res) => {
   try {
-    const { onlyPending = true, selectedIds } = req.body;
+    const { onlyPending = true, selectedIds, eventId } = req.body;
 
-    const allResult = await registrantRepo.getAll({ limit: 10000 });
+    const allResult = await registrantRepo.getAll({ limit: 10000, eventId });
     let registrants = allResult.items || [];
 
     if (selectedIds && Array.isArray(selectedIds) && selectedIds.length > 0) {
@@ -92,7 +91,6 @@ export const sendBulkEmails = async (req, res) => {
       );
     }
 
-    // STRICT VERIFICATION FILTER: Only verified attendees will ever receive pass emails
     registrants = registrants.filter((r) => r.verified === true || String(r.verificationStatus).toLowerCase() === 'verified');
 
     if (onlyPending) {
@@ -107,10 +105,9 @@ export const sendBulkEmails = async (req, res) => {
       });
     }
 
-    const config = await configRepo.getConfig();
-    const results = await sendBulkPassEmails(registrants, config);
+    const eventCtx = await resolveEventContext(eventId || registrants[0]?.eventId);
+    const results = await sendBulkPassEmails(registrants, eventCtx);
 
-    // Update sent flags & dispatch WhatsApp simultaneously
     for (const r of registrants) {
       await registrantRepo.update(r.uniqueId, {
         emailSent: true,
@@ -118,8 +115,7 @@ export const sendBulkEmails = async (req, res) => {
         emailSendCount: (r.emailSendCount || 0) + 1,
       });
 
-      // Parallel WhatsApp dispatch
-      sendAutoPassWhatsApp(r).catch((err) =>
+      sendAutoPassWhatsApp(r, eventCtx).catch((err) =>
         console.warn(`⚠️ [BULK WHATSAPP NOTICE] Failed for ${r.uniqueId}:`, err.message)
       );
     }
@@ -144,25 +140,26 @@ export const sendBulkEmails = async (req, res) => {
  */
 export const previewPassEmail = async (req, res) => {
   try {
-    const { registrantId } = req.query;
+    const { registrantId, eventId } = req.query;
     let registrant;
 
     if (registrantId) {
       registrant = await registrantRepo.findByUniqueId(registrantId);
     }
 
+    const eventCtx = await resolveEventContext(eventId || registrant?.eventId);
+
     if (!registrant) {
       registrant = {
         name: 'Aditya Renake',
         email: 'aditya.renake@outlook.com',
-        ticketType: 'Team Lead Pass',
+        ticketType: eventCtx.ticketTiers?.[0] || 'Standard Pass',
         uniqueId: 'HS26-9B4D2E1A',
-        teamName: 'NeuralHackers',
-        track: 'AI & Agentic Systems',
+        teamName: 'Team Eventra',
+        track: eventCtx.tracks?.[0] || 'General Track',
       };
     }
 
-    const config = await configRepo.getConfig();
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const html = buildPassEmailHtml({
       attendeeName: registrant.name,
@@ -170,12 +167,15 @@ export const previewPassEmail = async (req, res) => {
       uniqueId: registrant.uniqueId,
       teamName: registrant.teamName,
       track: registrant.track,
-      eventName: config.eventName,
-      eventDate: config.eventDate,
-      eventTime: config.eventTime,
-      eventVenue: config.eventVenue,
+      eventName: eventCtx.eventName,
+      eventDate: eventCtx.eventDate,
+      eventTime: eventCtx.eventTime,
+      eventVenue: eventCtx.eventVenue,
+      organizerName: eventCtx.clubName || eventCtx.organizerName,
+      organizerEmail: eventCtx.organizerEmail,
+      organizerPhone: eventCtx.organizerPhone,
       passUrl: `${clientUrl}/pass/${registrant.uniqueId}`,
-      notice: config.emailBodyNotice,
+      notice: eventCtx.emailBodyNotice,
     });
 
     res.send(html);

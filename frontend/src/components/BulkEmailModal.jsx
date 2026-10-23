@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Send, AlertCircle, RefreshCw, CheckCircle2, Users, CheckSquare, Mail } from 'lucide-react';
+import { X, Send, RefreshCw, CheckCircle2, CheckSquare } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
 export const BulkEmailModal = ({
-  pendingCount = 0,
-  totalCount = 0,
+  eventId = 'eventra-2026',
+  activeEvent = null,
   verifiedCount = 0,
   verifiedPendingCount = 0,
   selectedRegistrants = [],
@@ -14,7 +14,6 @@ export const BulkEmailModal = ({
   onRefresh,
   onClearSelection,
 }) => {
-  // Target Mode: 'verified_pending' | 'verified_all' | 'selected'
   const hasSelected = selectedRegistrants && selectedRegistrants.length > 0;
   const verifiedSelectedCount = (selectedRegistrants || []).filter((r) => r.verified === true || String(r.verificationStatus).toLowerCase() === 'verified').length;
   const initialMode = hasSelected ? 'selected' : 'verified_pending';
@@ -29,6 +28,7 @@ export const BulkEmailModal = ({
   };
 
   const targetCount = getTargetCount();
+  const eventTitle = activeEvent?.name || 'Eventra';
 
   const handleStartBulkSend = async () => {
     if (targetCount === 0) {
@@ -44,9 +44,9 @@ export const BulkEmailModal = ({
     try {
       setIsSending(true);
       sounds.playClick();
-      setProgress(`Dispatching QR passes via Gmail SMTP (tigeradi1504@gmail.com)...`);
+      setProgress(`Dispatching QR passes for ${eventTitle}...`);
 
-      let payload = { onlyVerified: true };
+      let payload = { onlyVerified: true, eventId };
       if (targetMode === 'selected') {
         const verifiedIds = selectedRegistrants
           .filter((r) => r.verified === true || String(r.verificationStatus).toLowerCase() === 'verified')
@@ -65,8 +65,8 @@ export const BulkEmailModal = ({
       sounds.playSuccess();
       onShowToast({
         type: 'success',
-        title: 'Passes Dispatched to Verified Hackers! 🚀',
-        message: `Successfully emailed ${response.results?.sent || 0} digital passes from tigeradi1504@gmail.com`,
+        title: 'Passes Dispatched! 🚀',
+        message: `Successfully emailed ${response.results?.sent || 0} digital passes for ${eventTitle}.`,
       });
 
       if (onClearSelection) onClearSelection();
@@ -100,7 +100,7 @@ export const BulkEmailModal = ({
               <Send size={18} color="#22c55e" />
             </div>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Verified Pass Email Dispatcher</div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Pass Email Dispatcher — {eventTitle}</div>
               <div style={{ fontSize: '11px', color: '#4ade80' }}>🔒 Strictly Verified Attendees Only</div>
             </div>
           </div>
@@ -116,7 +116,7 @@ export const BulkEmailModal = ({
           <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '10px', padding: '12px 16px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <CheckCircle2 size={18} color="#4ade80" />
             <div style={{ fontSize: '12px', color: '#cbd5e1' }}>
-              <strong>Zero-Unverified Leak Guarantee:</strong> Official QR Entry passes will <span style={{ color: '#4ade80' }}>only be emailed to Verified attendees</span>. Unverified applicants are automatically skipped.
+              <strong>Zero-Unverified Leak Guarantee:</strong> Official QR Entry passes for <strong>{eventTitle}</strong> will <span style={{ color: '#4ade80' }}>only be emailed to Verified attendees</span>.
             </div>
           </div>
           
@@ -127,13 +127,13 @@ export const BulkEmailModal = ({
                 Select Dispatch Scope:
               </span>
               <span className="badge badge-emerald" style={{ fontSize: '12px', padding: '4px 10px' }}>
-                {targetCount} Verified Hackers
+                {targetCount} Verified Attendees
               </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               
-              {/* Option 1: Verified & Pending only (Recommended) */}
+              {/* Option 1: Verified & Pending only */}
               <label 
                 style={{ 
                   display: 'flex', 
@@ -159,7 +159,7 @@ export const BulkEmailModal = ({
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '800', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <CheckCircle2 size={15} color="#22c55e" />
-                    <span>Verified & Needs Pass Only ({verifiedPendingCount} hackers)</span>
+                    <span>Verified & Needs Pass Only ({verifiedPendingCount} attendees)</span>
                     <span className="badge badge-emerald" style={{ fontSize: '9px' }}>RECOMMENDED</span>
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -195,7 +195,7 @@ export const BulkEmailModal = ({
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: '800', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <CheckSquare size={14} color="#22c55e" />
-                      <span>Only Selected Verified Hackers ({verifiedSelectedCount} of {selectedRegistrants.length} selected)</span>
+                      <span>Only Selected Verified Attendees ({verifiedSelectedCount} of {selectedRegistrants.length} selected)</span>
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Sends passes strictly to the verified individuals checked in the table
@@ -229,10 +229,10 @@ export const BulkEmailModal = ({
                 />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '800', color: '#ffffff' }}>
-                    All Verified Hackers ({verifiedCount} hackers)
+                    All Verified Attendees ({verifiedCount} attendees)
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Dispatches passes to all verified hackers (including resending existing passes)
+                    Dispatches passes to all verified attendees (including resending existing passes)
                   </div>
                 </div>
               </label>
@@ -240,32 +240,12 @@ export const BulkEmailModal = ({
             </div>
           </div>
 
-          {/* List of Selected Recipients Preview */}
-          {targetMode === 'selected' && hasSelected && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-dim)', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase' }}>
-                Selected Recipients Preview ({selectedRegistrants.length}):
-              </div>
-              <div style={{ maxHeight: '140px', overflowY: 'auto', background: '#06080e', borderRadius: '10px', border: '1px solid var(--border-subtle)', padding: '8px' }}>
-                {selectedRegistrants.map((reg) => (
-                  <div key={reg._id || reg.uniqueId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '12px' }}>
-                    <div>
-                      <span style={{ fontWeight: '700', color: '#ffffff' }}>{reg.name}</span>
-                      <span style={{ color: 'var(--text-dim)', marginLeft: '8px', fontSize: '11px' }}>{reg.email}</span>
-                    </div>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#22c55e' }}>{reg.uniqueId}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Progress Indicator */}
           {isSending && (
             <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: '12px', border: '1px solid rgba(34, 197, 94, 0.3)', marginBottom: '20px' }}>
               <RefreshCw size={24} className="spin" color="#22c55e" style={{ margin: '0 auto 8px auto' }} />
               <div style={{ fontSize: '13px', fontWeight: '800', color: '#4ade80' }}>{progress}</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>Please do not close this window while Gmail delivers passes.</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>Please do not close this window while passes are being delivered.</div>
             </div>
           )}
 
@@ -289,7 +269,7 @@ export const BulkEmailModal = ({
               }}
             >
               <Send size={15} /> 
-              <span>{isSending ? 'Dispatching...' : `Send Passes to ${targetCount} ${targetMode === 'selected' ? 'Selected' : ''} Hackers`}</span>
+              <span>{isSending ? 'Dispatching...' : `Send Passes to ${targetCount} ${targetMode === 'selected' ? 'Selected' : ''} Attendees`}</span>
             </button>
           </div>
 

@@ -1,9 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
+import { eventRepo } from '../models/eventRepo.js';
+import { resolveEventContext } from './registrantController.js';
 import { createOrder, verifyPaymentSignature, getRazorpayClient } from '../services/paymentService.js';
 import { generatePassSignature, createQRPayload, generateQRCodeDataUrl } from '../services/qrService.js';
-import { sendPassEmail, sendRegistrationReceivedEmail } from '../services/emailService.js';
+import { sendPassEmail } from '../services/emailService.js';
 import { sendAutoPassWhatsApp } from '../services/messagingService.js';
 
 /**
@@ -18,11 +20,12 @@ export const initiateRegistrationOrder = async (req, res) => {
       phone,
       ticketType = 'Standard Pass',
       teamName = '',
-      track = 'AI & Agentic Systems',
+      track = 'General Track',
       githubUrl = '',
-      institution = 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+      institution = '',
       formResponses = {},
-      eventId = 'eventra-2026',
+      eventId,
+      subEventId,
       amountPaid,
     } = req.body;
 
@@ -31,43 +34,48 @@ export const initiateRegistrationOrder = async (req, res) => {
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
-    const cleanEventId = String(eventId || 'eventra-2026').toLowerCase().trim();
-
     const config = await configRepo.getConfig();
     const isPaymentEnabled = config.enablePaymentGateway !== false;
 
+    const targetEventId = String(eventId || config.activeEventId || 'eventra-2026').toLowerCase().trim();
+    const ev = await eventRepo.findById(targetEventId).catch(() => null);
+    const eventCtx = await resolveEventContext(targetEventId);
+
     let passPrice = 5;
-    if (req.body.eventId) {
-      try {
-        const { eventRepo } = await import('../models/eventRepo.js');
-        const ev = await eventRepo.findById(req.body.eventId);
-        if (ev) {
-          if (ev.ticketPrices && ev.ticketPrices[ticketType] !== undefined && !isNaN(Number(ev.ticketPrices[ticketType]))) {
-            passPrice = Number(ev.ticketPrices[ticketType]);
-          } else if (ev.entryFee !== undefined && !isNaN(Number(ev.entryFee))) {
-            passPrice = Number(ev.entryFee);
-          }
+
+    if (!isPaymentEnabled) {
+      passPrice = 0;
+    } else if (ev) {
+      if (ev.pricingType === 'free') {
+        passPrice = 0;
+      } else if (Array.isArray(ev.subEvents) && ev.subEvents.length > 0) {
+        const matchedSub = ev.subEvents.find(
+          (s) => s.id === subEventId || s.name === ticketType || s.name === track
+        );
+        if (matchedSub && matchedSub.fee !== undefined && !isNaN(Number(matchedSub.fee))) {
+          passPrice = Math.max(0, Number(matchedSub.fee));
+        } else if (ev.ticketPrices && ev.ticketPrices[ticketType] !== undefined && !isNaN(Number(ev.ticketPrices[ticketType]))) {
+          passPrice = Math.max(0, Number(ev.ticketPrices[ticketType]));
+        } else if (ev.entryFee !== undefined && !isNaN(Number(ev.entryFee))) {
+          passPrice = Math.max(0, Number(ev.entryFee));
         }
-      } catch (err) {
-        console.warn('Error fetching event for pricing:', err.message);
+      } else if (ev.ticketPrices && ev.ticketPrices[ticketType] !== undefined && !isNaN(Number(ev.ticketPrices[ticketType]))) {
+        passPrice = Math.max(0, Number(ev.ticketPrices[ticketType]));
+      } else if (ev.entryFee !== undefined && !isNaN(Number(ev.entryFee))) {
+        passPrice = Math.max(0, Number(ev.entryFee));
       }
     } else {
-      const priceMap = config.ticketPrices || {
-        'Hacker Pass': 5,
-        'Student Pass': 5,
-        'VIP Delegate': 5,
-        'Judge / Mentor': 5,
-      };
+      const priceMap = config.ticketPrices || {};
       if (priceMap[ticketType] !== undefined && !isNaN(Number(priceMap[ticketType]))) {
-        passPrice = Number(priceMap[ticketType]);
+        passPrice = Math.max(0, Number(priceMap[ticketType]));
       } else if (amountPaid !== undefined && !isNaN(Number(amountPaid))) {
-        passPrice = Number(amountPaid);
+        passPrice = Math.max(0, Number(amountPaid));
       }
     }
 
     const tempReceipt = `RCPT-${Date.now()}`;
 
-    // ONLY if the pass price is explicitly 0 INR (free tier), generate pass immediately
+    // If the pass price is 0 INR (free event or free tier), generate pass immediately
     if (passPrice === 0) {
       const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
       const uniqueId = `HS26-${rawUuid}`;
@@ -77,7 +85,7 @@ export const initiateRegistrationOrder = async (req, res) => {
 
       const newRegistrant = await registrantRepo.create({
         uniqueId,
-        eventId: cleanEventId,
+        eventId: targetEventId,
         name: name.trim(),
         email: cleanEmail,
         phone: phone ? phone.trim() : '',
@@ -85,12 +93,12 @@ export const initiateRegistrationOrder = async (req, res) => {
         teamName: teamName ? teamName.trim() : '',
         track,
         githubUrl: githubUrl ? githubUrl.trim() : '',
-        institution: institution ? institution.trim() : '',
+        institution: institution ? institution.trim() : (eventCtx.collegeName || ''),
         formResponses,
         qrPayload,
         qrSignature: signature,
         qrCodeDataUrl,
-        verified: true, // Direct verification for free passes
+        verified: true,
         verificationStatus: 'Verified',
         paymentStatus: 'FREE_PASS',
         amountPaid: 0,
@@ -99,12 +107,10 @@ export const initiateRegistrationOrder = async (req, res) => {
         checkedIn: false,
       });
 
-      // Dispatch confirmation email & WhatsApp for verified free pass
       try {
-        const cfg = await configRepo.getConfig().catch(() => ({}));
         const [emailResult] = await Promise.allSettled([
-          sendPassEmail(newRegistrant, cfg),
-          sendAutoPassWhatsApp(newRegistrant),
+          sendPassEmail(newRegistrant, eventCtx),
+          sendAutoPassWhatsApp(newRegistrant, eventCtx),
         ]);
         if (emailResult.status === 'fulfilled') {
           await registrantRepo.update(newRegistrant.uniqueId, {
@@ -124,12 +130,12 @@ export const initiateRegistrationOrder = async (req, res) => {
           uniqueId: newRegistrant.uniqueId,
           name: newRegistrant.name,
           email: newRegistrant.email,
+          eventId: targetEventId,
         },
       });
     }
 
-    // For all paid registrations (₹5): Initiate Razorpay Order.
-    // ZERO registrant creation and ZERO pass email dispatch until payment is verified!
+    // For paid registrations: Initiate Razorpay Order
     const order = await createOrder({
       amount: passPrice,
       currency: config.currency || 'INR',
@@ -139,6 +145,7 @@ export const initiateRegistrationOrder = async (req, res) => {
         email: cleanEmail,
         ticketType,
         track,
+        eventId: targetEventId,
       },
     });
 
@@ -158,6 +165,7 @@ export const initiateRegistrationOrder = async (req, res) => {
         email: cleanEmail,
         ticketType,
         amountRupees: passPrice,
+        eventId: targetEventId,
       },
     });
   } catch (error) {
@@ -168,10 +176,6 @@ export const initiateRegistrationOrder = async (req, res) => {
 
 /**
  * Standard Razorpay Order Creation Endpoint
- * POST /api/create-order or POST /api/payment/create-order
- * Request: { amount, currency, receipt, notes }
- * Return: { order_id, amount, currency }
- * Minimum amount: 100 paise
  */
 export const createRazorpayOrder = async (req, res) => {
   try {
@@ -184,7 +188,6 @@ export const createRazorpayOrder = async (req, res) => {
       email,
     } = req.body || {};
 
-    // If attendee registration payload is passed, route to registration handler
     if (name && email) {
       return initiateRegistrationOrder(req, res);
     }
@@ -205,7 +208,7 @@ export const createRazorpayOrder = async (req, res) => {
 
     const orderReceipt = receipt || `rcpt_${Date.now()}`;
     const order = await createOrder({
-      amount: amountInPaise / 100, // createOrder multiplies by 100 to get paise
+      amount: amountInPaise / 100,
       currency,
       receipt: orderReceipt,
       notes,
@@ -235,10 +238,6 @@ export const createRazorpayOrder = async (req, res) => {
   }
 };
 
-/**
- * 2a. Verify Direct UPI Payment (UTR / Transaction Reference) & Mint Pass
- * POST /api/payment/verify-upi
- */
 export const verifyUpiPayment = async (req, res) => {
   return res.status(400).json({
     success: false,
@@ -248,7 +247,6 @@ export const verifyUpiPayment = async (req, res) => {
 
 /**
  * 2. Verify Payment & Mint Verified Entry Pass
- * POST /api/payment/verify or POST /api/verify-payment
  */
 export const verifyAndCompleteRegistration = async (req, res) => {
   try {
@@ -279,12 +277,12 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     const effectiveOrderId = razorpay_order_id;
     const cleanEmail = String(participantData.email || '').toLowerCase().trim();
-    // Duplicate entries allowed: Always mint a new official pass for every successful payment
+    const eventCtx = await resolveEventContext(participantData.eventId);
+    const targetEventId = eventCtx.eventId || 'eventra-2026';
 
-    // Generate Official Cryptographic Pass
     const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
     const uniqueId = `HS26-${rawUuid}`;
-    const ticketType = participantData.ticketType || 'Hacker Pass';
+    const ticketType = participantData.ticketType || 'Standard Pass';
 
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
@@ -292,20 +290,20 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
-      eventId: (participantData.eventId || 'eventra-2026').toLowerCase().trim(),
+      eventId: targetEventId,
       name: (participantData.name || 'Participant').trim(),
       email: cleanEmail,
       phone: participantData.phone ? String(participantData.phone).trim() : '',
       ticketType,
       teamName: participantData.teamName ? String(participantData.teamName).trim() : '',
-      track: participantData.track || 'AI & Agentic Systems',
+      track: participantData.track || 'General Track',
       githubUrl: participantData.githubUrl || '',
-      institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+      institution: participantData.institution || eventCtx.collegeName || '',
       formResponses: participantData.formResponses || {},
       qrPayload,
       qrSignature: signature,
       qrCodeDataUrl,
-      verified: true, // Automatically verified upon confirmed payment
+      verified: true,
       verificationStatus: 'Verified',
       paymentStatus: 'PAID',
       paymentId: razorpay_payment_id,
@@ -318,18 +316,16 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     console.log(`✅ [PAYMENT VERIFIED & PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via ${razorpay_payment_id}`);
 
-    // Dispatch pass email & WhatsApp notification with a 3.5s race timeout so response is never timed out by Vercel
     const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
     try {
-      const cfg = await configRepo.getConfig().catch(() => ({}));
       const dispatchPromise = Promise.allSettled([
-        sendPassEmail(newRegistrant, cfg).then(() => {
+        sendPassEmail(newRegistrant, eventCtx).then(() => {
           return registrantRepo.update(newRegistrant.uniqueId, {
             emailSent: true,
             emailSentAt: new Date().toISOString(),
           });
         }),
-        sendAutoPassWhatsApp(newRegistrant),
+        sendAutoPassWhatsApp(newRegistrant, eventCtx),
       ]);
 
       await Promise.race([dispatchPromise, timeoutPromise]);
@@ -348,13 +344,6 @@ export const verifyAndCompleteRegistration = async (req, res) => {
   }
 };
 
-/**
- * Standard Razorpay Signature Verification Endpoint
- * POST /api/verify-payment or POST /api/payment/verify-payment
- * Algorithm: HMAC-SHA256(order_id + "|" + payment_id, KEY_SECRET)
- * Compare generated signature with razorpay_signature
- * Return success only if signatures match
- */
 export const verifyRazorpayPayment = async (req, res) => {
   try {
     const order_id = req.body.razorpay_order_id || req.body.order_id || req.body.orderId;
@@ -381,7 +370,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       });
     }
 
-    // If participant registration data was passed, complete pass minting
     if (req.body.participantData && (req.body.participantData.email || req.body.participantData.name)) {
       return verifyAndCompleteRegistration(req, res);
     }
@@ -404,8 +392,6 @@ export const verifyRazorpayPayment = async (req, res) => {
 
 /**
  * 3. Check Order Status directly with Razorpay
- * POST /api/payment/check-order or GET /api/payment/check-order/:orderId
- * Recovers pass if user closed or switched away from the browser on mobile
  */
 export const checkOrderStatus = async (req, res) => {
   try {
@@ -416,7 +402,6 @@ export const checkOrderStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'order_id is required' });
     }
 
-    // 1. Check if pass was already minted in Firestore
     const existing = await registrantRepo.findByOrderId(orderId);
     if (existing) {
       return res.json({
@@ -427,7 +412,6 @@ export const checkOrderStatus = async (req, res) => {
       });
     }
 
-    // 2. Query Razorpay API directly
     const clientData = await getRazorpayClient();
     const client = clientData?.client;
     if (!client) {
@@ -444,7 +428,6 @@ export const checkOrderStatus = async (req, res) => {
       });
     }
 
-    // Order is confirmed paid on Razorpay!
     const payments = await client.orders.fetchPayments(orderId);
     const successfulPayment = (payments?.items || []).find(
       (p) => p.status === 'captured' || p.status === 'authorized'
@@ -453,9 +436,11 @@ export const checkOrderStatus = async (req, res) => {
     const paymentId = successfulPayment?.id || `pay_${Date.now()}`;
     const cleanEmail = String(participantData.email || successfulPayment?.email || '').toLowerCase().trim();
     const attendeeName = (participantData.name || successfulPayment?.notes?.name || 'Participant').trim();
-    const ticketType = participantData.ticketType || 'Hacker Pass';
+    const ticketType = participantData.ticketType || successfulPayment?.notes?.ticketType || 'Standard Pass';
+    const rawEventId = participantData.eventId || order?.notes?.eventId || successfulPayment?.notes?.eventId;
+    const eventCtx = await resolveEventContext(rawEventId);
+    const targetEventId = eventCtx.eventId || 'eventra-2026';
 
-    // Mint official pass
     const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
     const uniqueId = `HS26-${rawUuid}`;
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
@@ -464,14 +449,15 @@ export const checkOrderStatus = async (req, res) => {
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
+      eventId: targetEventId,
       name: attendeeName,
       email: cleanEmail,
       phone: participantData.phone ? String(participantData.phone).trim() : (successfulPayment?.contact || ''),
       ticketType,
       teamName: participantData.teamName ? String(participantData.teamName).trim() : '',
-      track: participantData.track || 'AI & Agentic Systems',
+      track: participantData.track || successfulPayment?.notes?.track || 'General Track',
       githubUrl: participantData.githubUrl || '',
-      institution: participantData.institution || 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+      institution: participantData.institution || eventCtx.collegeName || '',
       formResponses: participantData.formResponses || {},
       qrPayload,
       qrSignature: signature,
@@ -489,9 +475,7 @@ export const checkOrderStatus = async (req, res) => {
 
     console.log(`✅ [ORDER CHECK RECOVERY] Minted pass ${newRegistrant.uniqueId} for ${newRegistrant.email} via Razorpay ${paymentId}`);
 
-    // Asynchronously dispatch pass email
-    configRepo.getConfig()
-      .then((cfg) => sendPassEmail(newRegistrant, cfg))
+    sendPassEmail(newRegistrant, eventCtx)
       .then(() => registrantRepo.update(newRegistrant.uniqueId, { emailSent: true, emailSentAt: new Date().toISOString() }))
       .catch((e) => console.warn('Email dispatch notice:', e.message));
 
@@ -508,8 +492,7 @@ export const checkOrderStatus = async (req, res) => {
 };
 
 /**
- * 4. Razorpay Server Webhook Catch-All (For resilience against dropped user tabs)
- * POST /api/payment/webhook
+ * 4. Razorpay Server Webhook Catch-All
  */
 export const handlePaymentWebhook = async (req, res) => {
   try {
@@ -526,7 +509,10 @@ export const handlePaymentWebhook = async (req, res) => {
         if (!existing && payloadPayment) {
           const cleanEmail = String(payloadPayment.email || payloadPayment.notes?.email || '').toLowerCase().trim();
           const attendeeName = (payloadPayment.notes?.name || 'Participant').trim();
-          const ticketType = payloadPayment.notes?.ticketType || 'Hacker Pass';
+          const ticketType = payloadPayment.notes?.ticketType || 'Standard Pass';
+          const rawEventId = payloadPayment.notes?.eventId;
+          const eventCtx = await resolveEventContext(rawEventId);
+          const targetEventId = eventCtx.eventId || 'eventra-2026';
 
           if (cleanEmail) {
             const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
@@ -537,13 +523,14 @@ export const handlePaymentWebhook = async (req, res) => {
 
             const newRegistrant = await registrantRepo.create({
               uniqueId,
+              eventId: targetEventId,
               name: attendeeName,
               email: cleanEmail,
               phone: payloadPayment.contact || '',
               ticketType,
               teamName: payloadPayment.notes?.teamName || '',
-              track: payloadPayment.notes?.track || 'AI & Agentic Systems',
-              institution: 'Dr. D. Y. Patil Institute of Technology, Pimpri, Pune',
+              track: payloadPayment.notes?.track || 'General Track',
+              institution: eventCtx.collegeName || '',
               formResponses: {},
               qrPayload,
               qrSignature: signature,
@@ -561,8 +548,7 @@ export const handlePaymentWebhook = async (req, res) => {
 
             console.log(`✅ [WEBHOOK PASS MINTED] ${newRegistrant.name} (${newRegistrant.uniqueId}) via ${paymentId}`);
 
-            configRepo.getConfig()
-              .then((cfg) => sendPassEmail(newRegistrant, cfg))
+            sendPassEmail(newRegistrant, eventCtx)
               .then(() => registrantRepo.update(newRegistrant.uniqueId, { emailSent: true, emailSentAt: new Date().toISOString() }))
               .catch((e) => console.warn('Webhook email error:', e.message));
           }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   ChevronRight, 
@@ -72,6 +72,17 @@ const CURATED_POSTERS = [
   },
 ];
 
+const getDefaultBannerForCategory = (category = '') => {
+  const catLower = String(category).toLowerCase();
+  const match = CURATED_POSTERS.find((p) => p.category.toLowerCase() === catLower);
+  if (match) return match.url;
+  if (catLower.includes('summit') || catLower.includes('seminar')) return CURATED_POSTERS[4].url;
+  if (catLower.includes('cultur') || catLower.includes('sport')) return CURATED_POSTERS[3].url;
+  if (catLower.includes('gam')) return CURATED_POSTERS[2].url;
+  if (catLower.includes('work') || catLower.includes('comp')) return CURATED_POSTERS[1].url;
+  return CURATED_POSTERS[0].url;
+};
+
 const THEME_COLORS = [
   { name: 'Electric Indigo', hex: '#596EE6' },
   { name: 'Cyber Violet', hex: '#8B5CF6' },
@@ -81,12 +92,13 @@ const THEME_COLORS = [
   { name: 'Amber Gold', hex: '#F59E0B' },
 ];
 
-export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
+export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initialEvent = null }) => {
+  const isEditing = Boolean(initialEvent && (initialEvent.id || initialEvent.eventId));
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-  const [dateDisplayEdited, setDateDisplayEdited] = useState(false);
-  const [timeDisplayEdited, setTimeDisplayEdited] = useState(false);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(Boolean(initialEvent?.slug));
+  const [dateDisplayEdited, setDateDisplayEdited] = useState(Boolean(initialEvent?.dateDisplay));
+  const [timeDisplayEdited, setTimeDisplayEdited] = useState(Boolean(initialEvent?.timeDisplay));
 
   // Helper date formatters
   const formatDateDisplay = (startStr, endStr) => {
@@ -141,74 +153,136 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
   };
 
   // Core Form State across the 6 Systematic Steps
-  const [formData, setFormData] = useState({
-    // Step 1: Essentials & Structure
-    structureType: 'single', // 'single' | 'sub-events'
-    collegeName: '',
-    name: '',
-    slug: '',
-    category: 'Hackathon',
-    description: '',
+  const [formData, setFormData] = useState(() => {
+    if (initialEvent) {
+      const feeNum = initialEvent.entryFee !== undefined ? Number(initialEvent.entryFee) : 5;
+      const isFree = initialEvent.pricingType === 'free' || feeNum === 0;
+      return {
+        structureType: initialEvent.structureType || (Array.isArray(initialEvent.subEvents) && initialEvent.subEvents.length > 0 ? 'sub-events' : 'single'),
+        collegeName: initialEvent.collegeName || '',
+        name: initialEvent.name || '',
+        slug: initialEvent.slug || initialEvent.id || initialEvent.eventId || '',
+        category: initialEvent.category || 'Hackathon',
+        description: initialEvent.description || '',
+        mode: initialEvent.mode || 'in_person',
+        startDate: initialEvent.startDate ? String(initialEvent.startDate).slice(0, 16) : '',
+        endDate: initialEvent.endDate ? String(initialEvent.endDate).slice(0, 16) : '',
+        dateDisplay: initialEvent.dateDisplay || '',
+        timeDisplay: initialEvent.timeDisplay || '',
+        venue: initialEvent.venue || '',
+        venueHall: initialEvent.venueHall || '',
+        mapUrl: initialEvent.mapUrl || '',
+        meetingUrl: initialEvent.meetingUrl || '',
+        tagline: initialEvent.tagline || '',
+        themeColor: initialEvent.themeColor || '#596EE6',
+        bannerUrl: initialEvent.bannerUrl || '',
+        clubName: initialEvent.clubName || '',
+        clubCode: initialEvent.clubCode || '',
+        organizerName: initialEvent.organizerName || '',
+        organizerRole: initialEvent.organizerRole || '',
+        organizerEmail: initialEvent.organizerEmail || '',
+        organizerPhone: initialEvent.organizerPhone || '',
+        alternatePOC: initialEvent.alternatePOC || '',
+        pricingType: isFree ? 'free' : 'paid',
+        entryFee: isFree ? 0 : feeNum,
+        feeDisplay: initialEvent.feeDisplay || (isFree ? 'Free Entry Pass' : `₹${feeNum} Entry Pass`),
+        totalCapacity: initialEvent.totalCapacity || 250,
+        ticketTiers: Array.isArray(initialEvent.ticketTiers) ? initialEvent.ticketTiers.join(', ') : (initialEvent.ticketTiers || ''),
+        tracks: Array.isArray(initialEvent.tracks) ? initialEvent.tracks.join(', ') : (initialEvent.tracks || ''),
+        subEvents: Array.isArray(initialEvent.subEvents) ? initialEvent.subEvents : [],
+        requiredFields: initialEvent.requiredFields || {
+          fullName: true,
+          email: true,
+          phone: true,
+          college: true,
+          branch: false,
+          year: false,
+          prn: false,
+          github: false,
+          linkedin: false,
+        },
+        customQuestion: initialEvent.customQuestion || '',
+        whatsappUrl: initialEvent.whatsappUrl || '',
+        discordUrl: initialEvent.discordUrl || '',
+        brochureUrl: initialEvent.brochureUrl || '',
+        socialUrl: initialEvent.socialUrl || '',
+        status: initialEvent.status || 'live',
+        isFlagship: Boolean(initialEvent.isFlagship),
+        allowSpotRegistration: initialEvent.allowSpotRegistration !== false,
+        setActiveLive: true,
+      };
+    }
 
-    // Step 2: When & where
-    mode: 'in_person', // 'in_person' | 'online' | 'hybrid'
-    startDate: '',
-    endDate: '',
-    dateDisplay: '',
-    timeDisplay: '',
-    venue: '',
-    venueHall: '',
-    mapUrl: '',
-    meetingUrl: '',
+    return {
+      // Step 1: Essentials & Structure
+      structureType: 'single', // 'single' | 'sub-events'
+      collegeName: '',
+      name: '',
+      slug: '',
+      category: 'Hackathon',
+      description: '',
 
-    // Step 3: Look & POC
-    tagline: '',
-    themeColor: '#596EE6',
-    bannerUrl: '',
-    clubName: '',
-    clubCode: '',
-    organizerName: '',
-    organizerRole: '',
-    organizerEmail: '',
-    organizerPhone: '',
-    alternatePOC: '',
+      // Step 2: When & where
+      mode: 'in_person', // 'in_person' | 'online' | 'hybrid'
+      startDate: '',
+      endDate: '',
+      dateDisplay: '',
+      timeDisplay: '',
+      venue: '',
+      venueHall: '',
+      mapUrl: '',
+      meetingUrl: '',
 
-    // Step 4: Tickets & seats
-    pricingType: 'paid', // 'free' | 'paid'
-    entryFee: 5,
-    feeDisplay: '₹5 Entry Pass',
-    totalCapacity: 250,
-    ticketTiers: '',
-    tracks: '',
-    subEvents: [], // Array of { id, name, category, fee, seats, coordinator }
+      // Step 3: Look & POC
+      tagline: '',
+      themeColor: '#596EE6',
+      bannerUrl: '',
+      clubName: '',
+      clubCode: '',
+      organizerName: '',
+      organizerRole: '',
+      organizerEmail: '',
+      organizerPhone: '',
+      alternatePOC: '',
 
-    // Step 5: Questions & links
-    requiredFields: {
-      fullName: true,
-      email: true,
-      phone: true,
-      college: true,
-      branch: false,
-      year: false,
-      prn: false,
-      github: false,
-      linkedin: false,
-    },
-    customQuestion: '',
-    whatsappUrl: '',
-    discordUrl: '',
-    brochureUrl: '',
-    socialUrl: '',
+      // Step 4: Tickets & seats
+      pricingType: 'paid', // 'free' | 'paid'
+      entryFee: 5,
+      feeDisplay: '₹5 Entry Pass',
+      totalCapacity: 250,
+      ticketTiers: '',
+      tracks: '',
+      subEvents: [], // Array of { id, name, category, fee, seats, coordinator }
 
-    // Step 6: Review & visibility
-    status: 'upcoming', // 'upcoming' | 'live' | 'draft'
-    isFlagship: false,
-    allowSpotRegistration: true,
-    setActiveLive: true,
+      // Step 5: Questions & links
+      requiredFields: {
+        fullName: true,
+        email: true,
+        phone: true,
+        college: true,
+        branch: false,
+        year: false,
+        prn: false,
+        github: false,
+        linkedin: false,
+      },
+      customQuestion: '',
+      whatsappUrl: '',
+      discordUrl: '',
+      brochureUrl: '',
+      socialUrl: '',
+
+      // Step 6: Review & visibility
+      status: 'live', // 'upcoming' | 'live' | 'draft'
+      isFlagship: false,
+      allowSpotRegistration: true,
+      setActiveLive: true,
+    };
   });
 
-  // Pre-fill organizer name/email from logged in admin if available
-  React.useEffect(() => {
+  // Pre-fill organizer name/email from logged in admin ONLY if empty and not editing
+  useEffect(() => {
+    if (isEditing) return;
     const user = api.auth.getUser();
     if (user) {
       setFormData((prev) => ({
@@ -217,7 +291,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
         organizerEmail: prev.organizerEmail || user.email || '',
       }));
     }
-  }, []);
+  }, [isEditing]);
 
   // State for adding a sub-event dynamically in Step 4
   const [newSubEvent, setNewSubEvent] = useState({
@@ -225,7 +299,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
     category: 'Coding',
     fee: 5,
     seats: 60,
-    coordinator: 'ACES Sub-Lead',
+    coordinator: '',
   });
 
   // Auto-generate share slug from Event Name
@@ -270,9 +344,11 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
     sounds.playClick();
     const item = {
       id: `sub-${Date.now()}`,
-      ...newSubEvent,
-      fee: parseInt(newSubEvent.fee || 0, 10),
-      seats: parseInt(newSubEvent.seats || 50, 10),
+      name: newSubEvent.name.trim(),
+      category: newSubEvent.category || 'Competition',
+      fee: Math.max(0, parseInt(newSubEvent.fee ?? 0, 10) || 0),
+      seats: Math.max(1, parseInt(newSubEvent.seats || 50, 10) || 50),
+      coordinator: newSubEvent.coordinator?.trim() || formData.organizerName || 'Event Coordinator',
     };
     setFormData({
       ...formData,
@@ -281,9 +357,9 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
     setNewSubEvent({
       name: '',
       category: 'Coding',
-      fee: 5,
+      fee: formData.pricingType === 'free' ? 0 : formData.entryFee,
       seats: 60,
-      coordinator: 'ACES Sub-Lead',
+      coordinator: '',
     });
   };
 
@@ -346,70 +422,158 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
       setIsSubmitting(true);
       sounds.playClick();
 
-      const eventIdClean = (formData.slug || formData.name)
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || `event-${Date.now()}`;
+      const eventIdClean = isEditing
+        ? (initialEvent.id || initialEvent.eventId)
+        : ((formData.slug || formData.name)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '') || `event-${Date.now()}`);
 
-      const rawFee = formData.pricingType === 'free' ? 0 : parseInt(formData.entryFee || 0, 10);
+      const rawFee = formData.pricingType === 'free' ? 0 : parseInt(formData.entryFee ?? 0, 10);
       const parsedFee = isNaN(rawFee) || rawFee < 0 ? 0 : rawFee;
 
-      const tiers = typeof formData.ticketTiers === 'string'
+      // Parse ticket tiers (supports "Tier Name" or "Tier Name:Price")
+      const rawTiersList = typeof formData.ticketTiers === 'string'
         ? formData.ticketTiers.split(',').map((t) => t.trim()).filter(Boolean)
-        : (formData.ticketTiers || []);
-      const finalTiers = tiers.length > 0 ? tiers : ['Standard Pass'];
+        : (Array.isArray(formData.ticketTiers) ? formData.ticketTiers : []);
+
+      const ticketMap = {};
+      const finalTiers = [];
+
+      if (rawTiersList.length > 0) {
+        rawTiersList.forEach((item) => {
+          if (item.includes(':')) {
+            const [tName, tPrice] = item.split(':');
+            const cleanName = tName.trim();
+            const numPrice = formData.pricingType === 'free' ? 0 : parseInt(tPrice.trim(), 10);
+            if (cleanName) {
+              finalTiers.push(cleanName);
+              ticketMap[cleanName] = !isNaN(numPrice) && numPrice >= 0 ? numPrice : parsedFee;
+            }
+          } else {
+            finalTiers.push(item);
+            ticketMap[item] = parsedFee;
+          }
+        });
+      } else if (formData.structureType === 'sub-events' && formData.subEvents.length > 0) {
+        formData.subEvents.forEach((sub) => {
+          finalTiers.push(sub.name);
+          ticketMap[sub.name] = formData.pricingType === 'free' ? 0 : (Number(sub.fee) >= 0 ? Number(sub.fee) : parsedFee);
+        });
+      } else {
+        finalTiers.push('Standard Pass');
+        ticketMap['Standard Pass'] = parsedFee;
+      }
+
+      // Also include any sub-events in ticketMap so sub-event selection always has accurate pricing
+      if (formData.structureType === 'sub-events' && formData.subEvents.length > 0) {
+        formData.subEvents.forEach((sub) => {
+          if (ticketMap[sub.name] === undefined) {
+            ticketMap[sub.name] = formData.pricingType === 'free' ? 0 : (Number(sub.fee) >= 0 ? Number(sub.fee) : parsedFee);
+          }
+        });
+      }
 
       const parsedTracks = typeof formData.tracks === 'string'
         ? formData.tracks.split(',').map((t) => t.trim()).filter(Boolean)
-        : (formData.tracks || []);
-      const finalTracks = parsedTracks.length > 0 ? parsedTracks : ['General Track'];
+        : (Array.isArray(formData.tracks) ? formData.tracks : []);
 
-      const banner = formData.bannerUrl || CURATED_POSTERS[0].url;
-      const cleanDateDisplay = formData.dateDisplay || formatDateDisplay(formData.startDate, formData.endDate) || 'Dates TBA';
-      const cleanTimeDisplay = formData.timeDisplay || formatTimeDisplay(formData.startDate, formData.endDate) || 'Schedule TBA';
+      const finalTracks = parsedTracks.length > 0
+        ? parsedTracks
+        : (formData.structureType === 'sub-events' && formData.subEvents.length > 0
+            ? formData.subEvents.map((s) => s.name)
+            : [formData.category || 'General Track']);
+
+      const banner = formData.bannerUrl || getDefaultBannerForCategory(formData.category);
+      const cleanDateDisplay = formData.dateDisplay?.trim() || formatDateDisplay(formData.startDate, formData.endDate) || 'Dates TBA';
+      const cleanTimeDisplay = formData.timeDisplay?.trim() || formatTimeDisplay(formData.startDate, formData.endDate) || 'Schedule TBA';
+      const cleanTagline = formData.tagline?.trim() || (formData.description ? formData.description.trim().slice(0, 120) : `${formData.category} Event`);
+      const finalStatus = formData.setActiveLive && formData.status !== 'draft' ? 'live' : (formData.status || 'upcoming');
 
       const payload = {
         ...formData,
         id: eventIdClean,
         eventId: eventIdClean,
+        slug: formData.slug || eventIdClean,
+        name: formData.name.trim(),
+        tagline: cleanTagline,
+        description: formData.description.trim(),
         bannerUrl: banner,
+        pricingType: parsedFee === 0 ? 'free' : 'paid',
         entryFee: parsedFee,
         feeDisplay: parsedFee === 0 ? 'Free Entry Pass' : `₹${parsedFee} Entry Pass`,
         ticketTiers: finalTiers,
+        ticketPrices: ticketMap,
         tracks: finalTracks,
         totalCapacity: parseInt(formData.totalCapacity || 250, 10),
         dateDisplay: cleanDateDisplay,
         timeDisplay: cleanTimeDisplay,
-        createdAt: new Date().toISOString(),
+        status: finalStatus,
         updatedAt: new Date().toISOString(),
+        ...(isEditing ? {} : { createdAt: new Date().toISOString() }),
       };
 
-      const res = await api.events.create(payload);
+      const res = isEditing
+        ? await api.events.update(eventIdClean, payload)
+        : await api.events.create(payload);
 
-      // If set as active live event on the platform, sync it to dynamic site config
+      const savedEvent = res?.data || payload;
+
+      // If set as active live event on the platform, sync ALL event fields to dynamic site config
       if (formData.setActiveLive) {
         try {
-          const ticketMap = {};
-          finalTiers.forEach((tier) => {
-            ticketMap[tier] = parsedFee;
-          });
-
           await api.event.updateConfig({
-            eventName: payload.name,
-            eventTagline: payload.tagline || (payload.description ? payload.description.slice(0, 120) : 'Official Campus Event'),
+            activeEventId: savedEvent.id || eventIdClean,
+            eventName: savedEvent.name,
+            eventTagline: savedEvent.tagline,
+            eventDescription: savedEvent.description,
+            category: savedEvent.category,
+            structureType: savedEvent.structureType,
+            collegeName: savedEvent.collegeName || '',
+            clubName: savedEvent.clubName || '',
+            clubCode: savedEvent.clubCode || '',
+            mode: savedEvent.mode || 'in_person',
+            startDate: savedEvent.startDate || '',
+            endDate: savedEvent.endDate || '',
             eventDate: cleanDateDisplay,
             eventTime: cleanTimeDisplay,
-            eventVenue: payload.venue || 'Campus Venue',
-            organizerEmail: payload.organizerEmail || '',
-            organizerName: payload.clubName ? `${payload.clubName} (${payload.organizerName})` : (payload.organizerName || 'Campus Organizer'),
-            ticketPrices: ticketMap,
-            activeEventId: payload.id,
+            eventVenue: savedEvent.venue || 'Campus Venue',
+            venueHall: savedEvent.venueHall || '',
+            mapUrl: savedEvent.mapUrl || '',
+            meetingUrl: savedEvent.meetingUrl || '',
+            organizerEmail: savedEvent.organizerEmail || '',
+            organizerName: savedEvent.organizerName || 'Campus Organizer',
+            organizerRole: savedEvent.organizerRole || '',
+            organizerPhone: savedEvent.organizerPhone || '',
+            alternatePOC: savedEvent.alternatePOC || '',
+            themeColor: savedEvent.themeColor || '#596EE6',
             bannerUrl: banner,
+            pricingType: savedEvent.pricingType,
+            entryFee: parsedFee,
+            feeDisplay: savedEvent.feeDisplay,
+            totalCapacity: savedEvent.totalCapacity,
+            ticketTiers: finalTiers,
+            ticketPrices: ticketMap,
+            tracks: finalTracks,
+            subEvents: savedEvent.subEvents || [],
+            requiredFields: savedEvent.requiredFields,
+            customQuestion: savedEvent.customQuestion || '',
+            whatsappUrl: savedEvent.whatsappUrl || '',
+            discordUrl: savedEvent.discordUrl || '',
+            brochureUrl: savedEvent.brochureUrl || '',
+            socialUrl: savedEvent.socialUrl || '',
+            enablePaymentGateway: Object.values(ticketMap).some((v) => Number(v) > 0),
           });
         } catch (cfgErr) {
           console.warn('Could not update live active event config:', cfgErr);
         }
       }
+
+      // Invalidate any stale session cache and notify all views
+      try {
+        sessionStorage.removeItem('hs26_cached_dashboard_state');
+        window.dispatchEvent(new CustomEvent('eventra:events-updated', { detail: savedEvent }));
+      } catch {}
 
       // Trigger Celebration
       sounds.playSuccess();
@@ -426,29 +590,36 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
 
       onShowToast({
         type: 'success',
-        title: 'Event Launched Successfully! 🚀',
-        message: `"${payload.name}" is now live on the campus platform.`,
+        title: isEditing ? 'Event Updated Successfully! ✨' : 'Event Launched Successfully! 🚀',
+        message: `"${savedEvent.name}" is now live with all your configured details.`,
       });
 
-      if (onEventCreated) onEventCreated(res.data || payload);
+      if (onEventCreated) onEventCreated(savedEvent);
       onClose();
     } catch (err) {
       sounds.playError();
       onShowToast({
         type: 'error',
-        title: 'Launch Failed',
-        message: err.message || 'Could not launch event. Please try again.',
+        title: isEditing ? 'Update Failed' : 'Launch Failed',
+        message: err.message || 'Could not save event. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const previewBanner = formData.bannerUrl || getDefaultBannerForCategory(formData.category);
+  const previewDate = formData.dateDisplay || formatDateDisplay(formData.startDate, formData.endDate) || 'Dates TBA';
+  const previewTime = formData.timeDisplay || formatTimeDisplay(formData.startDate, formData.endDate) || 'Schedule TBA';
+  const previewFee = formData.pricingType === 'free' || Number(formData.entryFee) === 0
+    ? 'Free Entry Pass'
+    : `₹${formData.entryFee} Entry Pass`;
+
   return (
     <div className="event-wizard-overlay" onClick={onClose}>
       <div className="event-wizard-container" onClick={(e) => e.stopPropagation()}>
         
-        {/* Top Header Bar (Screenshot 1) */}
+        {/* Top Header Bar */}
         <div className="event-wizard-topbar">
           <button
             type="button"
@@ -481,25 +652,25 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
           </div>
         </div>
 
-        {/* Hero Step Title Header (Screenshot 1 & 2) */}
+        {/* Hero Step Title Header */}
         <div className="event-wizard-header">
           <div className="event-wizard-step-label">
             STEP {currentStep} OF 6 · {STEPS[currentStep - 1].sublabel.toUpperCase()}
           </div>
-          <h2 className="event-wizard-title">Create Event</h2>
+          <h2 className="event-wizard-title">{isEditing ? `Edit Event: ${formData.name || 'Event'}` : 'Create Event'}</h2>
           <div className="event-wizard-meta">
             <span>Creating event as: <strong>{formData.clubName || 'Campus Club / Organizer'}</strong></span>
             {formData.clubCode && <span className="event-wizard-club-badge">Club Code: {formData.clubCode}</span>}
           </div>
         </div>
 
-        {/* 6-Step Stepper Component (Screenshots 2 & 3) */}
+        {/* 6-Step Stepper Component */}
         <div className="event-wizard-stepper-wrap">
           <div className="event-wizard-stepper">
             {STEPS.map((step, idx) => {
               const isActive = step.id === currentStep;
               const isCompleted = step.id < currentStep;
-              const isUpcoming = step.id > currentStep;
+              const isUpcoming = step.id > currentStep && !isEditing;
 
               return (
                 <React.Fragment key={step.id}>
@@ -507,7 +678,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     type="button"
                     className={`stepper-item ${isActive ? 'active' : isCompleted ? 'completed' : 'upcoming'}`}
                     onClick={() => {
-                      if (isCompleted || isActive) {
+                      if (isCompleted || isActive || isEditing) {
                         sounds.playClick();
                         setCurrentStep(step.id);
                       }
@@ -539,7 +710,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
           {currentStep === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
               
-              {/* Event Structure Selection (Screenshot 1) */}
+              {/* Event Structure Selection */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Layers size={18} color="#3B82F6" />
@@ -551,11 +722,10 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   Choose the structure that best fits your event. This will determine how users register.
                 </p>
 
-                {/* Summary Alert */}
                 <div className="wizard-info-box" style={{ marginBottom: '16px' }}>
                   <AlertCircle size={16} color="#60A5FA" style={{ flexShrink: 0, marginTop: '1px' }} />
                   <div>
-                    <strong>Quick Summary:</strong> Both event types follow 6 guided steps. Sub-events stay on Tickets & seats.
+                    <strong>Quick Summary:</strong> Both event types follow 6 guided steps. Sub-events are configured in Step 4 (Tickets & seats).
                   </div>
                 </div>
 
@@ -617,24 +787,9 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   </div>
 
                 </div>
-
-                {/* How to choose helper */}
-                <div className="wizard-tip-box" style={{ marginTop: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800', color: '#F1F5F9', marginBottom: '4px' }}>
-                    <HelpCircle size={14} color="#F59E0B" />
-                    <span>How to choose?</span>
-                  </div>
-                  <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <li><strong>Single Event:</strong> Choose this if you have one main activity with a single registration fee.</li>
-                    <li><strong>Event with Sub-events:</strong> Choose this if you have multiple activities under one main event, each with its own fee.</li>
-                  </ul>
-                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#F59E0B', fontWeight: '700' }}>
-                    ⚠️ You can't change this structure later. Choose carefully!
-                  </div>
-                </div>
               </div>
 
-              {/* Event Basics Form (Screenshot 2) */}
+              {/* Event Basics Form */}
               <div style={{ borderTop: '1px solid #1E283D', paddingTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                   <Sparkles size={16} color="#F59E0B" />
@@ -967,7 +1122,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 <input
                   type="text"
                   className="wizard-input"
-                  placeholder="e.g. India's Flagship 48-Hour National Hackathon • ACES DIT Pune"
+                  placeholder="e.g. 24-Hour National Innovation Challenge • Hosted by ACES"
                   value={formData.tagline}
                   onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                 />
@@ -1024,7 +1179,6 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
               <div className="wizard-field">
                 <label className="wizard-label">EVENT BANNER / POSTER IMAGE</label>
                 
-                {/* Image URL input & File upload */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
                     type="url"
@@ -1111,44 +1265,39 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 </div>
 
                 {/* Poster Live Preview */}
-                {formData.bannerUrl && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: `1px solid ${formData.themeColor}55`,
+                    maxHeight: '160px',
+                    position: 'relative',
+                  }}
+                >
+                  <img
+                    src={previewBanner}
+                    alt="Banner Preview"
+                    style={{ width: '100%', height: '160px', objectFit: 'cover' }}
+                  />
                   <div
                     style={{
-                      marginTop: '12px',
-                      borderRadius: '10px',
-                      overflow: 'hidden',
-                      border: `1px solid ${formData.themeColor}55`,
-                      maxHeight: '160px',
-                      position: 'relative',
+                      position: 'absolute',
+                      top: '10px',
+                      left: '10px',
+                      background: 'rgba(0, 0, 0, 0.65)',
+                      backdropFilter: 'blur(8px)',
+                      padding: '4px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      color: '#FFFFFF',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
                     }}
                   >
-                    <img
-                      src={formData.bannerUrl}
-                      alt="Banner Preview"
-                      style={{ width: '100%', height: '160px', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        background: 'rgba(0, 0, 0, 0.65)',
-                        backdropFilter: 'blur(8px)',
-                        padding: '4px 10px',
-                        borderRadius: '9999px',
-                        fontSize: '11px',
-                        fontWeight: '800',
-                        color: '#FFFFFF',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                      }}
-                    >
-                      Poster Preview • {formData.category}
-                    </div>
+                    Poster Preview • {formData.category}
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Club Person of Contact (POC) Details */}
@@ -1160,7 +1309,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   </h3>
                 </div>
                 <p style={{ fontSize: '12px', color: '#94A3B8', margin: '0 0 14px 0' }}>
-                  These contact details will be provided to participants for queries, reporting, and gate inquiries.
+                  These contact details will be shown to participants on the event page and passes.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -1250,7 +1399,13 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   <div
                     onClick={() => {
                       sounds.playClick();
-                      setFormData({ ...formData, pricingType: 'paid' });
+                      const nextFee = formData.entryFee > 0 ? formData.entryFee : 5;
+                      setFormData({
+                        ...formData,
+                        pricingType: 'paid',
+                        entryFee: nextFee,
+                        feeDisplay: `₹${nextFee} Entry Pass`,
+                      });
                     }}
                     style={{
                       background: formData.pricingType === 'paid' ? 'rgba(59, 130, 246, 0.12)' : '#090D18',
@@ -1271,7 +1426,12 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   <div
                     onClick={() => {
                       sounds.playClick();
-                      setFormData({ ...formData, pricingType: 'free', entryFee: 0 });
+                      setFormData({
+                        ...formData,
+                        pricingType: 'free',
+                        entryFee: 0,
+                        feeDisplay: 'Free Entry Pass',
+                      });
                     }}
                     style={{
                       background: formData.pricingType === 'free' ? 'rgba(16, 185, 129, 0.12)' : '#090D18',
@@ -1308,7 +1468,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                       setFormData({
                         ...formData,
                         entryFee: val,
-                        feeDisplay: val > 0 ? `₹${val} Entry Pass` : 'Free Pass',
+                        feeDisplay: val > 0 ? `₹${val} Entry Pass` : 'Free Entry Pass',
                       });
                     }}
                   />
@@ -1333,10 +1493,13 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   <input
                     type="text"
                     className="wizard-input"
-                    placeholder="e.g. Standard Pass, VIP Delegate, Hacker Pass"
+                    placeholder="e.g. Standard Pass, VIP Pass:150, Team Pass:200"
                     value={formData.ticketTiers}
                     onChange={(e) => setFormData({ ...formData, ticketTiers: e.target.value })}
                   />
+                  <span style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                    Optional: use <code>Tier:Price</code> for custom tier pricing (e.g. <code>Student Pass:50, VIP:100</code>).
+                  </span>
                 </div>
 
                 <div className="wizard-field">
@@ -1348,6 +1511,9 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     value={formData.tracks}
                     onChange={(e) => setFormData({ ...formData, tracks: e.target.value })}
                   />
+                  <span style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                    Shown on the event page and registration track selector.
+                  </span>
                 </div>
               </div>
 
@@ -1362,46 +1528,47 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     marginTop: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                    <Layers size={16} color="#A78BFA" />
-                    <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
-                      Sub-events & Competitions Manager
-                    </h4>
-                  </div>
-                  <p style={{ fontSize: '12px', color: '#94A3B8', margin: '0 0 14px 0' }}>
-                    Add individual sub-events, coding competitions, or workshops under this main festival.
-                  </p>
-
-                  {/* Add Sub-event Row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '8px', alignItems: 'flex-end', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <div>
-                      <label style={{ fontSize: '10px', color: '#64748B', display: 'block', marginBottom: '4px' }}>SUB-EVENT TITLE</label>
+                      <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#A78BFA', margin: 0 }}>
+                        ⚡ Sub-Events & Individual Activities ({formData.subEvents.length})
+                      </h4>
+                      <p style={{ fontSize: '11px', color: '#94A3B8', margin: '2px 0 0 0' }}>
+                        Add sub-events below. Each sub-event can have its own entry fee, seat limit, and coordinator.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Add Sub-Event Inputs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '8px', alignItems: 'end', marginBottom: '14px' }}>
+                    <div>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>ACTIVITY TITLE</label>
                       <input
                         type="text"
                         className="wizard-input"
-                        placeholder="e.g. Speed Coding Clash"
+                        placeholder="e.g. Blind Coding / BGMI LAN"
                         value={newSubEvent.name}
                         onChange={(e) => setNewSubEvent({ ...newSubEvent, name: e.target.value })}
                       />
                     </div>
-
                     <div>
-                      <label style={{ fontSize: '10px', color: '#64748B', display: 'block', marginBottom: '4px' }}>CATEGORY</label>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>TYPE</label>
                       <select
                         className="wizard-select"
                         value={newSubEvent.category}
                         onChange={(e) => setNewSubEvent({ ...newSubEvent, category: e.target.value })}
                       >
                         <option value="Coding">Coding</option>
-                        <option value="Gaming">Gaming</option>
                         <option value="Workshop">Workshop</option>
-                        <option value="Quiz">Quiz</option>
-                        <option value="Robotics">Robotics</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Quiz">Tech Quiz</option>
+                        <option value="Design">UI/UX Design</option>
+                        <option value="Cultural">Cultural</option>
+                        <option value="Sports">Sports</option>
                       </select>
                     </div>
-
                     <div>
-                      <label style={{ fontSize: '10px', color: '#64748B', display: 'block', marginBottom: '4px' }}>PRICE (₹)</label>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>FEE (₹)</label>
                       <input
                         type="number"
                         min="0"
@@ -1410,9 +1577,8 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                         onChange={(e) => setNewSubEvent({ ...newSubEvent, fee: e.target.value })}
                       />
                     </div>
-
                     <div>
-                      <label style={{ fontSize: '10px', color: '#64748B', display: 'block', marginBottom: '4px' }}>SEATS</label>
+                      <label style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>SEATS</label>
                       <input
                         type="number"
                         min="1"
@@ -1421,73 +1587,65 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                         onChange={(e) => setNewSubEvent({ ...newSubEvent, seats: e.target.value })}
                       />
                     </div>
-
                     <button
                       type="button"
                       onClick={handleAddSubEvent}
-                      className="btn btn-primary"
                       style={{
-                        padding: '10px 14px',
                         background: '#3B82F6',
-                        color: '#fff',
+                        color: '#FFFFFF',
+                        border: 'none',
                         borderRadius: '8px',
-                        fontWeight: '800',
+                        padding: '10px 14px',
                         fontSize: '12px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
+                        height: '40px',
                       }}
                     >
-                      <Plus size={14} />
-                      <span>Add</span>
+                      <Plus size={14} /> Add
                     </button>
                   </div>
 
-                  {/* Sub-events List */}
-                  {formData.subEvents.length > 0 ? (
+                  {/* Sub-Events List */}
+                  {formData.subEvents.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {formData.subEvents.map((sub, sidx) => (
+                      {formData.subEvents.map((sub, idx) => (
                         <div
                           key={sub.id}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '10px 14px',
-                            background: '#0D1322',
+                            background: '#111827',
                             border: '1px solid #1E283D',
                             borderRadius: '8px',
+                            padding: '10px 14px',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#60A5FA' }}>#{sidx + 1}</span>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#60A5FA' }}>#{idx + 1}</span>
                             <div>
                               <div style={{ fontSize: '13px', fontWeight: '800', color: '#FFFFFF' }}>{sub.name}</div>
-                              <div style={{ fontSize: '11px', color: '#64748B' }}>Category: {sub.category} • Seats: {sub.seats}</div>
+                              <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                                {sub.category} • Fee: {sub.fee === 0 ? 'Free' : `₹${sub.fee}`} • Capacity: {sub.seats} seats
+                              </div>
                             </div>
                           </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '3px 8px', borderRadius: '4px' }}>
-                              ₹{sub.fee}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSubEvent(sub.id)}
-                              style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubEvent(sub.id)}
+                            style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
+                            title="Remove Sub-Event"
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '16px', color: '#64748B', fontSize: '12px' }}>
-                      No sub-events added yet. Use the inputs above to add sub-competitions.
-                    </div>
                   )}
-
                 </div>
               )}
 
@@ -1495,54 +1653,58 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 5: QUESTIONS & LINKS (FORM INTAKE & COMMUNITY)                       */}
+          {/* STEP 5: QUESTIONS & LINKS                                                 */}
           {/* ========================================================================= */}
           {currentStep === 5 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
               <div>
                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#FFFFFF', margin: '0 0 4px 0' }}>
-                  🔗 Attendee Questions & Community Links
+                  📋 Registration Form Fields & Community Channels
                 </h3>
                 <p style={{ fontSize: '13px', color: '#94A3B8', margin: 0 }}>
-                  Configure what information to collect from attendees and add WhatsApp / Discord community links.
+                  Choose what information to collect from students during registration and link official community groups.
                 </p>
               </div>
 
-              {/* Attendee Data Intake Checkboxes */}
-              <div className="wizard-field">
-                <label className="wizard-label">REQUIRED ATTENDEE REGISTRATION FIELDS</label>
+              {/* Attendee Fields Checklist */}
+              <div>
+                <label className="wizard-label" style={{ marginBottom: '10px' }}>
+                  ATTENDEE INFORMATION TO COLLECT
+                </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                   {[
                     { key: 'fullName', label: 'Full Name', locked: true },
                     { key: 'email', label: 'Email Address', locked: true },
-                    { key: 'phone', label: 'Phone / WhatsApp', locked: true },
-                    { key: 'college', label: 'College / Institute Name' },
-                    { key: 'branch', label: 'Branch / Engineering Stream' },
-                    { key: 'year', label: 'Graduation Year' },
-                    { key: 'prn', label: 'Student PRN / Roll Number' },
-                    { key: 'github', label: 'GitHub / Portfolio URL' },
-                    { key: 'linkedin', label: 'LinkedIn Profile' },
+                    { key: 'phone', label: 'WhatsApp / Phone Number', locked: true },
+                    { key: 'college', label: 'College / Institution Name', locked: false },
+                    { key: 'branch', label: 'Department / Branch', locked: false },
+                    { key: 'year', label: 'Year of Study (FE/SE/TE/BE)', locked: false },
+                    { key: 'prn', label: 'PRN / Roll Number / College ID', locked: false },
+                    { key: 'github', label: 'GitHub / Portfolio Link', locked: false },
+                    { key: 'linkedin', label: 'LinkedIn Profile URL', locked: false },
                   ].map((field) => (
                     <label
                       key={field.key}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        background: '#090D18',
-                        border: '1px solid #1E283D',
-                        padding: '10px 12px',
+                        gap: '10px',
+                        background: formData.requiredFields[field.key] ? 'rgba(59, 130, 246, 0.1)' : '#090D18',
+                        border: formData.requiredFields[field.key] ? '1px solid #3B82F6' : '1px solid #1E283D',
                         borderRadius: '8px',
-                        fontSize: '12px',
-                        color: '#F8FAFC',
+                        padding: '10px 12px',
                         cursor: field.locked ? 'default' : 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        color: '#F8FAFC',
                       }}
                     >
                       <input
                         type="checkbox"
+                        checked={Boolean(formData.requiredFields[field.key])}
                         disabled={field.locked}
-                        checked={field.locked || !!formData.requiredFields[field.key]}
                         onChange={(e) => {
+                          if (field.locked) return;
                           sounds.playClick();
                           setFormData({
                             ...formData,
@@ -1668,7 +1830,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 {/* Banner Header */}
                 <div className="event-wizard-preview-banner" style={{ height: '140px', position: 'relative', overflow: 'hidden' }}>
                   <img
-                    src={formData.bannerUrl}
+                    src={previewBanner}
                     alt={formData.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
@@ -1681,13 +1843,13 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   />
                   <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', gap: '8px' }}>
                     <span style={{ background: '#10B981', color: '#fff', padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '800' }}>
-                      ● {formData.status.toUpperCase()}
+                      ● {(formData.setActiveLive ? 'LIVE' : formData.status).toUpperCase()}
                     </span>
                     <span style={{ background: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(6px)', color: '#fff', padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700' }}>
                       {formData.category}
                     </span>
                     <span style={{ background: '#3B82F6', color: '#fff', padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '800' }}>
-                      {formData.feeDisplay}
+                      {previewFee}
                     </span>
                   </div>
                 </div>
@@ -1697,17 +1859,19 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                   <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#FFFFFF', margin: 0 }}>
                     {formData.name || 'Untitled Campus Event'}
                   </h3>
-                  <div style={{ fontSize: '12px', color: '#94A3B8' }}>{formData.tagline}</div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8' }}>
+                    {formData.tagline || formData.description}
+                  </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px', color: '#CBD5E1', marginTop: '6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Calendar size={14} color="#3B82F6" />
-                      <span>{formData.dateDisplay}</span>
+                      <span>{previewDate} ({previewTime})</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <MapPin size={14} color="#3B82F6" />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {formData.venue}
+                        {formData.venue}{formData.venueHall ? ` • ${formData.venueHall}` : ''}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1728,7 +1892,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                         {formData.subEvents.map((s) => (
                           <span key={s.id} style={{ background: '#151D2C', border: '1px solid #243046', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', color: '#CBD5E1' }}>
-                            {s.name} (₹{s.fee})
+                            {s.name} ({s.fee === 0 ? 'Free' : `₹${s.fee}`})
                           </span>
                         ))}
                       </div>
@@ -1768,8 +1932,8 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   >
-                    <option value="upcoming">🟢 Upcoming / Open for Registrations</option>
-                    <option value="live">⚡ Live / Event Happening Now</option>
+                    <option value="live">⚡ Live / Open for Registrations Now</option>
+                    <option value="upcoming">🟢 Upcoming / Scheduled Event</option>
                     <option value="draft">📝 Draft / Private Staging</option>
                   </select>
                 </div>
@@ -1822,9 +1986,9 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                       style={{ width: '16px', height: '16px', accentColor: '#596EE6', cursor: 'pointer' }}
                     />
                     <div>
-                      <div style={{ fontWeight: '800' }}>Set as Active Live Event for Website & Registrations</div>
+                      <div style={{ fontWeight: '800' }}>Set as Active Featured Event for Website & Registrations</div>
                       <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-                        Immediately publishes this event to the live homepage and makes it the active registration event.
+                        Immediately publishes all details of this event to the main landing page and makes it the default registration event.
                       </div>
                     </div>
                   </label>
@@ -1880,7 +2044,11 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast }) => {
                 disabled={isSubmitting}
               >
                 <Sparkles size={16} />
-                <span>{isSubmitting ? 'Launching Event...' : '🚀 Launch Event on Platform'}</span>
+                <span>
+                  {isSubmitting
+                    ? (isEditing ? 'Saving Changes...' : 'Launching Event...')
+                    : (isEditing ? '✨ Save & Update Event' : '🚀 Launch Event on Platform')}
+                </span>
               </button>
             )}
           </div>

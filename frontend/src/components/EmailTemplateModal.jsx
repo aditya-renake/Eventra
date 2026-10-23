@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { X, Mail, Eye, Save, ExternalLink, Sparkles, Check } from 'lucide-react';
+import { X, Mail, Eye, Save, ExternalLink } from 'lucide-react';
 import { api } from '../services/api';
 
-export const EmailTemplateModal = ({ config, onClose, onShowToast, onSaveConfig }) => {
-  const [subject, setSubject] = useState(config?.emailSubjectTemplate || '🎟️ Your Official Entry Pass for Eventra 2026 — {{name}}');
-  const [notice, setNotice] = useState(config?.emailBodyNotice || 'Please present this digital pass with QR code at the registration desk for express check-in and hacker kit collection.');
+export const EmailTemplateModal = ({ config, activeEvent = null, onClose, onShowToast, onSaveConfig }) => {
+  const [subject, setSubject] = useState(config?.emailSubjectTemplate || '🎟️ Your Official Entry Pass for {{eventName}} — {{name}}');
+  const [notice, setNotice] = useState(config?.emailBodyNotice || 'Please present this digital pass with QR code at the registration desk for express check-in.');
   const [activeTab, setActiveTab] = useState('editor');
   const [isSaving, setIsSaving] = useState(false);
+
+  const eventIdParam = activeEvent?.id || activeEvent?.eventId || config?.activeEventId || '';
+  const previewUrl = `/api/email/preview${eventIdParam ? `?eventId=${encodeURIComponent(eventIdParam)}` : ''}`;
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -34,8 +37,6 @@ export const EmailTemplateModal = ({ config, onClose, onShowToast, onSaveConfig 
     }
   };
 
-  const previewUrl = `/api/email/preview`;
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
@@ -44,7 +45,9 @@ export const EmailTemplateModal = ({ config, onClose, onShowToast, onSaveConfig 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Mail size={18} color="#22c55e" />
-            <span style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Pass Email Template & Sender Configuration</span>
+            <span style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>
+              Pass Email Template Studio {activeEvent?.name ? `— ${activeEvent.name}` : ''}
+            </span>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>
             <X size={18} />
@@ -76,12 +79,12 @@ export const EmailTemplateModal = ({ config, onClose, onShowToast, onSaveConfig 
               <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '12px', padding: '14px 18px', fontSize: '12px', color: '#cbd5e1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <div>
-                    <strong style={{ color: '#4ade80' }}>Active Sender:</strong> tigeradi1504@gmail.com (Gmail SMTP Engine)
+                    <strong style={{ color: '#4ade80' }}>Active Event Context:</strong> {activeEvent?.name || config?.eventName || 'Eventra'}
                   </div>
-                  <span className="badge badge-emerald" style={{ fontSize: '10px' }}>ACTIVE</span>
+                  <span className="badge badge-emerald" style={{ fontSize: '10px' }}>DYNAMIC</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  To change the sender email, simply update <code>SMTP_USER</code> and <code>SMTP_PASS</code> in Vercel Environment Variables.
+                  Emails automatically inject your event's name, dates, timings, venue, and POC contact details.
                 </div>
               </div>
 

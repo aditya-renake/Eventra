@@ -1,11 +1,49 @@
 import { v4 as uuidv4 } from 'uuid';
 import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
+import { eventRepo } from '../models/eventRepo.js';
 import { createQRPayload, generatePassSignature, generateQRCodeDataUrl } from '../services/qrService.js';
 import { sendRegistrationReceivedEmail } from '../services/emailService.js';
 
 /**
- * List registrants with search, filter, and pagination (optimized via DynamoDB).
+ * Helper to resolve full event configuration for a specific eventId or registrant
+ */
+export const resolveEventContext = async (eventId) => {
+  const baseConfig = await configRepo.getConfig().catch(() => ({}));
+  const targetId = eventId || baseConfig.activeEventId || 'eventra-2026';
+  const ev = await eventRepo.findById(targetId).catch(() => null);
+
+  if (ev) {
+    return {
+      ...baseConfig,
+      eventId: ev.id || ev.eventId,
+      eventName: ev.name || baseConfig.eventName || 'Eventra 2026',
+      eventTagline: ev.tagline || baseConfig.eventTagline || '',
+      eventDescription: ev.description || baseConfig.eventDescription || '',
+      category: ev.category || baseConfig.category || 'Event',
+      eventDate: ev.dateDisplay || baseConfig.eventDate || 'Dates TBA',
+      eventTime: ev.timeDisplay || baseConfig.eventTime || 'Schedule TBA',
+      eventVenue: ev.venue || baseConfig.eventVenue || 'Campus Venue',
+      venueHall: ev.venueHall || baseConfig.venueHall || '',
+      collegeName: ev.collegeName || baseConfig.collegeName || '',
+      clubName: ev.clubName || baseConfig.clubName || '',
+      organizerName: ev.organizerName || baseConfig.organizerName || 'Event Organizer',
+      organizerRole: ev.organizerRole || baseConfig.organizerRole || '',
+      organizerEmail: ev.organizerEmail || baseConfig.organizerEmail || '',
+      organizerPhone: ev.organizerPhone || baseConfig.organizerPhone || '',
+      mapUrl: ev.mapUrl || baseConfig.mapUrl || '',
+      whatsappUrl: ev.whatsappUrl || baseConfig.whatsappUrl || '',
+      discordUrl: ev.discordUrl || baseConfig.discordUrl || '',
+      brochureUrl: ev.brochureUrl || baseConfig.brochureUrl || '',
+      bannerUrl: ev.bannerUrl || baseConfig.bannerUrl || '',
+      themeColor: ev.themeColor || baseConfig.themeColor || '#596EE6',
+    };
+  }
+  return baseConfig;
+};
+
+/**
+ * List registrants with search, filter, and pagination
  */
 export const getRegistrants = async (req, res) => {
   try {
@@ -105,21 +143,21 @@ export const handleWebhookSubmission = async (req, res) => {
       name,
       email,
       phone,
-      ticketType = 'Hacker Pass',
+      ticketType = 'Standard Pass',
       teamName = '',
-      track = 'AI & Agentic Systems',
+      track = 'General Track',
       githubUrl = '',
       institution = '',
       formResponses = {},
       verified = false,
       verificationStatus = 'Not Verified',
+      eventId,
     } = req.body;
 
     // Fallback extraction if name/email are inside formResponses or alternate casing
     let attendeeName = name || '';
     let attendeeEmail = email || '';
 
-    // Deep search all body and formResponses keys for email and name
     const combinedObj = { ...(formResponses || {}), ...(req.body || {}) };
     for (const [k, v] of Object.entries(combinedObj)) {
       if (!v || typeof v !== 'string' || !v.trim()) continue;
@@ -133,17 +171,18 @@ export const handleWebhookSubmission = async (req, res) => {
     }
 
     if (!attendeeEmail) {
-      attendeeEmail = `hacker.${Date.now()}@hackseries.org`;
+      attendeeEmail = `participant.${Date.now()}@eventra.live`;
     }
     if (!attendeeName) {
       attendeeName = attendeeEmail.split('@')[0] || 'Eventra Participant';
     }
 
     const cleanEmail = attendeeEmail.toLowerCase().trim();
+    const eventCtx = await resolveEventContext(eventId);
+    const targetEventId = eventCtx.eventId || 'eventra-2026';
 
-    // Check if registrant already exists in Firestore
     let existing = await registrantRepo.findByEmail(cleanEmail);
-    if (existing) {
+    if (existing && (existing.eventId || 'eventra-2026') === targetEventId) {
       const updated = await registrantRepo.update(existing.uniqueId, {
         formResponses: { ...existing.formResponses, ...formResponses },
         phone: phone ? phone.trim() : existing.phone,
@@ -163,17 +202,16 @@ export const handleWebhookSubmission = async (req, res) => {
       });
     }
 
-    // Generate unique ID: HS26-<8 CHARS>
     const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
     const uniqueId = `HS26-${rawUuid}`;
 
-    // Generate cryptographic anti-forgery HMAC signature
     const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
     const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
     const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
 
     const newRegistrant = await registrantRepo.create({
       uniqueId,
+      eventId: targetEventId,
       name: attendeeName.trim(),
       email: cleanEmail,
       phone: phone ? phone.trim() : '',
@@ -192,11 +230,9 @@ export const handleWebhookSubmission = async (req, res) => {
       checkedIn: false,
     });
 
-    console.log(`📥 [HACKSERIES WEBHOOK] Registered in Firestore: ${newRegistrant.name} (${newRegistrant.email}) -> Pass ID: ${uniqueId}`);
+    console.log(`📥 [EVENTRA WEBHOOK] Registered: ${newRegistrant.name} (${newRegistrant.email}) -> Pass ID: ${uniqueId}`);
 
-    // Asynchronously dispatch instant "Registration Received • Details Under Verification" email
-    configRepo.getConfig()
-      .then((cfg) => sendRegistrationReceivedEmail(newRegistrant, cfg))
+    sendRegistrationReceivedEmail(newRegistrant, eventCtx)
       .then(() => console.log(`📧 [AUTO-DISPATCH] Registration acknowledgement email delivered to ${newRegistrant.email}`))
       .catch((mailErr) => console.warn(`⚠️ [AUTO-DISPATCH NOTICE] Registration ack email error: ${mailErr.message}`));
 
@@ -214,7 +250,7 @@ export const handleWebhookSubmission = async (req, res) => {
 };
 
 /**
- * Manual registrant creation by staff/admin
+ * Manual registrant creation by staff/admin (e.g. VIP Pass generator)
  */
 export const createRegistrant = async (req, res) => {
   try {
@@ -222,12 +258,13 @@ export const createRegistrant = async (req, res) => {
       name,
       email,
       phone,
-      ticketType = 'Hacker Pass',
+      ticketType = 'VIP Guest',
       teamName = '',
-      track = 'AI & Agentic Systems',
+      track = 'General Track',
       githubUrl = '',
       institution = '',
       formResponses = {},
+      eventId,
     } = req.body;
 
     if (!name || !email) {
@@ -235,7 +272,8 @@ export const createRegistrant = async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    // Duplicate registrations are allowed for now
+    const eventCtx = await resolveEventContext(eventId);
+    const targetEventId = eventCtx.eventId || 'eventra-2026';
 
     const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
     const uniqueId = `HS26-${rawUuid}`;
@@ -246,6 +284,7 @@ export const createRegistrant = async (req, res) => {
 
     const registrant = await registrantRepo.create({
       uniqueId,
+      eventId: targetEventId,
       name: name.trim(),
       email: cleanEmail,
       phone: phone || '',
@@ -258,13 +297,15 @@ export const createRegistrant = async (req, res) => {
       qrPayload,
       qrSignature: signature,
       qrCodeDataUrl,
+      verified: true,
+      verificationStatus: 'Verified',
       emailSent: false,
       checkedIn: false,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Hacker registered successfully',
+      message: 'Attendee registered successfully',
       data: registrant,
     });
   } catch (error) {
@@ -278,8 +319,7 @@ export const createRegistrant = async (req, res) => {
 export const getPublicPass = async (req, res) => {
   try {
     const { idOrEmail } = req.params;
-    // Edge CDN caching: absorbs thousands of concurrent attendee pass reloads
-    res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
+    res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=15');
     const registrant = await registrantRepo.findByIdOrEmail(idOrEmail);
 
     if (!registrant) {
@@ -289,10 +329,29 @@ export const getPublicPass = async (req, res) => {
       });
     }
 
+    const eventCtx = await resolveEventContext(registrant.eventId);
+
     res.json({
       success: true,
       data: {
         uniqueId: registrant.uniqueId,
+        eventId: registrant.eventId || eventCtx.eventId || 'eventra-2026',
+        eventName: eventCtx.eventName || 'Eventra 2026',
+        eventTagline: eventCtx.eventTagline || '',
+        eventDate: eventCtx.eventDate || 'Dates TBA',
+        eventTime: eventCtx.eventTime || 'Schedule TBA',
+        eventVenue: eventCtx.eventVenue || 'Campus Venue',
+        venueHall: eventCtx.venueHall || '',
+        organizerName: eventCtx.organizerName || '',
+        organizerEmail: eventCtx.organizerEmail || '',
+        organizerPhone: eventCtx.organizerPhone || '',
+        clubName: eventCtx.clubName || '',
+        collegeName: eventCtx.collegeName || '',
+        mapUrl: eventCtx.mapUrl || '',
+        whatsappUrl: eventCtx.whatsappUrl || '',
+        discordUrl: eventCtx.discordUrl || '',
+        brochureUrl: eventCtx.brochureUrl || '',
+        broadcastNotice: eventCtx.broadcastActive ? eventCtx.broadcastNotice : '',
         name: registrant.name,
         email: registrant.email,
         phone: registrant.phone,
@@ -300,6 +359,7 @@ export const getPublicPass = async (req, res) => {
         teamName: registrant.teamName,
         track: registrant.track,
         institution: registrant.institution,
+        formResponses: registrant.formResponses || {},
         qrCodeDataUrl: registrant.qrCodeDataUrl,
         qrPayload: registrant.qrPayload,
         checkedIn: registrant.checkedIn,
@@ -457,17 +517,20 @@ export const bulkVerifyRegistrants = async (req, res) => {
  */
 export const exportCSV = async (req, res) => {
   try {
-    const result = await registrantRepo.getAll({ limit: 10000 });
+    const { eventId } = req.query;
+    const result = await registrantRepo.getAll({ limit: 10000, eventId });
     const registrants = result.items || [];
 
-    const headers = ['Unique ID', 'Name', 'Email', 'Phone', 'Verification Status', 'Ticket Type', 'Team Name', 'Track', 'Checked In', 'Checked In At', 'Checked In By', 'Pass Emailed', 'Created At'];
+    const headers = ['Unique ID', 'Event ID', 'Name', 'Email', 'Phone', 'Institution', 'Verification Status', 'Ticket Type', 'Team Name', 'Track', 'Checked In', 'Checked In At', 'Checked In By', 'Pass Emailed', 'Created At'];
     const rows = registrants.map((r) => [
       r.uniqueId,
+      r.eventId || 'eventra-2026',
       `"${(r.name || '').replace(/"/g, '""')}"`,
       r.email,
       r.phone || '',
+      `"${(r.institution || '').replace(/"/g, '""')}"`,
       r.verified ? 'VERIFIED' : 'NOT VERIFIED',
-      r.ticketType,
+      `"${(r.ticketType || '').replace(/"/g, '""')}"`,
       `"${(r.teamName || '').replace(/"/g, '""')}"`,
       `"${(r.track || '').replace(/"/g, '""')}"`,
       r.checkedIn ? 'YES' : 'NO',
@@ -480,7 +543,7 @@ export const exportCSV = async (req, res) => {
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=eventra-2026-registrants.csv');
+    res.setHeader('Content-Disposition', `attachment; filename=${eventId || 'eventra'}-registrants.csv`);
     res.send(csvContent);
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to generate CSV export', error: error.message });
@@ -492,25 +555,27 @@ export const exportCSV = async (req, res) => {
  */
 export const bulkImportRegistrants = async (req, res) => {
   try {
-    const { attendees, autoVerify = false, sendAckEmail = true, sendEmails = false } = req.body || {};
-    if (!Array.isArray(attendees) || attendees.length === 0) {
+    const { rows, attendees, autoVerify = false, sendAckEmail = true, sendEmails = false, eventId } = req.body || {};
+    const records = Array.isArray(rows) ? rows : (Array.isArray(attendees) ? attendees : []);
+    if (records.length === 0) {
       return res.status(400).json({ success: false, message: 'Array of attendee records is required.' });
     }
 
     const shouldSendAck = sendAckEmail || sendEmails;
     const imported = [];
-    const eventConfig = await configRepo.getConfig().catch(() => ({}));
+    const eventCtx = await resolveEventContext(eventId);
+    const targetEventId = eventCtx.eventId || 'eventra-2026';
 
-    for (const item of attendees) {
+    for (const item of records) {
       const cleanEmail = String(item.email || '').toLowerCase().trim();
-      const rawName = String(item.name || item.fullName || '').trim() || 'Hacker';
+      const rawName = String(item.name || item.fullName || '').trim() || 'Participant';
 
       if (!cleanEmail) continue;
 
       let existing = await registrantRepo.findByEmail(cleanEmail);
       const isVerified = Boolean(autoVerify);
 
-      if (existing) {
+      if (existing && (existing.eventId || 'eventra-2026') === targetEventId) {
         const updated = await registrantRepo.update(existing.uniqueId, {
           name: rawName,
           phone: item.phone ? String(item.phone).trim() : existing.phone,
@@ -524,29 +589,29 @@ export const bulkImportRegistrants = async (req, res) => {
         });
         imported.push(updated);
 
-        // Send "Registration Received • Details Under Verification" Acknowledgement Email (NO QR PASS)
         if (shouldSendAck) {
-          sendRegistrationReceivedEmail(updated, eventConfig)
+          sendRegistrationReceivedEmail(updated, eventCtx)
             .catch((e) => console.warn('[BulkImport Ack Email Error]:', e.message));
         }
       } else {
         const rawUuid = uuidv4().replace(/-/g, '').substring(0, 8).toUpperCase();
         const uniqueId = `HS26-${rawUuid}`;
-        const ticketType = item.ticketType || 'Hacker Pass';
+        const ticketType = item.ticketType || (eventCtx.ticketTiers?.[0] || 'Standard Pass');
         const signature = generatePassSignature(uniqueId, cleanEmail, ticketType);
         const qrPayload = createQRPayload(uniqueId, cleanEmail, ticketType);
         const qrCodeDataUrl = await generateQRCodeDataUrl(qrPayload);
 
         const newAttendee = await registrantRepo.create({
           uniqueId,
+          eventId: targetEventId,
           name: rawName,
           email: cleanEmail,
           phone: item.phone ? String(item.phone).trim() : '',
           ticketType,
           teamName: item.teamName ? String(item.teamName).trim() : '',
-          track: item.track || 'AI & Agentic Systems',
+          track: item.track || (eventCtx.tracks?.[0] || 'General Track'),
           githubUrl: item.githubUrl ? String(item.githubUrl).trim() : '',
-          institution: item.institution ? String(item.institution).trim() : 'DYP DPU Pune',
+          institution: item.institution ? String(item.institution).trim() : (eventCtx.collegeName || ''),
           formResponses: item.formResponses || {},
           qrPayload,
           qrSignature: signature,
@@ -560,9 +625,8 @@ export const bulkImportRegistrants = async (req, res) => {
 
         imported.push(newAttendee);
 
-        // Send "Registration Received • Details Under Verification" Acknowledgement Email (NO QR PASS)
         if (shouldSendAck) {
-          sendRegistrationReceivedEmail(newAttendee, eventConfig)
+          sendRegistrationReceivedEmail(newAttendee, eventCtx)
             .catch((e) => console.warn('[BulkImport Ack Email Error]:', e.message));
         }
       }
@@ -570,7 +634,7 @@ export const bulkImportRegistrants = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Successfully imported ${imported.length} attendees as "Verification Pending"!`,
+      message: `Successfully imported ${imported.length} attendees for ${eventCtx.eventName || targetEventId}!`,
       importedCount: imported.length,
       ackEmailsDispatched: shouldSendAck,
     });

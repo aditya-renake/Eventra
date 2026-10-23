@@ -24,7 +24,6 @@ export const getTransporter = async () => {
     if (cfg?.resendApiKey) resendApiKey = cfg.resendApiKey.trim();
   } catch (e) {}
 
-  // 1. Auto-detect Resend
   if (resendApiKey || pass.startsWith('re_') || customHost.includes('resend.com') || user.toLowerCase() === 'resend') {
     const activeResendKey = resendApiKey || pass;
     transporter = nodemailer.createTransport({
@@ -38,11 +37,9 @@ export const getTransporter = async () => {
       tls: { rejectUnauthorized: false },
       connectionTimeout: 15000,
     });
-    console.log('⚡ Configured High-Speed Resend SMTP Mailer (Auto-Detected)');
     return transporter;
   }
 
-  // 2. Auto-detect SendGrid
   if (sendgridApiKey || pass.startsWith('SG.') || customHost.includes('sendgrid.net') || user.toLowerCase() === 'apikey') {
     const activeSendgridKey = sendgridApiKey || pass;
     transporter = nodemailer.createTransport({
@@ -56,11 +53,9 @@ export const getTransporter = async () => {
       tls: { rejectUnauthorized: false },
       connectionTimeout: 15000,
     });
-    console.log('⚡ Configured SendGrid SMTP Mailer (Auto-Detected)');
     return transporter;
   }
 
-  // 3. Gmail & Custom SMTP
   if (pass && pass !== '') {
     const isGmail = user.includes('@gmail.com') || customHost.includes('gmail') || (!customHost && !user.includes('@outlook'));
     const isOutlook = user.includes('@outlook.') || user.includes('@hotmail.') || user.includes('@live.');
@@ -95,11 +90,9 @@ export const getTransporter = async () => {
     }
 
     transporter = nodemailer.createTransport(transportConfig);
-    console.log(`📧 Configured SMTP transporter (${isGmail ? 'Gmail' : host}) for: ${user}`);
     return transporter;
   }
 
-  // 4. Ethereal / Simulated Mailer for zero-setup local dev
   try {
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
@@ -111,13 +104,11 @@ export const getTransporter = async () => {
         pass: testAccount.pass,
       },
     });
-    console.log(`📧 Zero-config mailer initialized (Ethereal test mailbox: ${testAccount.user})`);
   } catch (err) {
-    console.warn('⚠️ Falling back to mock logger mailer:', err.message);
     transporter = {
       sendMail: async (mailOptions) => {
         console.log(`📨 [SIMULATED EMAIL] From: ${mailOptions.from} | To: ${mailOptions.to} | Subject: ${mailOptions.subject}`);
-        return { messageId: 'hackseries-simulated-' + Date.now(), simulated: true };
+        return { messageId: 'eventra-simulated-' + Date.now(), simulated: true };
       },
     };
   }
@@ -126,7 +117,7 @@ export const getTransporter = async () => {
 };
 
 /**
- * Builds the high-impact Eventra 2026 Pass Email Template
+ * Builds the Eventra Pass Email Template with dynamic event metadata
  */
 export const buildPassEmailHtml = ({
   attendeeName,
@@ -134,17 +125,20 @@ export const buildPassEmailHtml = ({
   uniqueId,
   teamName,
   track,
-  eventName,
-  eventDate,
-  eventTime,
-  eventVenue,
+  eventName = 'Eventra 2026',
+  eventDate = 'Dates TBA',
+  eventTime = 'Schedule TBA',
+  eventVenue = 'Campus Venue',
+  organizerName = 'Eventra Operations',
+  organizerEmail = '',
+  organizerPhone = '',
   passUrl,
   notice,
 }) => {
   const badgeColor =
-    ticketType === 'VIP Pass'
+    ticketType === 'VIP Pass' || ticketType === 'VIP Delegate'
       ? '#f59e0b'
-      : ticketType === 'Mentor / Judge'
+      : ticketType === 'Mentor / Judge' || ticketType === 'Judge / Mentor'
       ? '#ec4899'
       : ticketType === 'Team Lead Pass'
       ? '#06b6d4'
@@ -175,7 +169,7 @@ export const buildPassEmailHtml = ({
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
     }
     .header {
-      background: linear-gradient(135deg, #7a1518 0%, #b22b2f 50%, #d1a550 100%);
+      background: linear-gradient(135deg, #312e81 0%, #4338ca 50%, #596ee6 100%);
       padding: 36px 30px;
       text-align: center;
     }
@@ -183,7 +177,7 @@ export const buildPassEmailHtml = ({
       margin: 0 0 6px 0;
       font-size: 11px;
       font-weight: 800;
-      color: #f7d070;
+      color: #c7d2fe;
       letter-spacing: 1px;
       text-transform: uppercase;
     }
@@ -198,7 +192,7 @@ export const buildPassEmailHtml = ({
     .header p {
       margin: 8px 0 0 0;
       font-size: 13px;
-      color: #fef08a;
+      color: #e0e7ff;
       font-weight: 700;
       letter-spacing: 0.5px;
     }
@@ -220,11 +214,10 @@ export const buildPassEmailHtml = ({
     .ticket-card {
       background: #111827;
       border-radius: 16px;
-      border: 1px solid #b22b2f44;
+      border: 1px solid rgba(89, 110, 230, 0.35);
       padding: 24px;
       text-align: center;
       margin-bottom: 24px;
-      box-shadow: 0 0 30px rgba(178, 43, 47, 0.12);
     }
     .ticket-badge {
       display: inline-block;
@@ -248,7 +241,7 @@ export const buildPassEmailHtml = ({
     .ticket-id {
       font-family: monospace;
       font-size: 13px;
-      color: #f7d070;
+      color: #a5b4fc;
       font-weight: 700;
       letter-spacing: 1px;
       margin-bottom: 20px;
@@ -307,7 +300,7 @@ export const buildPassEmailHtml = ({
     }
     .btn {
       display: inline-block;
-      background: linear-gradient(135deg, #b22b2f 0%, #d1a550 100%);
+      background: linear-gradient(135deg, #596ee6 0%, #4338ca 100%);
       color: #ffffff !important;
       text-decoration: none;
       font-weight: 800;
@@ -315,7 +308,6 @@ export const buildPassEmailHtml = ({
       padding: 14px 32px;
       border-radius: 12px;
       letter-spacing: 0.5px;
-      box-shadow: 0 10px 25px -5px rgba(178, 43, 47, 0.5);
     }
     .footer {
       background: #030712;
@@ -335,12 +327,12 @@ export const buildPassEmailHtml = ({
       </div>
       <div class="college-sub">⚡ OFFICIAL ENTRY PASS • ZERO-TAMPER QR ACCESS</div>
       <h1>⚡ ${eventName}</h1>
-      <p>Presented by ACES — Dept. of Computer Engineering</p>
+      <p>${organizerName ? `Presented by ${organizerName}` : 'Official Campus Event Pass'}</p>
     </div>
     <div class="content">
       <div class="greeting">Hey ${attendeeName}! 🚀</div>
       <p class="subtext">
-        Your spot for <strong>${eventName}</strong> at <strong>Dr. D. Y. Patil Institute of Technology (DIT), Pimpri, Pune</strong> is confirmed! Present the verified QR code below at the check-in gates for express access, hacker swag kits, and food coupon wristbands.
+        Your spot for <strong>${eventName}</strong> at <strong>${eventVenue}</strong> is confirmed! Present the verified QR code below at the check-in gates for express entry.
       </p>
 
       <div class="ticket-card">
@@ -376,8 +368,16 @@ export const buildPassEmailHtml = ({
           ${
             track
               ? `<div class="meta-row">
-            <span class="meta-label">🎯 Track:</span>
+            <span class="meta-label">🎯 Track / Category:</span>
             <span class="meta-val">${track}</span>
+          </div>`
+              : ''
+          }
+          ${
+            organizerEmail || organizerPhone
+              ? `<div class="meta-row">
+            <span class="meta-label">📞 Contact POC:</span>
+            <span class="meta-val">${[organizerEmail, organizerPhone].filter(Boolean).join(' • ')}</span>
           </div>`
               : ''
           }
@@ -397,7 +397,7 @@ export const buildPassEmailHtml = ({
 
     <div class="footer">
       <p style="margin: 0 0 6px 0;">Powered by <strong>Eventra Platform</strong> • High-Security Gate Verification</p>
-      <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong></p>
+      <p style="margin: 0;">Organizer: <strong>${organizerName || 'Eventra Operations'}</strong></p>
     </div>
   </div>
 </body>
@@ -412,9 +412,12 @@ export const sendPassEmail = async (registrant, eventConfig = {}) => {
   const mailTransporter = await getTransporter();
 
   const eventName = eventConfig.eventName || 'Eventra 2026';
-  const eventDate = eventConfig.eventDate || 'October 16 - 18, 2026';
-  const eventTime = eventConfig.eventTime || '09:00 AM IST';
-  const eventVenue = eventConfig.eventVenue || 'Apex Tech Hub & Innovation Arena, Pune';
+  const eventDate = eventConfig.eventDate || 'Dates TBA';
+  const eventTime = eventConfig.eventTime || 'Schedule TBA';
+  const eventVenue = eventConfig.eventVenue || 'Campus Venue';
+  const organizerName = eventConfig.clubName || eventConfig.organizerName || 'Eventra Operations';
+  const organizerEmail = eventConfig.organizerEmail || '';
+  const organizerPhone = eventConfig.organizerPhone || '';
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const passUrl = `${clientUrl}/pass/${registrant.uniqueId}`;
   const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
@@ -431,25 +434,29 @@ export const sendPassEmail = async (registrant, eventConfig = {}) => {
     eventDate,
     eventTime,
     eventVenue,
+    organizerName,
+    organizerEmail,
+    organizerPhone,
     passUrl,
     notice: eventConfig.emailBodyNotice,
   });
 
-  const subject = (eventConfig.emailSubjectTemplate || '🎟️ Your Official Entry Pass for Eventra 2026 — {{name}}')
-    .replace('{{eventName}}', eventName)
-    .replace('{{name}}', registrant.name);
+  const subject = (eventConfig.emailSubjectTemplate || '🎟️ Your Official Entry Pass for {{eventName}} — {{name}}')
+    .replace(/\{\{eventName\}\}/g, eventName)
+    .replace(/Eventra 2026/g, eventName)
+    .replace(/\{\{name\}\}/g, registrant.name);
 
-  const fromAddress = process.env.EMAIL_FROM || `"Eventra 2026" <${senderEmail}>`;
+  const fromAddress = process.env.EMAIL_FROM || `"${eventName}" <${senderEmail}>`;
 
   const mailOptions = {
     from: fromAddress,
     to: registrant.email,
-    replyTo: process.env.REPLY_TO || senderEmail,
+    replyTo: organizerEmail || process.env.REPLY_TO || senderEmail,
     subject: subject,
     html: html,
     attachments: [
       {
-        filename: `hackseries-pass-${registrant.uniqueId}.png`,
+        filename: `eventra-pass-${registrant.uniqueId}.png`,
         content: qrBuffer,
         cid: 'hackpassqr',
       },
@@ -525,12 +532,12 @@ export const buildCheckinConfirmationEmailHtml = ({
   ticketType,
   teamName,
   track,
-  institution,
   checkedInAt,
-  checkedInBy,
   hasLivePhoto = false,
   eventName = 'Eventra 2026',
-  eventVenue = 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+  eventVenue = 'Campus Venue',
+  organizerName = 'Eventra Operations',
+  organizerEmail = 'tigeradi1504@gmail.com',
   clientUrl = 'http://localhost:5173',
 }) => {
   const passUrl = `${clientUrl}/pass/${uniqueId}`;
@@ -544,7 +551,7 @@ export const buildCheckinConfirmationEmailHtml = ({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Eventra 2026 — You are Checked In!</title>
+  <title>Welcome to ${eventName} — You are Checked In!</title>
   <style>
     body { margin: 0; padding: 0; background-color: #030712; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e5e7eb; }
     .email-container { max-width: 600px; margin: 20px auto; background-color: #0b0f19; border: 1px solid #1f293d; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
@@ -555,51 +562,39 @@ export const buildCheckinConfirmationEmailHtml = ({
     .content { padding: 32px 24px; }
     .greeting { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 12px; }
     .card { background: #0e1424; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0; }
-    .badge-emerald { background: #064e3b; color: #34d399; border: 1px solid #059669; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px; }
-    .info-label { color: #9ca3af; }
-    .info-value { color: #ffffff; font-weight: 700; text-align: right; }
-    .btn { display: block; width: fit-content; margin: 24px auto 0 auto; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: 800; font-size: 14px; text-align: center; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4); }
-    .guide-box { background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 10px; padding: 16px; margin-top: 20px; }
-    .guide-title { color: #22d3ee; font-size: 13px; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .guide-item { font-size: 12px; color: #cbd5e1; margin-bottom: 6px; line-height: 1.4; }
+    .btn { display: block; width: fit-content; margin: 24px auto 0 auto; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: 800; font-size: 14px; text-align: center; }
     .footer { background-color: #060913; padding: 24px; text-align: center; font-size: 11px; color: #6b7280; border-top: 1px solid #1f293d; }
   </style>
 </head>
 <body>
   <div class="email-container">
-    
-    <!-- Header -->
     <div class="header">
       <div style="text-align: center; margin-bottom: 12px;">
         <img src="https://eventra-2026.vercel.app/eventra-logo.png" alt="Eventra" style="height: 36px; width: auto; background: rgba(255, 255, 255, 0.95); padding: 4px 12px; border-radius: 8px; display: inline-block;" />
       </div>
       <div class="tag">GATE ACCESS VERIFIED ✅</div>
       <h1 class="h1">You Are Checked In!</h1>
-      <p class="subtitle">Welcome to ${eventName} • ACES, DIT Pune</p>
+      <p class="subtitle">Welcome to ${eventName}</p>
     </div>
 
-    <!-- Content -->
     <div class="content">
-      <div class="greeting">Hey ${attendeeName}, welcome to the arena! 🚀</div>
+      <div class="greeting">Hey ${attendeeName}, welcome to the event! 🚀</div>
       <p style="font-size: 14px; line-height: 1.5; color: #9ca3af; margin: 0 0 16px 0;">
-        Your digital holographic entry pass has been successfully scanned and verified at the gate entrance. You are officially registered on-site and ready to hack!
+        Your digital entry pass has been scanned and verified at the gate entrance for <strong>${eventName}</strong>.
       </p>
 
       ${hasLivePhoto ? `
-      <!-- Live Gate Entry Snapshot Card -->
       <div style="background: #0e1424; border: 1px solid rgba(34, 197, 94, 0.35); border-radius: 12px; padding: 18px; margin: 20px 0; text-align: center;">
         <div style="font-size: 11px; font-weight: 800; color: #4ade80; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
           📷 VERIFIED GATE ENTRY SNAPSHOT
         </div>
-        <img src="cid:gatephoto" alt="Gate Check-In Snapshot" style="max-width: 280px; width: 100%; height: auto; border-radius: 10px; border: 2px solid #22c55e; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: block; margin: 0 auto;" />
+        <img src="cid:gatephoto" alt="Gate Check-In Snapshot" style="max-width: 280px; width: 100%; height: auto; border-radius: 10px; border: 2px solid #22c55e; display: block; margin: 0 auto;" />
         <div style="font-size: 11px; color: #9ca3af; margin-top: 10px;">
-          Verified live on-site at Dr. D. Y. Patil Institute of Technology (DIT), Pune
+          Verified live on-site at ${eventVenue}
         </div>
       </div>
       ` : ''}
 
-      <!-- Checkin Summary Card -->
       <div class="card">
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
@@ -622,7 +617,7 @@ export const buildCheckinConfirmationEmailHtml = ({
           ` : ''}
           ${track ? `
           <tr>
-            <td style="padding: 6px 0; color: #9ca3af; font-size: 13px;">Problem Track:</td>
+            <td style="padding: 6px 0; color: #9ca3af; font-size: 13px;">Track / Category:</td>
             <td style="padding: 6px 0; color: #f7d070; font-size: 13px; font-weight: 700; text-align: right;">${track}</td>
           </tr>
           ` : ''}
@@ -633,28 +628,15 @@ export const buildCheckinConfirmationEmailHtml = ({
         </table>
       </div>
 
-      <!-- Hacker Quick Start Kit -->
-      <div class="guide-box">
-        <div class="guide-title">⚡ Hacker Onboarding Quick-Guide</div>
-        <div class="guide-item">📶 <strong>High-Speed WiFi:</strong> Connect to <code>DIT_HACKSERIES_GUEST</code> (Password: <code>Eventra@2026</code>)</div>
-        <div class="guide-item">👕 <strong>Swag & Food Kit:</strong> Collect your participant badge & food coupon wristband at Desk 2.</div>
-        <div class="guide-item">⚡ <strong>Workstation & Power:</strong> Dedicated lab blocks 401-408 with continuous high-speed LAN & power ports.</div>
-        <div class="guide-item">🆘 <strong>24x7 Help Desk:</strong> Reach out to volunteers wearing the ACES Eventra badge at the Central Control Desk.</div>
-      </div>
-
-      <!-- Live Pass Button -->
       <a href="${passUrl}" class="btn" target="_blank">
-        🎟️ View Your Live Digital Pass & Schedule
+        🎟️ View Your Live Digital Pass
       </a>
     </div>
 
-    <!-- Footer -->
     <div class="footer">
-      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">Eventra 2026 • Association of Computer Engineering Students (ACES)</p>
-      <p style="margin: 0 0 6px 0;">Eventra 2026 • Verified Event Operations</p>
-      <p style="margin: 0;">Lead Operations: <strong>Aditya Renake</strong> (<a href="mailto:tigeradi1504@gmail.com" style="color: #f7d070; text-decoration: none;">tigeradi1504@gmail.com</a>)</p>
+      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">${eventName} • ${organizerName}</p>
+      <p style="margin: 0;">Contact: <a href="mailto:${organizerEmail}" style="color: #f7d070; text-decoration: none;">${organizerEmail}</a></p>
     </div>
-
   </div>
 </body>
 </html>
@@ -669,7 +651,9 @@ export const sendCheckinConfirmationEmail = async (registrant, eventConfig = {})
     const mailTransporter = await getTransporter();
 
     const eventName = eventConfig.eventName || 'Eventra 2026';
-    const eventVenue = eventConfig.eventVenue || 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune';
+    const eventVenue = eventConfig.eventVenue || 'Campus Venue';
+    const organizerName = eventConfig.clubName || eventConfig.organizerName || 'Eventra Operations';
+    const organizerEmail = eventConfig.organizerEmail || 'tigeradi1504@gmail.com';
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
 
@@ -698,24 +682,24 @@ export const sendCheckinConfirmationEmail = async (registrant, eventConfig = {})
       hasLivePhoto,
       eventName,
       eventVenue,
+      organizerName,
+      organizerEmail,
       clientUrl,
     });
 
     const subject = `🎉 Welcome to ${eventName}! You are Checked In ✅ [${registrant.uniqueId}]`;
-    const fromAddress = process.env.EMAIL_FROM || `"Eventra 2026" <${senderEmail}>`;
+    const fromAddress = process.env.EMAIL_FROM || `"${eventName}" <${senderEmail}>`;
 
     const mailOptions = {
       from: fromAddress,
       to: registrant.email,
-      replyTo: process.env.REPLY_TO || senderEmail,
+      replyTo: organizerEmail || process.env.REPLY_TO || senderEmail,
       subject,
       html,
       attachments,
     };
 
     const info = await mailTransporter.sendMail(mailOptions);
-    console.log(`✅ [CHECK-IN EMAIL DELIVERED] Confirmation sent to ${registrant.email} (MessageID: ${info.messageId}, withPhoto: ${hasLivePhoto})`);
-
     return {
       success: true,
       messageId: info.messageId,
@@ -734,13 +718,14 @@ export const sendCheckinConfirmationEmail = async (registrant, eventConfig = {})
 export const buildRegistrationReceivedEmailHtml = ({
   attendeeName,
   uniqueId,
-  ticketType = 'Hacker Pass',
+  ticketType = 'Standard Pass',
   teamName,
   track,
   institution,
   eventName = 'Eventra 2026',
-  eventDate = 'September 2026',
-  eventVenue = 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune',
+  eventVenue = 'Campus Venue',
+  organizerName = 'Eventra Operations',
+  organizerEmail = 'tigeradi1504@gmail.com',
 }) => {
   return `
 <!DOCTYPE html>
@@ -751,58 +736,37 @@ export const buildRegistrationReceivedEmailHtml = ({
   <title>Registration Received — ${eventName}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #030712; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f9fafb;">
-  <div style="max-width: 600px; margin: 30px auto; background-color: #0b0f19; border: 1px solid rgba(209, 165, 80, 0.4); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);">
+  <div style="max-width: 600px; margin: 30px auto; background-color: #0b0f19; border: 1px solid rgba(89, 110, 230, 0.4); border-radius: 16px; overflow: hidden;">
 
-    <!-- Header Banner -->
-    <div style="background: linear-gradient(135deg, #7a1518 0%, #b22b2f 50%, #d1a550 100%); padding: 32px 24px; text-align: center; border-bottom: 2px solid #f7d070;">
+    <div style="background: linear-gradient(135deg, #312e81 0%, #4338ca 50%, #596ee6 100%); padding: 32px 24px; text-align: center;">
       <div style="text-align: center; margin-bottom: 12px;">
         <img src="https://eventra-2026.vercel.app/eventra-logo.png" alt="Eventra" style="height: 36px; width: auto; background: rgba(255, 255, 255, 0.95); padding: 4px 12px; border-radius: 8px; display: inline-block;" />
       </div>
-      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.15em; color: #f7d070; text-transform: uppercase; margin-bottom: 6px;">
-        ACES • DR. D. Y. PATIL INSTITUTE OF TECHNOLOGY
+      <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.15em; color: #c7d2fe; text-transform: uppercase; margin-bottom: 6px;">
+        ${organizerName}
       </div>
       <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">
         ${eventName}
       </h1>
-      <div style="display: inline-block; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(247, 208, 112, 0.6); padding: 5px 14px; border-radius: 9999px; margin-top: 12px; font-size: 12px; font-weight: 700; color: #f7d070;">
+      <div style="display: inline-block; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(199, 210, 254, 0.6); padding: 5px 14px; border-radius: 9999px; margin-top: 12px; font-size: 12px; font-weight: 700; color: #e0e7ff;">
         ⚡ REGISTRATION APPLICATION RECEIVED
       </div>
     </div>
 
-    <!-- Body Content -->
     <div style="padding: 32px 24px;">
-
       <p style="font-size: 18px; font-weight: 800; color: #ffffff; margin: 0 0 12px 0;">
-        Hello <span style="color: #f7d070;">${attendeeName}</span>,
+        Hello <span style="color: #a5b4fc;">${attendeeName}</span>,
       </p>
 
       <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 0 0 20px 0;">
-        Thank you for registering for <strong>${eventName}</strong> at <strong>${eventVenue}</strong>. We have successfully received your registration details.
+        Thank you for registering for <strong>${eventName}</strong> at <strong>${eventVenue}</strong>. We have received your registration details.
       </p>
 
-      <!-- Verification Status Callout -->
-      <div style="background: linear-gradient(135deg, rgba(209, 165, 80, 0.12) 0%, rgba(178, 43, 47, 0.08) 100%); border: 1px solid rgba(209, 165, 80, 0.45); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <span style="font-size: 16px;">⏳</span>
-          <span style="font-size: 14px; font-weight: 800; color: #f7d070; text-transform: uppercase; letter-spacing: 0.05em;">
-            Status: Details Under Verification
-          </span>
-        </div>
-        <p style="margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.6;">
-          Our Operations & Technical Team is currently reviewing and verifying your submission. Once verified, your official <strong>Cryptographically Signed Digital Holographic Pass with Gate QR Code</strong> will be dispatched to this email address.
-        </p>
-      </div>
-
-      <!-- Application Details Table -->
       <div style="background-color: #060913; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-        <div style="font-size: 11px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 8px;">
-          📋 Application Summary
-        </div>
-
         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
           <tr>
             <td style="padding: 6px 0; color: #9ca3af; width: 40%;">Application Ref:</td>
-            <td style="padding: 6px 0; color: #f7d070; font-weight: 800; font-family: monospace;">${uniqueId}</td>
+            <td style="padding: 6px 0; color: #a5b4fc; font-weight: 800; font-family: monospace;">${uniqueId}</td>
           </tr>
           <tr>
             <td style="padding: 6px 0; color: #9ca3af;">Participant Name:</td>
@@ -819,12 +783,12 @@ export const buildRegistrationReceivedEmailHtml = ({
           </tr>` : ''}
           ${track ? `
           <tr>
-            <td style="padding: 6px 0; color: #9ca3af;">Assigned Track:</td>
+            <td style="padding: 6px 0; color: #9ca3af;">Track:</td>
             <td style="padding: 6px 0; color: #4ade80; font-weight: 700;">${track}</td>
           </tr>` : ''}
           ${institution ? `
           <tr>
-            <td style="padding: 6px 0; color: #9ca3af;">College / Institution:</td>
+            <td style="padding: 6px 0; color: #9ca3af;">Institution:</td>
             <td style="padding: 6px 0; color: #ffffff;">${institution}</td>
           </tr>` : ''}
           <tr>
@@ -834,52 +798,27 @@ export const buildRegistrationReceivedEmailHtml = ({
         </table>
       </div>
 
-      <!-- What to Expect Next -->
-      <div style="background-color: #070b14; border: 1px solid rgba(34, 211, 238, 0.2); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
-        <div style="font-size: 13px; font-weight: 800; color: #22d3ee; margin-bottom: 12px;">
-          🚀 What Happens Next?
-        </div>
-        <div style="font-size: 12px; color: #cbd5e1; line-height: 1.8;">
-          <div>1️⃣ <strong>Review</strong>: Operations team verifies details & team allocations.</div>
-          <div>2️⃣ <strong>Pass Delivery</strong>: You will receive an email with your official QR Entry Pass.</div>
-          <div>3️⃣ <strong>Gate Check-In</strong>: Show your digital pass on your phone at the event gate for instant entry & hacker kit!</div>
-        </div>
-      </div>
-
-      <!-- Support Notice -->
-      <p style="font-size: 12px; color: #9ca3af; line-height: 1.5; margin: 0;">
-        If you have any questions or need to correct your registration details, feel free to reply directly to this email or reach out to our Helpdesk at <a href="mailto:tigeradi1504@gmail.com" style="color: #f7d070; text-decoration: none;">tigeradi1504@gmail.com</a>.
-      </p>
-
-    </div>
-
-    <!-- Footer -->
-    <div style="background-color: #06080e; border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 20px 24px; text-align: center; font-size: 11px; color: #6b7280;">
-      <p style="margin: 0 0 6px 0; font-weight: 700; color: #9ca3af;">Eventra 2026 • Association of Computer Engineering Students (ACES)</p>
-      <p style="margin: 0 0 6px 0;">Eventra 2026 • Verified Event Operations</p>
-      <p style="margin: 0;">
-        Lead Operations: <strong>Aditya Renake</strong> • 
-        <a href="https://instagram.com/where.aditya" style="color: #f7d070; text-decoration: none;">Instagram</a> • 
-        <a href="https://github.com/aditya-renake" style="color: #22d3ee; text-decoration: none;">GitHub</a>
+      <p style="font-size: 12px; color: #9ca3af; line-height: 1.5; margin: 0; text-align: center;">
+        For any queries, reach out to <a href="mailto:${organizerEmail}" style="color: #a5b4fc; text-decoration: none;">${organizerEmail}</a>
       </p>
     </div>
-
   </div>
 </body>
 </html>
-  `;
+`;
 };
 
 /**
- * Dispatches the "Registration Received • Details Under Verification" acknowledgement email
+ * Sends instant registration received acknowledgement email
  */
 export const sendRegistrationReceivedEmail = async (registrant, eventConfig = {}) => {
   try {
     const mailTransporter = await getTransporter();
-
     const eventName = eventConfig.eventName || 'Eventra 2026';
-    const eventDate = eventConfig.eventDate || 'September 2026';
-    const eventVenue = eventConfig.eventVenue || 'Dr. D. Y. Patil Institute of Technology (DYPDPU), Pimpri, Pune';
+    const eventDate = eventConfig.eventDate || 'Dates TBA';
+    const eventVenue = eventConfig.eventVenue || 'Campus Venue';
+    const organizerName = eventConfig.clubName || eventConfig.organizerName || 'Eventra Operations';
+    const organizerEmail = eventConfig.organizerEmail || 'tigeradi1504@gmail.com';
     const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
 
     const html = buildRegistrationReceivedEmailHtml({
@@ -892,21 +831,20 @@ export const sendRegistrationReceivedEmail = async (registrant, eventConfig = {}
       eventName,
       eventDate,
       eventVenue,
+      organizerName,
+      organizerEmail,
     });
 
-    const subject = `⏳ We've Received Your Registration — ${eventName} (Ref: ${registrant.uniqueId})`;
-    const fromAddress = process.env.EMAIL_FROM || `"Eventra 2026" <${senderEmail}>`;
+    const subject = `⏳ Registration Received for ${eventName} — Verification Pending [${registrant.uniqueId}]`;
+    const fromAddress = process.env.EMAIL_FROM || `"${eventName}" <${senderEmail}>`;
 
-    const mailOptions = {
+    const info = await mailTransporter.sendMail({
       from: fromAddress,
       to: registrant.email,
-      replyTo: process.env.REPLY_TO || senderEmail,
+      replyTo: organizerEmail || process.env.REPLY_TO || senderEmail,
       subject,
       html,
-    };
-
-    const info = await mailTransporter.sendMail(mailOptions);
-    console.log(`✅ [REGISTRATION ACK EMAIL] Verification acknowledgement sent to ${registrant.email} (MessageID: ${info.messageId})`);
+    });
 
     return {
       success: true,
@@ -914,9 +852,7 @@ export const sendRegistrationReceivedEmail = async (registrant, eventConfig = {}
       recipient: registrant.email,
     };
   } catch (err) {
-    console.error(`❌ [REGISTRATION ACK EMAIL ERROR] Failed sending ack email to ${registrant?.email}:`, err.message);
-    throw err;
+    console.warn(`⚠️ [REGISTRATION ACK EMAIL ERROR] Failed sending to ${registrant?.email}:`, err.message);
+    return { success: false, error: err.message };
   }
 };
-
-

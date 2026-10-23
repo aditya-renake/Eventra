@@ -59,6 +59,8 @@ const COMMAND_TABS = [
 export const SuperAdminModal = ({ 
   currentUser, 
   eventConfig, 
+  activeEvent = null,
+  selectedEventId = null,
   onClose, 
   onShowToast, 
   onRefreshData,
@@ -86,47 +88,51 @@ export const SuperAdminModal = ({
   const [broadcastActive, setBroadcastActive] = useState(eventConfig?.broadcastActive || false);
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
 
-  // Event Details State
-  const [eventName, setEventName] = useState(eventConfig?.eventName || 'Eventra 2026');
-  const [eventTagline, setEventTagline] = useState(eventConfig?.eventTagline || 'Powered by Eventra 2026 — Zero-Tamper QR Pass & Event Intelligence Platform');
-  const [eventDate, setEventDate] = useState(eventConfig?.eventDate || 'October 16 - 18, 2026');
-  const [eventTime, setEventTime] = useState(eventConfig?.eventTime || '09:00 AM IST (Gate Check-in starts 07:30 AM)');
-  const [eventVenue, setEventVenue] = useState(eventConfig?.eventVenue || 'Dr. D. Y. Patil Institute of Technology (DIT), Sant Tukaram Nagar, Pimpri, Pune - 411018');
-  const [organizerName, setOrganizerName] = useState(eventConfig?.organizerName || 'ACES (Association of Computer Engineering Students), DIT Pune');
-  const [organizerEmail, setOrganizerEmail] = useState(eventConfig?.organizerEmail || 'tigeradi1504@gmail.com');
+  // Event Details State (prefers selected activeEvent, falls back to eventConfig)
+  const sourceEv = activeEvent || eventConfig || {};
+  const [eventName, setEventName] = useState(sourceEv.name || sourceEv.eventName || 'Eventra 2026');
+  const [eventTagline, setEventTagline] = useState(sourceEv.tagline || sourceEv.eventTagline || '');
+  const [eventDate, setEventDate] = useState(sourceEv.dateDisplay || sourceEv.eventDate || 'Dates TBA');
+  const [eventTime, setEventTime] = useState(sourceEv.timeDisplay || sourceEv.eventTime || 'Schedule TBA');
+  const [eventVenue, setEventVenue] = useState(sourceEv.venue || sourceEv.eventVenue || 'Campus Venue');
+  const [organizerName, setOrganizerName] = useState(sourceEv.organizerName || '');
+  const [organizerEmail, setOrganizerEmail] = useState(sourceEv.organizerEmail || '');
 
   // Registration Mode & Payment Gateway State
   const [regMode, setRegMode] = useState('native_payment');
   const [enablePayments, setEnablePayments] = useState(eventConfig?.enablePaymentGateway !== false);
-  const [hackerPrice, setHackerPrice] = useState(eventConfig?.ticketPrices?.['Hacker Pass'] ?? 5);
-  const [studentPrice, setStudentPrice] = useState(eventConfig?.ticketPrices?.['Student Pass'] ?? 5);
-  const [vipPrice, setVipPrice] = useState(eventConfig?.ticketPrices?.['VIP Delegate'] ?? 5);
-  const [judgePrice, setJudgePrice] = useState(eventConfig?.ticketPrices?.['Judge / Mentor'] ?? 5);
+  const [hackerPrice, setHackerPrice] = useState(sourceEv.ticketPrices?.['Hacker Pass'] ?? sourceEv.entryFee ?? 5);
+  const [studentPrice, setStudentPrice] = useState(sourceEv.ticketPrices?.['Student Pass'] ?? sourceEv.entryFee ?? 5);
+  const [vipPrice, setVipPrice] = useState(sourceEv.ticketPrices?.['VIP Delegate'] ?? sourceEv.entryFee ?? 5);
+  const [judgePrice, setJudgePrice] = useState(sourceEv.ticketPrices?.['Judge / Mentor'] ?? sourceEv.entryFee ?? 5);
   const [upiId, setUpiId] = useState(eventConfig?.upiId || 'tigeradi1504-1@okicici');
-  const [upiPayeeName, setUpiPayeeName] = useState(eventConfig?.upiPayeeName || 'Eventra 2026');
+  const [upiPayeeName, setUpiPayeeName] = useState(eventConfig?.upiPayeeName || sourceEv.name || 'Eventra 2026');
   const [razorpayKeyId, setRazorpayKeyId] = useState(eventConfig?.razorpayKeyId || '');
   const [razorpayKeySecret, setRazorpayKeySecret] = useState(eventConfig?.razorpayKeySecret || '');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [showRazorpaySecret, setShowRazorpaySecret] = useState(false);
 
-  // Sync state if eventConfig updates
+  // Sync state if activeEvent or eventConfig updates
   useEffect(() => {
+    const src = activeEvent || eventConfig;
+    if (src) {
+      if (src.name || src.eventName) setEventName(src.name || src.eventName);
+      if (src.tagline !== undefined || src.eventTagline !== undefined) setEventTagline(src.tagline ?? src.eventTagline ?? '');
+      if (src.dateDisplay || src.eventDate) setEventDate(src.dateDisplay || src.eventDate);
+      if (src.timeDisplay || src.eventTime) setEventTime(src.timeDisplay || src.eventTime);
+      if (src.venue || src.eventVenue) setEventVenue(src.venue || src.eventVenue);
+      if (src.organizerName !== undefined) setOrganizerName(src.organizerName || '');
+      if (src.organizerEmail !== undefined) setOrganizerEmail(src.organizerEmail || '');
+      if (src.ticketPrices) {
+        if (src.ticketPrices['Hacker Pass'] !== undefined) setHackerPrice(src.ticketPrices['Hacker Pass']);
+        if (src.ticketPrices['Student Pass'] !== undefined) setStudentPrice(src.ticketPrices['Student Pass']);
+        if (src.ticketPrices['VIP Delegate'] !== undefined) setVipPrice(src.ticketPrices['VIP Delegate']);
+        if (src.ticketPrices['Judge / Mentor'] !== undefined) setJudgePrice(src.ticketPrices['Judge / Mentor']);
+      }
+    }
     if (eventConfig) {
-      if (eventConfig.eventName) setEventName(eventConfig.eventName);
-      if (eventConfig.eventTagline) setEventTagline(eventConfig.eventTagline);
-      if (eventConfig.eventDate) setEventDate(eventConfig.eventDate);
-      if (eventConfig.eventTime) setEventTime(eventConfig.eventTime);
-      if (eventConfig.eventVenue) setEventVenue(eventConfig.eventVenue);
-      if (eventConfig.organizerName) setOrganizerName(eventConfig.organizerName);
-      if (eventConfig.organizerEmail) setOrganizerEmail(eventConfig.organizerEmail);
       if (eventConfig.registrationMode) setRegMode(eventConfig.registrationMode);
       if (eventConfig.enablePaymentGateway !== undefined) setEnablePayments(eventConfig.enablePaymentGateway);
-      if (eventConfig.ticketPrices) {
-        if (eventConfig.ticketPrices['Hacker Pass'] !== undefined) setHackerPrice(eventConfig.ticketPrices['Hacker Pass']);
-        if (eventConfig.ticketPrices['Student Pass'] !== undefined) setStudentPrice(eventConfig.ticketPrices['Student Pass']);
-        if (eventConfig.ticketPrices['VIP Delegate'] !== undefined) setVipPrice(eventConfig.ticketPrices['VIP Delegate']);
-        if (eventConfig.ticketPrices['Judge / Mentor'] !== undefined) setJudgePrice(eventConfig.ticketPrices['Judge / Mentor']);
-      }
       if (eventConfig.upiId) setUpiId(eventConfig.upiId);
       if (eventConfig.upiPayeeName) setUpiPayeeName(eventConfig.upiPayeeName);
       if (eventConfig.razorpayKeyId !== undefined) setRazorpayKeyId(eventConfig.razorpayKeyId);
@@ -134,7 +140,7 @@ export const SuperAdminModal = ({
       if (eventConfig.broadcastNotice !== undefined) setBroadcastText(eventConfig.broadcastNotice);
       if (eventConfig.broadcastActive !== undefined) setBroadcastActive(eventConfig.broadcastActive);
     }
-  }, [eventConfig]);
+  }, [activeEvent, eventConfig]);
 
   // Database Telemetry State
   const [telemetry, setTelemetry] = useState(null);
@@ -145,7 +151,7 @@ export const SuperAdminModal = ({
   const [vipEmail, setVipEmail] = useState('');
   const [vipRole, setVipRole] = useState('VIP Guest');
   const [vipTeam, setVipTeam] = useState('Special Invitee');
-  const [vipTrack, setVipTrack] = useState('AI & Web3 Innovation');
+  const [vipTrack, setVipTrack] = useState(activeEvent?.tracks?.[0] || 'General Track');
   const [isGeneratingVip, setIsGeneratingVip] = useState(false);
   const [generatedVipPass, setGeneratedVipPass] = useState(null);
 
@@ -398,34 +404,50 @@ export const SuperAdminModal = ({
     e.preventDefault();
     try {
       setIsSavingConfig(true);
+      const targetEvId = selectedEventId || activeEvent?.id || eventConfig?.activeEventId || 'eventra-2026';
+
+      let nextTicketPrices = {
+        'Hacker Pass': Number(hackerPrice) >= 0 ? Number(hackerPrice) : 5,
+        'Student Pass': Number(studentPrice) >= 0 ? Number(studentPrice) : 5,
+        'VIP Delegate': Number(vipPrice) >= 0 ? Number(vipPrice) : 5,
+        'Judge / Mentor': Number(judgePrice) >= 0 ? Number(judgePrice) : 5,
+      };
+      if (activeEvent?.ticketPrices && Object.keys(activeEvent.ticketPrices).length > 0 && !activeEvent.ticketPrices['Hacker Pass']) {
+        nextTicketPrices = { ...activeEvent.ticketPrices };
+      }
+
+      if (targetEvId) {
+        await api.events.update(targetEvId, {
+          name: eventName ? eventName.trim() : 'Eventra',
+          tagline: eventTagline ? eventTagline.trim() : '',
+          dateDisplay: eventDate ? eventDate.trim() : 'Dates TBA',
+          timeDisplay: eventTime ? eventTime.trim() : 'Schedule TBA',
+          venue: eventVenue ? eventVenue.trim() : 'Campus Venue',
+          organizerName: organizerName ? organizerName.trim() : '',
+          organizerEmail: organizerEmail ? organizerEmail.trim() : '',
+          ticketPrices: nextTicketPrices,
+        }).catch(() => {});
+      }
+
       await api.event.updateConfig({
-        // Event Branding & Logistics
+        activeEventId: targetEvId,
         eventName: eventName ? eventName.trim() : 'Eventra 2026',
         eventTagline: eventTagline ? eventTagline.trim() : '',
-        eventDate: eventDate ? eventDate.trim() : 'October 16 - 18, 2026',
-        eventTime: eventTime ? eventTime.trim() : '09:00 AM IST',
+        eventDate: eventDate ? eventDate.trim() : 'Dates TBA',
+        eventTime: eventTime ? eventTime.trim() : 'Schedule TBA',
         eventVenue: eventVenue ? eventVenue.trim() : '',
         organizerName: organizerName ? organizerName.trim() : '',
         organizerEmail: organizerEmail ? organizerEmail.trim() : '',
-
-        // Registration Mode
         registrationMode: 'native_payment',
         enablePaymentGateway: enablePayments,
-
-        // Payment Gateway & Direct UPI Details
         upiId: upiId ? upiId.trim() : 'tigeradi1504-1@okicici',
         upiPayeeName: upiPayeeName ? upiPayeeName.trim() : 'Eventra 2026',
         razorpayKeyId: razorpayKeyId ? razorpayKeyId.trim() : '',
         razorpayKeySecret: razorpayKeySecret ? razorpayKeySecret.trim() : '',
-
-        // Ticket Pricing
-        ticketPrices: {
-          'Hacker Pass': Number(hackerPrice) >= 0 ? Number(hackerPrice) : 5,
-          'Student Pass': Number(studentPrice) >= 0 ? Number(studentPrice) : 5,
-          'VIP Delegate': Number(vipPrice) >= 0 ? Number(vipPrice) : 5,
-          'Judge / Mentor': Number(judgePrice) >= 0 ? Number(judgePrice) : 5,
-        },
+        ticketPrices: nextTicketPrices,
       });
+
+      window.dispatchEvent(new CustomEvent('eventra:events-updated'));
       sounds.playSuccess();
       onShowToast({
         type: 'success',
@@ -452,13 +474,15 @@ export const SuperAdminModal = ({
 
     try {
       setIsGeneratingVip(true);
+      const targetEvId = selectedEventId || activeEvent?.id || eventConfig?.activeEventId || 'eventra-2026';
       const res = await api.registrants.create({
+        eventId: targetEvId,
         name: vipName,
         email: vipEmail,
         ticketType: vipRole,
         teamName: vipTeam,
         track: vipTrack,
-        institution: 'Eventra Community',
+        institution: activeEvent?.collegeName || 'Eventra Community',
       });
 
       sounds.playSuccess();

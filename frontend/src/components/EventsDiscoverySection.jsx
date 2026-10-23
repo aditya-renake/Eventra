@@ -1,23 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, 
   MapPin, 
   Users, 
   Sparkles, 
-  ExternalLink, 
   ArrowUpRight, 
   Search, 
-  Tag, 
-  Trophy,
-  Flame,
-  CheckCircle2,
-  Clock,
-  Ticket
+  Ticket,
+  Eye,
+  Share2,
+  Building2,
+  Layers
 } from 'lucide-react';
 import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
-export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) => {
+export const EventsDiscoverySection = ({
+  activeEventId,
+  onSelectEvent,
+  onRegisterEvent,
+  onNavigateToLookup,
+  onShowToast,
+}) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -26,35 +30,61 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
   const categories = [
     { id: 'all', label: '🔥 All Events' },
     { id: 'Hackathon', label: '💻 Hackathons' },
-    { id: 'Workshop', label: '🤖 AI & Bootcamps' },
+    { id: 'Workshop', label: '🤖 Workshops' },
+    { id: 'Tech Summit', label: '🚀 Summits' },
     { id: 'Gaming', label: '🎮 Esports' },
-    { id: 'Seminar', label: '🎤 Tech Talks' },
-    { id: 'Cultural', label: '🎭 Cultural Fests' },
+    { id: 'Competition', label: '⚡ Competitions' },
+    { id: 'Seminar', label: '🎤 Seminars' },
+    { id: 'Cultural', label: '🎭 Cultural' },
+    { id: 'Sports', label: '🏆 Sports' },
   ];
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        const res = await api.events.getAll();
-        setEvents(res.data || []);
-      } catch (e) {
-        console.warn('Could not fetch events catalog:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchEvents();
+  const fetchEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.events.getAll();
+      setEvents((res.data || []).filter((ev) => ev.status !== 'draft'));
+    } catch (e) {
+      console.warn('Could not fetch events catalog:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchEvents();
+    const handleUpdated = () => fetchEvents();
+    window.addEventListener('eventra:events-updated', handleUpdated);
+    return () => window.removeEventListener('eventra:events-updated', handleUpdated);
+  }, [fetchEvents]);
 
   const filteredEvents = events.filter((ev) => {
     const matchesCat = activeCategory === 'all' || String(ev.category).toLowerCase() === activeCategory.toLowerCase();
-    const matchesSearch = !searchQuery.trim() || 
-      ev.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ev.tagline?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ev.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q || 
+      ev.name?.toLowerCase().includes(q) ||
+      ev.tagline?.toLowerCase().includes(q) ||
+      ev.description?.toLowerCase().includes(q) ||
+      ev.clubName?.toLowerCase().includes(q) ||
+      ev.collegeName?.toLowerCase().includes(q) ||
+      ev.category?.toLowerCase().includes(q);
     return matchesCat && matchesSearch;
   });
+
+  const handleCopyShareLink = (ev, e) => {
+    e.stopPropagation();
+    sounds.playClick();
+    const evId = ev.slug || ev.id || ev.eventId;
+    const shareUrl = `${window.location.origin}/#event/${encodeURIComponent(evId)}`;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl).catch(() => {});
+    }
+    onShowToast?.({
+      type: 'success',
+      title: 'Event Link Copied! 🔗',
+      message: `Shareable link for "${ev.name}" copied to clipboard.`,
+    });
+  };
 
   return (
     <section id="events-hub-section" style={{ padding: '60px 0 30px 0', position: 'relative', zIndex: 1 }}>
@@ -88,7 +118,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
         </h2>
 
         <p style={{ fontSize: '15px', color: 'var(--text-muted, #5C6479)', maxWidth: '640px', margin: '0 auto', lineHeight: '1.6' }}>
-          Discover upcoming hackathons, AI workshops, gaming championships, and keynotes powered by the Eventra platform.
+          Discover live and upcoming hackathons, workshops, gaming championships, cultural fests, and club events powered by Eventra.
         </p>
       </div>
 
@@ -110,7 +140,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                   setActiveCategory(cat.id);
                 }}
                 style={{
-                  padding: '8px 18px',
+                  padding: '8px 16px',
                   borderRadius: '9999px',
                   fontSize: '12px',
                   fontWeight: '700',
@@ -134,7 +164,7 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
           <input
             type="text"
             className="input-control event-search-input"
-            placeholder="Search events, bootcamps..."
+            placeholder="Search events, clubs, colleges..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search events"
@@ -167,79 +197,135 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
           {filteredEvents.map((ev) => {
+            const evId = ev.id || ev.eventId;
             const isLive = ev.status === 'live';
+            const isCurrentlyViewed = activeEventId && String(activeEventId).toLowerCase() === String(evId).toLowerCase();
+            const isFree = ev.pricingType === 'free' || Number(ev.entryFee) === 0;
+            const feeBadgeText = isFree ? 'Free Pass' : (ev.feeDisplay || `₹${ev.entryFee ?? 5} Pass`);
+
             return (
               <article
-                key={ev.id || ev.eventId}
+                key={evId}
                 className="event-card-item"
+                onClick={() => {
+                  sounds.playClick();
+                  if (onSelectEvent) onSelectEvent(ev);
+                }}
                 style={{
                   borderRadius: '18px',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
                   background: '#FFFFFF',
-                  border: isLive ? '1px solid rgba(89, 110, 230, 0.35)' : '1px solid #E2E8F8',
-                  boxShadow: isLive ? '0 10px 30px rgba(89, 110, 230, 0.12)' : '0 4px 18px rgba(41, 48, 74, 0.04)',
+                  cursor: 'pointer',
+                  border: isCurrentlyViewed
+                    ? '2px solid #596EE6'
+                    : isLive
+                    ? '1px solid rgba(89, 110, 230, 0.35)'
+                    : '1px solid #E2E8F8',
+                  boxShadow: isCurrentlyViewed
+                    ? '0 14px 34px rgba(89, 110, 230, 0.2)'
+                    : isLive
+                    ? '0 10px 30px rgba(89, 110, 230, 0.12)'
+                    : '0 4px 18px rgba(41, 48, 74, 0.04)',
                   transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease',
                 }}
               >
                 {/* Event Banner */}
-                <div style={{ position: 'relative', height: '170px', overflow: 'hidden', background: '#EEF0FF' }}>
+                <div style={{ position: 'relative', height: '175px', overflow: 'hidden', background: '#EEF0FF' }}>
                   <img
                     src={ev.bannerUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80'}
                     alt={ev.name}
                     loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
                   />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(41, 48, 74, 0.8) 100%)' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 35%, rgba(41, 48, 74, 0.85) 100%)' }} />
 
                   {/* Status & Category Badges */}
-                  <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    <span
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          textTransform: 'uppercase',
+                          background: isLive ? '#ECFDF5' : '#EEF0FF',
+                          color: isLive ? '#059669' : '#596EE6',
+                          border: isLive ? '1px solid #A7F3D0' : '1px solid #DDE3FF',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        {isLive ? '● LIVE' : 'UPCOMING'}
+                      </span>
+                      <span
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                          background: '#FFFFFF',
+                          color: '#29304A',
+                          border: '1px solid #E2E8F8',
+                        }}
+                      >
+                        {ev.category}
+                      </span>
+                      <span
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          textTransform: 'uppercase',
+                          background: isFree ? '#10B981' : 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
+                          color: '#FFFFFF',
+                          boxShadow: '0 2px 8px rgba(89, 110, 230, 0.3)',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        {feeBadgeText}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyShareLink(ev, e)}
+                      title="Copy Share Link"
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: '9999px',
-                        fontSize: '10px',
-                        fontWeight: '800',
-                        textTransform: 'uppercase',
-                        background: isLive ? '#ECFDF5' : '#EEF0FF',
-                        color: isLive ? '#059669' : '#596EE6',
-                        border: isLive ? '1px solid #A7F3D0' : '1px solid #DDE3FF',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {isLive ? '● LIVE' : 'UPCOMING'}
-                    </span>
-                    <span
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '9999px',
-                        fontSize: '10px',
-                        fontWeight: '700',
-                        textTransform: 'uppercase',
-                        background: '#FFFFFF',
-                        color: '#29304A',
+                        background: 'rgba(255, 255, 255, 0.92)',
                         border: '1px solid #E2E8F8',
+                        borderRadius: '50%',
+                        width: '30px',
+                        height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#596EE6',
+                        flexShrink: 0,
                       }}
                     >
-                      {ev.category}
-                    </span>
-                    <span
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '9999px',
-                        fontSize: '10px',
-                        fontWeight: '800',
-                        textTransform: 'uppercase',
-                        background: 'linear-gradient(135deg, #596EE6 0%, #475AC4 100%)',
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 8px rgba(89, 110, 230, 0.3)',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {ev.feeDisplay || '₹5 Pass'}
-                    </span>
+                      <Share2 size={13} />
+                    </button>
                   </div>
+
+                  {/* Club / Organizer Bottom Overlay */}
+                  {(ev.clubName || ev.organizerName) && (
+                    <div style={{ position: 'absolute', bottom: '10px', left: '14px', right: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#E2E8F0', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <Building2 size={12} color="#A5B4FC" />
+                        {ev.clubName || ev.organizerName}
+                      </span>
+                      {Array.isArray(ev.subEvents) && ev.subEvents.length > 0 && (
+                        <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(139, 92, 246, 0.85)', color: '#fff', padding: '2px 8px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Layers size={10} /> {ev.subEvents.length} Sub-Events
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Content */}
@@ -250,35 +336,40 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                     {ev.name}
                   </h3>
 
-                  {/* Tagline */}
+                  {/* Tagline / Description */}
                   <p style={{ fontSize: '13px', color: 'var(--text-muted, #5C6479)', marginBottom: '16px', lineHeight: '1.5', flex: 1 }}>
-                    {ev.tagline}
+                    {ev.tagline || (ev.description ? `${ev.description.slice(0, 110)}${ev.description.length > 110 ? '...' : ''}` : 'Official Campus Event')}
                   </p>
 
-                  {/* Date & Venue Metadata */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px', fontSize: '12px', color: 'var(--eventra-ink-light, #3D4666)' }}>
+                  {/* Date, Venue & Capacity Metadata */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '18px', fontSize: '12px', color: 'var(--eventra-ink-light, #3D4666)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Calendar size={14} color="#596EE6" />
-                      <span>{ev.dateDisplay || 'October 2026'}</span>
+                      <Calendar size={14} color="#596EE6" style={{ flexShrink: 0 }} />
+                      <span>{ev.dateDisplay || 'Dates TBA'}{ev.timeDisplay ? ` • ${ev.timeDisplay}` : ''}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <MapPin size={14} color="#596EE6" />
+                      <MapPin size={14} color="#596EE6" style={{ flexShrink: 0 }} />
                       <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {ev.venue || 'Campus Arena'}
+                        {ev.venue || 'Campus Venue'}{ev.venueHall ? ` (${ev.venueHall})` : ''}
                       </span>
                     </div>
+                    {ev.totalCapacity && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Users size={14} color="#596EE6" style={{ flexShrink: 0 }} />
+                        <span>Capacity: {ev.totalCapacity} Seats</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '14px', borderTop: '1px solid #E2E8F8' }}>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         sounds.playClick();
-                        if (onSelectEvent) onSelectEvent(ev);
-                        else {
-                          window.location.hash = '#register';
-                        }
+                        if (onRegisterEvent) onRegisterEvent(evId);
+                        else if (onSelectEvent) onSelectEvent(ev);
                       }}
                       className="btn btn-primary"
                       style={{
@@ -298,11 +389,12 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                       <ArrowUpRight size={14} />
                     </button>
 
-                    <a
-                      href="#lookup-section"
-                      onClick={() => {
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         sounds.playClick();
-                        if (onNavigateToLookup) onNavigateToLookup(ev.id || ev.eventId);
+                        if (onSelectEvent) onSelectEvent(ev);
                       }}
                       className="btn btn-secondary"
                       style={{
@@ -310,16 +402,16 @@ export const EventsDiscoverySection = ({ onSelectEvent, onNavigateToLookup }) =>
                         borderRadius: '10px',
                         fontSize: '12px',
                         fontWeight: '700',
-                        textDecoration: 'none',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
                       }}
                     >
-                      <Ticket size={13} color="#596EE6" />
-                      <span>My Pass</span>
-                    </a>
+                      <Eye size={13} color="#596EE6" />
+                      <span>{isCurrentlyViewed ? 'Viewing Details' : 'View Event'}</span>
+                    </button>
                   </div>
 
                 </div>
