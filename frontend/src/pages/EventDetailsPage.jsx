@@ -290,43 +290,53 @@ export const EventDetailsPage = ({
         </div>
 
         {/* Hero Quick Key Metrics */}
-        <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', background: '#FAFCFF', borderTop: '1px solid #E2E8F8' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#596EE6', flexShrink: 0 }}>
+        <div className="event-details-metrics-bar">
+          <div className="event-details-metric-item">
+            <div className="event-details-metric-icon">
               <Calendar size={20} />
             </div>
-            <div>
-              <div style={{ fontSize: '11px', color: '#5C6479', fontWeight: '800', textTransform: 'uppercase' }}>Date & Schedule</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: '#29304A' }}>{event.dateDisplay || 'Dates TBA'}</div>
-              {event.timeDisplay && <div style={{ fontSize: '11px', color: '#596EE6', fontWeight: '700' }}>{event.timeDisplay}</div>}
+            <div className="event-details-metric-body">
+              <div className="event-details-metric-label">Date & Schedule</div>
+              <div className="event-details-metric-value">{event.dateDisplay || 'Dates TBA'}</div>
+              {event.timeDisplay && <div className="event-details-metric-sub indigo-pill">{event.timeDisplay}</div>}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#596EE6', flexShrink: 0 }}>
+          <div className="event-details-metric-item">
+            <div className="event-details-metric-icon">
               <MapPin size={20} />
             </div>
-            <div>
-              <div style={{ fontSize: '11px', color: '#5C6479', fontWeight: '800', textTransform: 'uppercase' }}>Location & Hall</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: '#29304A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="event-details-metric-body">
+              <div className="event-details-metric-label">Location & Hall</div>
+              <div 
+                className="event-details-metric-value venue-clamp"
+                title={event.venue || 'Campus Venue'}
+              >
                 {event.venue || 'Campus Venue'}
               </div>
-              {event.venueHall && <div style={{ fontSize: '11px', color: '#5C6479' }}>{event.venueHall}</div>}
+              {event.venueHall && (
+                <div 
+                  className="event-details-metric-sub"
+                  title={event.venueHall}
+                >
+                  {event.venueHall}
+                </div>
+              )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#EEF0FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#596EE6', flexShrink: 0 }}>
+          <div className="event-details-metric-item">
+            <div className="event-details-metric-icon">
               <Users size={20} />
             </div>
-            <div>
-              <div style={{ fontSize: '11px', color: '#5C6479', fontWeight: '800', textTransform: 'uppercase' }}>Capacity Limit</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: '#29304A' }}>{event.totalCapacity || 250} Attendees</div>
-              <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>Instant QR Check-in</div>
+            <div className="event-details-metric-body">
+              <div className="event-details-metric-label">Capacity Limit</div>
+              <div className="event-details-metric-value">{event.totalCapacity || 250} Attendees</div>
+              <div className="event-details-metric-sub success-pill">Instant QR Check-in</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
+          <div className="event-details-metric-action">
             <button
               type="button"
               onClick={() => onNavigateToRegister(event.id || event.eventId)}
