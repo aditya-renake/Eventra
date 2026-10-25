@@ -56,19 +56,53 @@ export const getTransporter = async () => {
     return transporter;
   }
 
-  if (pass && pass !== '') {
-    const isGmail = user.includes('@gmail.com') || customHost.includes('gmail') || (!customHost && !user.includes('@outlook'));
-    const isOutlook = user.includes('@outlook.') || user.includes('@hotmail.') || user.includes('@live.');
-    
-    let host = customHost;
-    let port = parseInt(process.env.SMTP_PORT || (isGmail ? '465' : '587'), 10);
-    let secure = port === 465;
+  const isOutlook =
+    user.includes('@outlook.') ||
+    user.includes('@hotmail.') ||
+    user.includes('@live.') ||
+    customHost.includes('outlook') ||
+    customHost.includes('office365');
+  const isGmail = !isOutlook && (user.includes('@gmail.com') || customHost.includes('gmail'));
 
+  // Microsoft OAuth2 Support if Azure credentials are provided
+  const msClientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
+  const msClientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
+  const msRefreshToken = process.env.MICROSOFT_REFRESH_TOKEN || process.env.OUTLOOK_REFRESH_TOKEN || '';
+
+  if (isOutlook && msClientId && msRefreshToken) {
+    transporter = nodemailer.createTransport({
+      host: customHost || 'smtp-mail.outlook.com',
+      port: 587,
+      secure: false,
+      auth: {
+        type: 'OAuth2',
+        user,
+        clientId: msClientId,
+        clientSecret: msClientSecret,
+        refreshToken: msRefreshToken,
+      },
+      tls: {
+        rejectUnauthorized: false,
+        ciphers: 'SSLv3',
+      },
+      connectionTimeout: 15000,
+    });
+    return transporter;
+  }
+
+  if (pass && pass !== '') {
+    let host = customHost;
     if (!host) {
-      if (isGmail) host = 'smtp.gmail.com';
-      else if (isOutlook) host = 'smtp-mail.outlook.com';
+      if (isOutlook) host = 'smtp-mail.outlook.com';
+      else if (isGmail) host = 'smtp.gmail.com';
       else host = 'smtp.gmail.com';
     }
+
+    // Outlook strictly uses port 587 with STARTTLS (not port 465 SSL)
+    let port = isOutlook
+      ? (process.env.SMTP_PORT && process.env.SMTP_PORT !== '465' ? parseInt(process.env.SMTP_PORT, 10) : 587)
+      : parseInt(process.env.SMTP_PORT || (isGmail ? '465' : '587'), 10);
+    let secure = isOutlook ? false : port === 465;
 
     const transportConfig = {
       host,
@@ -80,6 +114,7 @@ export const getTransporter = async () => {
       },
       tls: {
         rejectUnauthorized: false,
+        ...(isOutlook ? { ciphers: 'SSLv3' } : {}),
       },
       connectionTimeout: 15000,
       greetingTimeout: 15000,

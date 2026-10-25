@@ -1,4 +1,5 @@
 import { getFirestore } from '../config/firebase.js';
+import { getSupabase, isSupabaseConfigured, toCamel, toSnake } from '../config/supabase.js';
 
 let eventsMemoryCache = null;
 let lastCacheTime = 0;
@@ -210,6 +211,24 @@ export const eventRepo = {
   async seedDefaultEvents() {
     if (hasSeededEvents) return;
     hasSeededEvents = true;
+
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        const { count, error } = await sb.from('club_events').select('*', { count: 'exact', head: true });
+        if (!error && (count === 0 || count === null)) {
+          console.log('🌱 [eventRepo] Seeding initial ACES events catalog to Supabase...');
+          for (const ev of DEFAULT_EVENTS) {
+            if (!deletedEventIds.has(ev.id)) {
+              await sb.from('club_events').upsert(toSnake(ev));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[eventRepo] Supabase seedDefaultEvents notice:', err.message);
+      }
+    }
+
     try {
       const collection = this.getCollection();
       const snapshot = await collection.limit(1).get();
@@ -238,36 +257,57 @@ export const eventRepo = {
     if (eventsMemoryCache && now - lastCacheTime < CACHE_TTL_MS) {
       events = [...eventsMemoryCache];
     } else {
-      try {
-        const collection = this.getCollection();
-        const snapshot = await collection.get();
-        snapshot.docs.forEach((doc) => {
-          const data = doc.data();
-          const docId = doc.id;
-          if (!deletedEventIds.has(docId)) {
-            events.push({ ...data, id: docId, eventId: docId });
+      let fetchedFromSupabase = false;
+      if (isSupabaseConfigured()) {
+        try {
+          const sb = getSupabase();
+          const { data, error } = await sb.from('club_events').select('*');
+          if (data && !error && data.length > 0) {
+            data.forEach((row) => {
+              const item = toCamel(row);
+              const docId = item.id || item.eventId;
+              if (docId && !deletedEventIds.has(docId)) {
+                events.push({ ...item, id: docId, eventId: docId });
+              }
+            });
+            fetchedFromSupabase = true;
           }
-        });
-
-        if (events.length === 0) {
-          events = DEFAULT_EVENTS.filter((ev) => !deletedEventIds.has(ev.id));
+        } catch (err) {
+          console.warn('[eventRepo] Supabase getAll notice:', err.message);
         }
+      }
 
-        // Sort so flagship event is first, then live, then latest
-        events.sort((a, b) => {
-          if (a.isFlagship && !b.isFlagship) return -1;
-          if (b.isFlagship && !a.isFlagship) return 1;
-          if (a.status === 'live' && b.status !== 'live') return -1;
-          if (b.status === 'live' && a.status !== 'live') return 1;
-          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        });
+      if (!fetchedFromSupabase) {
+        try {
+          const collection = this.getCollection();
+          const snapshot = await collection.get();
+          snapshot.docs.forEach((doc) => {
+            const data = doc.data();
+            const docId = doc.id;
+            if (!deletedEventIds.has(docId)) {
+              events.push({ ...data, id: docId, eventId: docId });
+            }
+          });
+        } catch (e) {
+          console.warn('[eventRepo] getAll fallback to defaults:', e.message);
+        }
+      }
 
-        eventsMemoryCache = events;
-        lastCacheTime = now;
-      } catch (e) {
-        console.warn('[eventRepo] getAll fallback to defaults:', e.message);
+      if (events.length === 0) {
         events = DEFAULT_EVENTS.filter((ev) => !deletedEventIds.has(ev.id));
       }
+
+      // Sort so flagship event is first, then live, then latest
+      events.sort((a, b) => {
+        if (a.isFlagship && !b.isFlagship) return -1;
+        if (b.isFlagship && !a.isFlagship) return 1;
+        if (a.status === 'live' && b.status !== 'live') return -1;
+        if (b.status === 'live' && a.status !== 'live') return 1;
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
+
+      eventsMemoryCache = events;
+      lastCacheTime = now;
     }
 
     // Apply filters
@@ -310,6 +350,23 @@ export const eventRepo = {
         String(ev.slug || '').toLowerCase() === cleanId
     );
     if (match) return match;
+
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        const { data, error } = await sb
+          .from('club_events')
+          .select('*')
+          .or(`id.eq.${cleanId},event_id.eq.${cleanId},slug.eq.${cleanId}`)
+          .maybeSingle();
+        if (data && !error) {
+          const item = toCamel(data);
+          return { ...item, id: item.id || cleanId, eventId: item.eventId || cleanId };
+        }
+      } catch (err) {
+        console.warn('[eventRepo] Supabase findById notice:', err.message);
+      }
+    }
 
     try {
       const collection = this.getCollection();
@@ -428,6 +485,15 @@ export const eventRepo = {
       updatedAt: new Date().toISOString(),
     };
 
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        await sb.from('club_events').upsert(toSnake(eventItem));
+      } catch (err) {
+        console.warn('[eventRepo] Supabase create notice:', err.message);
+      }
+    }
+
     try {
       const collection = this.getCollection();
       await collection.doc(cleanId).set(eventItem);
@@ -457,9 +523,19 @@ export const eventRepo = {
     invalidateCache();
     if (!eventId) return null;
     const cleanId = String(eventId).toLowerCase().trim();
-    const collection = this.getCollection();
+
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        await sb.from('club_events').update({ is_flagship: false, updated_at: new Date().toISOString() }).neq('id', cleanId);
+        await sb.from('club_events').update({ is_flagship: true, updated_at: new Date().toISOString() }).eq('id', cleanId);
+      } catch (err) {
+        console.warn('[eventRepo] Supabase setFlagship notice:', err.message);
+      }
+    }
 
     try {
+      const collection = this.getCollection();
       const snapshot = await collection.get();
       const batch = getFirestore().batch();
       snapshot.docs.forEach((doc) => {
@@ -535,7 +611,6 @@ export const eventRepo = {
     invalidateCache();
     if (!eventId) return null;
     const cleanId = String(eventId).toLowerCase().trim();
-    const collection = this.getCollection();
 
     const existing = await this.findById(cleanId);
     if (!existing) return null;
@@ -577,7 +652,17 @@ export const eventRepo = {
       merged.ticketPrices = nextPrices;
     }
 
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        await sb.from('club_events').update(toSnake(merged)).eq('id', cleanId);
+      } catch (err) {
+        console.warn('[eventRepo] Supabase update notice:', err.message);
+      }
+    }
+
     try {
+      const collection = this.getCollection();
       await collection.doc(merged.id).set(merged);
     } catch (e) {
       console.warn('[eventRepo] update notice:', e.message);
@@ -607,6 +692,16 @@ export const eventRepo = {
     if (idx >= 0) {
       DEFAULT_EVENTS.splice(idx, 1);
     }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        await sb.from('club_events').delete().eq('id', cleanId);
+      } catch (err) {
+        console.warn('[eventRepo] Supabase delete notice:', err.message);
+      }
+    }
+
     try {
       const collection = this.getCollection();
       await collection.doc(cleanId).delete();

@@ -1,4 +1,5 @@
 import { getFirestore } from '../config/firebase.js';
+import { getSupabase, isSupabaseConfigured, toCamel, toSnake } from '../config/supabase.js';
 
 const CONFIG_DOC_ID = 'main_event_2026';
 
@@ -87,14 +88,33 @@ export const configRepo = {
    */
   async getConfig() {
     try {
-      const collection = this.getCollection();
-      const doc = await collection.doc(CONFIG_DOC_ID).get();
-
       let data = {};
-      if (doc.exists) {
-        data = doc.data() || {};
-      } else {
-        await collection.doc(CONFIG_DOC_ID).set(DEFAULT_CONFIG);
+
+      if (isSupabaseConfigured()) {
+        try {
+          const sb = getSupabase();
+          const { data: row, error } = await sb.from('system_config').select('*').eq('id', CONFIG_DOC_ID).maybeSingle();
+          if (row && !error && row.config_data) {
+            data = row.config_data;
+          }
+        } catch (err) {
+          console.warn('[configRepo] Supabase getConfig notice:', err.message);
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        try {
+          const collection = this.getCollection();
+          const doc = await collection.doc(CONFIG_DOC_ID).get();
+          if (doc && doc.exists) {
+            data = doc.data() || {};
+          }
+        } catch (err) {
+          console.warn('[configRepo] Firestore getConfig notice:', err.message);
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
         data = { ...DEFAULT_CONFIG };
       }
 
@@ -294,7 +314,24 @@ export const configRepo = {
       }
     }
 
-    await collection.doc(CONFIG_DOC_ID).set(newDocData);
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        await sb.from('system_config').upsert({
+          id: CONFIG_DOC_ID,
+          config_data: newDocData,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('[configRepo] Supabase updateConfig notice:', err.message);
+      }
+    }
+
+    try {
+      await collection.doc(CONFIG_DOC_ID).set(newDocData);
+    } catch (err) {
+      console.warn('[configRepo] Firestore updateConfig notice:', err.message);
+    }
     return this.getConfig();
   },
 };

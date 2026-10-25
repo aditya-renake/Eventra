@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initFirebase } from './config/firebase.js';
+import { isSupabaseConfigured } from './config/supabase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -62,7 +63,8 @@ app.use('/', paymentRoutes);
 app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({
     status: 'online',
-    database: 'Google Cloud Firestore',
+    database: isSupabaseConfigured() ? 'Supabase PostgreSQL' : 'Google Cloud Firestore',
+    supabaseConnected: isSupabaseConfigured(),
     event: 'Eventra 2026',
     environment: process.env.NODE_ENV || 'production',
     timestamp: new Date(),

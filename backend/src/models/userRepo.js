@@ -1,15 +1,10 @@
 import bcrypt from 'bcryptjs';
-import { getFirestore } from '../config/firebase.js';
+import { getSupabase, isSupabaseConfigured, toCamel, toSnake } from '../config/supabase.js';
 
 // In-memory cache & fallback store for registered attendee users
 const memoryUsers = new Map();
 
 export const userRepo = {
-  getCollection() {
-    const db = getFirestore();
-    return db.collection('users');
-  },
-
   /**
    * Find user by username
    */
@@ -21,17 +16,20 @@ export const userRepo = {
       return memoryUsers.get(clean);
     }
 
-    try {
-      const collection = this.getCollection();
-      const doc = await collection.doc(clean).get();
-      if (doc && doc.exists) {
-        const user = { id: doc.id, username: doc.id, ...doc.data() };
-        memoryUsers.set(clean, user);
-        return user;
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        const { data, error } = await sb.from('users').select('*').ilike('username', clean).maybeSingle();
+        if (data && !error) {
+          const user = toCamel(data);
+          memoryUsers.set(clean, user);
+          return user;
+        }
+      } catch (err) {
+        console.warn('[userRepo] Supabase findByUsername notice:', err.message);
       }
-    } catch (err) {
-      console.warn('[userRepo] findByUsername error:', err.message);
     }
+
     return null;
   },
 
@@ -48,18 +46,20 @@ export const userRepo = {
       }
     }
 
-    try {
-      const collection = this.getCollection();
-      const snapshot = await collection.where('email', '==', clean).limit(1).get();
-      if (snapshot && !snapshot.empty) {
-        const doc = snapshot.docs[0];
-        const user = { id: doc.id, username: doc.id, ...doc.data() };
-        memoryUsers.set(user.username, user);
-        return user;
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        const { data, error } = await sb.from('users').select('*').ilike('email', clean).maybeSingle();
+        if (data && !error) {
+          const user = toCamel(data);
+          memoryUsers.set(user.username, user);
+          return user;
+        }
+      } catch (err) {
+        console.warn('[userRepo] Supabase findByEmail notice:', err.message);
       }
-    } catch (err) {
-      console.warn('[userRepo] findByEmail error:', err.message);
     }
+
     return null;
   },
 
@@ -87,6 +87,7 @@ export const userRepo = {
     const passwordHash = await bcrypt.hash(password, salt);
 
     const newUser = {
+      id: cleanUsername,
       username: cleanUsername,
       name: name.trim(),
       email: cleanEmail,
@@ -99,19 +100,25 @@ export const userRepo = {
       updatedAt: new Date().toISOString(),
     };
 
-    // Cache locally immediately
-    memoryUsers.set(cleanUsername, { id: cleanUsername, ...newUser });
+    // Cache in-memory immediately
+    memoryUsers.set(cleanUsername, newUser);
 
-    // Persist to Google Cloud Firestore
-    try {
-      const collection = this.getCollection();
-      await collection.doc(cleanUsername).set(newUser);
-    } catch (err) {
-      console.warn('[userRepo] Firestore persist notice:', err.message);
+    // Persist to Supabase if configured
+    if (isSupabaseConfigured()) {
+      try {
+        const sb = getSupabase();
+        const dbRow = toSnake(newUser);
+        const { error } = await sb.from('users').upsert(dbRow);
+        if (error) {
+          console.warn('[userRepo] Supabase user insert warning:', error.message);
+        }
+      } catch (err) {
+        console.warn('[userRepo] Supabase persist notice:', err.message);
+      }
     }
 
     const { passwordHash: _, ...safeUser } = newUser;
-    return { id: cleanUsername, ...safeUser };
+    return safeUser;
   },
 
   /**
