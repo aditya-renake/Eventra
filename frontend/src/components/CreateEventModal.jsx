@@ -99,6 +99,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(Boolean(initialEvent?.slug));
   const [dateDisplayEdited, setDateDisplayEdited] = useState(Boolean(initialEvent?.dateDisplay));
   const [timeDisplayEdited, setTimeDisplayEdited] = useState(Boolean(initialEvent?.timeDisplay));
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Helper date formatters
   const formatDateDisplay = (startStr, endStr) => {
@@ -384,21 +385,42 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
     setFormData(updated);
   };
 
-  // Image Upload handler (reads local file to base64 preview)
+  // Image Upload handler (uploads to Cloudinary CDN with fallback to local preview)
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 3.5 * 1024 * 1024) {
+      if (file.size > 5 * 1024 * 1024) {
         onShowToast({
           type: 'warning',
           title: 'Large Image',
-          message: 'Image size exceeds 3.5MB. Consider using a compressed image.',
+          message: 'Image size exceeds 5MB. Please choose a smaller image.',
         });
+        return;
       }
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setFormData({ ...formData, bannerUrl: event.target.result });
+      reader.onload = async (event) => {
+        const localDataUrl = event.target.result;
+        setFormData((prev) => ({ ...prev, bannerUrl: localDataUrl }));
         sounds.playClick();
+
+        // Attempt Cloudinary Upload in background
+        try {
+          setIsUploadingBanner(true);
+          const uploadRes = await api.upload.uploadImage(localDataUrl, 'banners');
+          if (uploadRes?.success && uploadRes.url) {
+            setFormData((prev) => ({ ...prev, bannerUrl: uploadRes.url }));
+            onShowToast({
+              type: 'success',
+              title: 'Uploaded to Cloudinary! ☁️',
+              message: 'Optimized CDN banner link generated successfully.',
+            });
+          }
+        } catch (uploadErr) {
+          // If Cloudinary isn't configured yet, keep local preview without breaking
+          console.log('[Cloudinary notice]', uploadErr.message);
+        } finally {
+          setIsUploadingBanner(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -1405,14 +1427,14 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
                   />
                   <label
                     style={{
-                      background: '#151D2C',
-                      border: '1px solid #243046',
+                      background: isUploadingBanner ? 'rgba(89, 110, 230, 0.15)' : '#151D2C',
+                      border: isUploadingBanner ? '1px solid #596EE6' : '1px solid #243046',
                       borderRadius: '8px',
                       padding: '10px 16px',
-                      color: '#F8FAFC',
+                      color: isUploadingBanner ? '#818CF8' : '#F8FAFC',
                       fontSize: '12px',
                       fontWeight: '700',
-                      cursor: 'pointer',
+                      cursor: isUploadingBanner ? 'wait' : 'pointer',
                       whiteSpace: 'nowrap',
                       display: 'flex',
                       alignItems: 'center',
@@ -1420,12 +1442,13 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
                     }}
                   >
                     <Upload size={14} />
-                    <span>Upload</span>
+                    <span>{isUploadingBanner ? 'Uploading to Cloudinary...' : 'Upload Image'}</span>
                     <input
                       type="file"
                       accept="image/*"
                       style={{ display: 'none' }}
                       onChange={handleImageUpload}
+                      disabled={isUploadingBanner}
                     />
                   </label>
                 </div>

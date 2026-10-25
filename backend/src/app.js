@@ -11,6 +11,7 @@ import checkinRoutes from './routes/checkin.routes.js';
 import emailRoutes from './routes/email.routes.js';
 import eventRoutes from './routes/event.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
 
 dotenv.config();
 
@@ -50,6 +51,8 @@ app.use('/api/events', eventRoutes);
 app.use('/events', eventRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/payment', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/upload', uploadRoutes);
 
 // Direct standard Razorpay API aliases
 app.use('/api', paymentRoutes);

@@ -109,6 +109,18 @@ export const api = {
     },
   },
 
+  upload: {
+    async getStatus() {
+      return request('/upload/status');
+    },
+    async uploadImage(imagePayload, folder = 'banners') {
+      return request('/upload', {
+        method: 'POST',
+        body: JSON.stringify({ image: imagePayload, folder }),
+      });
+    },
+  },
+
   events: {
     async getAll(params = {}) {
       const query = new URLSearchParams(params).toString();
