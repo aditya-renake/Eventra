@@ -3,10 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configure Cloudinary
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-const apiKey = process.env.CLOUDINARY_API_KEY;
-const apiSecret = process.env.CLOUDINARY_API_SECRET;
+// Configure Cloudinary with environment variables or built-in credentials
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'pttbtkze';
+const apiKey = process.env.CLOUDINARY_API_KEY || '573342364561872';
+const apiSecret = process.env.CLOUDINARY_API_SECRET || 'mJAXUVA5BkGLZHwnEWqsRmCvOTE';
 
 if (cloudName && apiKey && apiSecret) {
   cloudinary.config({
@@ -19,15 +19,14 @@ if (cloudName && apiKey && apiSecret) {
 } else if (process.env.CLOUDINARY_URL) {
   cloudinary.config({ secure: true });
   console.log('✅ Cloudinary Media CDN configured via CLOUDINARY_URL.');
-} else {
-  console.log('ℹ️ Cloudinary credentials not yet set in environment. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env');
 }
 
 export const cloudinaryService = {
   isConfigured() {
     return Boolean(
       (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) ||
-      process.env.CLOUDINARY_URL
+      process.env.CLOUDINARY_URL ||
+      (cloudName && apiKey && apiSecret)
     );
   },
 
