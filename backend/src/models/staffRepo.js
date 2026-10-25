@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { getFirestore } from '../config/firebase.js';
 
+let hasSeededStaff = false;
+
 export const staffRepo = {
   getCollection() {
     const db = getFirestore();
@@ -13,11 +15,14 @@ export const staffRepo = {
   async findByUsername(username) {
     if (!username) return null;
     const cleanUsername = username.toLowerCase().trim();
-    const collection = this.getCollection();
-
-    const doc = await collection.doc(cleanUsername).get();
-    if (doc.exists) {
-      return { id: doc.id, username: doc.id, ...doc.data() };
+    try {
+      const collection = this.getCollection();
+      const doc = await collection.doc(cleanUsername).get();
+      if (doc && doc.exists) {
+        return { id: doc.id, username: doc.id, ...doc.data() };
+      }
+    } catch (err) {
+      console.warn('[staffRepo] findByUsername notice:', err.message);
     }
     return null;
   },
@@ -28,12 +33,15 @@ export const staffRepo = {
   async findByEmail(email) {
     if (!email) return null;
     const cleanEmail = email.toLowerCase().trim();
-    const collection = this.getCollection();
-
-    const snapshot = await collection.where('email', '==', cleanEmail).limit(1).get();
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      return { id: doc.id, username: doc.id, ...doc.data() };
+    try {
+      const collection = this.getCollection();
+      const snapshot = await collection.where('email', '==', cleanEmail).limit(1).get();
+      if (snapshot && !snapshot.empty) {
+        const doc = snapshot.docs[0];
+        return { id: doc.id, username: doc.id, ...doc.data() };
+      }
+    } catch (err) {
+      console.warn('[staffRepo] findByEmail notice:', err.message);
     }
     return null;
   },
@@ -166,6 +174,8 @@ export const staffRepo = {
    * Seed default admin and staff users (adityarenake as exclusive root_owner)
    */
   async seedDefaultAdmin() {
+    if (hasSeededStaff) return;
+    hasSeededStaff = true;
     try {
       // Ensure Soham and Hariti access is permanently revoked and deleted
       await this.getCollection().doc('sohamchitnis').delete().catch(() => {});

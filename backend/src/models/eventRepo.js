@@ -2,7 +2,8 @@ import { getFirestore } from '../config/firebase.js';
 
 let eventsMemoryCache = null;
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 3000;
+const CACHE_TTL_MS = 60000;
+let hasSeededEvents = false;
 
 function invalidateCache() {
   eventsMemoryCache = null;
@@ -207,6 +208,8 @@ export const eventRepo = {
    * Seed default events if collection is empty
    */
   async seedDefaultEvents() {
+    if (hasSeededEvents) return;
+    hasSeededEvents = true;
     try {
       const collection = this.getCollection();
       const snapshot = await collection.limit(1).get();

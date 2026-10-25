@@ -100,6 +100,7 @@ export const initFirebase = () => {
     const apps = getApps();
     if (apps.length > 0) {
       dbInstance = getAdminFirestore();
+      try { dbInstance.settings({ preferRest: true }); } catch (e) {}
       return dbInstance;
     }
 
@@ -132,6 +133,7 @@ export const initFirebase = () => {
         });
         console.log('✅ Connected to Google Cloud Firestore (via FIREBASE_SERVICE_ACCOUNT).');
         dbInstance = getAdminFirestore();
+        try { dbInstance.settings({ preferRest: true }); } catch (e) {}
         return dbInstance;
       }
     }
@@ -148,6 +150,7 @@ export const initFirebase = () => {
       });
       console.log(`✅ Connected to Google Cloud Firestore (${process.env.FIREBASE_PROJECT_ID}).`);
       dbInstance = getAdminFirestore();
+      try { dbInstance.settings({ preferRest: true }); } catch (e) {}
       return dbInstance;
     }
 
@@ -166,6 +169,7 @@ export const initFirebase = () => {
     });
     console.log('✅ Connected to Google Cloud Firestore (via built-in service credentials).');
     dbInstance = getAdminFirestore();
+    try { dbInstance.settings({ preferRest: true }); } catch (e) {}
     return dbInstance;
   } catch (err) {
     console.warn('⚠️ [Firestore] Connection notice, using local memory mode:', err.message);
