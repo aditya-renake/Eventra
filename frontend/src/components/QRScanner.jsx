@@ -25,7 +25,7 @@ import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 import { triggerCelebration } from '../utils/confettiBurst';
 
-export const QRScanner = ({ onScanComplete, onShowToast }) => {
+export const QRScanner = ({ onScanComplete, onShowToast, eventId, eventName, eventDay = 1, eventDayLabel = 'Day 1' }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState('');
@@ -35,7 +35,9 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
 
   const html5QrCodeRef = useRef(null);
   const isScannerPausedRef = useRef(false);
+  const scanContextRef = useRef({ eventId, eventDay, eventDayLabel });
   const scannerContainerId = 'hackseries-qr-reader';
+  scanContextRef.current = { eventId, eventDay, eventDayLabel };
 
   // Fetch available cameras
   useEffect(() => {
@@ -171,11 +173,14 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
     try {
       const user = api.auth.getUser();
       const staffName = user ? user.name : 'Gate Scanner';
+      const scanContext = scanContextRef.current;
 
       const response = await api.checkin.scan({
         qrPayload: codeString,
         photo: livePhoto,
         scannedBy: staffName,
+        eventId: scanContext.eventId,
+        eventDay: scanContext.eventDay,
       });
 
       if (response.status === 'SUCCESS') {
@@ -189,6 +194,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
           subtitle: 'Verified Official Eventra Entry Pass',
           message: response.message,
           attendee: response.registrant,
+          eventDayLabel: scanContext.eventDayLabel,
           timestamp: new Date().toLocaleTimeString(),
         });
       } else if (response.status === 'ALREADY_CHECKED_IN') {
@@ -200,6 +206,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
           subtitle: 'Duplicate QR Pass Warning',
           message: response.message,
           attendee: response.registrant,
+          eventDayLabel: scanContext.eventDayLabel,
           checkedInAt: response.checkedInAt ? new Date(response.checkedInAt).toLocaleTimeString() : 'Earlier today',
           checkedInBy: response.checkedInBy || 'Gate Scanner',
           timestamp: new Date().toLocaleTimeString(),
@@ -260,6 +267,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
           <div>
             <div style={{ fontSize: '13px', fontWeight: '800', color: '#22c55e', letterSpacing: '0.5px' }}>ZERO-FORGERY QR VERIFICATION ACTIVE</div>
             <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>HMAC-SHA256 Cryptographic Pass Integrity Engine</div>
+            {eventName && <div style={{ fontSize: '11px', color: '#a8b4ff', marginTop: '3px' }}>{eventName} · {eventDayLabel}</div>}
           </div>
         </div>
         <span className="badge badge-emerald">GATE READY</span>
@@ -380,7 +388,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
                     {popupModalResult.title}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {popupModalResult.subtitle} • {popupModalResult.timestamp}
+                    {popupModalResult.subtitle}{popupModalResult.eventDayLabel ? ` · ${popupModalResult.eventDayLabel}` : ''} • {popupModalResult.timestamp}
                   </div>
                 </div>
               </div>
@@ -526,7 +534,7 @@ export const QRScanner = ({ onScanComplete, onShowToast }) => {
                   {/* Duplicate warning details */}
                   {popupModalResult.status === 'ALREADY_CHECKED_IN' && (
                     <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '12px 16px', borderRadius: '10px', fontSize: '12px', color: '#fde68a' }}>
-                      <strong>⚠️ Already Checked In:</strong> {popupModalResult.checkedInAt} by {popupModalResult.checkedInBy}
+                      <strong>⚠️ Already Checked In for {popupModalResult.eventDayLabel || 'this day'}:</strong> {popupModalResult.checkedInAt} by {popupModalResult.checkedInBy}
                     </div>
                   )}
 

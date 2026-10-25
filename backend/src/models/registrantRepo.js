@@ -17,6 +17,32 @@ function invalidateCache() {
   lastStatsCacheTime = 0;
 }
 
+const expandRecentCheckins = (registrants, limitCount) => registrants
+  .flatMap((registrant) => {
+    const entries = Object.entries(registrant.checkinDays || {});
+    if (entries.length > 0) {
+      return entries.map(([eventDay, entry]) => {
+        const dayNumber = Number(String(eventDay).replace(/^day[_-]/, '')) || 1;
+        return {
+          ...registrant,
+          ...entry,
+          _id: `${registrant.uniqueId || registrant._id}-${eventDay}`,
+          uniqueId: registrant.uniqueId || registrant._id,
+          eventDay,
+          eventDayLabel: `Day ${dayNumber}`,
+        };
+      });
+    }
+
+    return registrant.checkedIn ? [{
+      ...registrant,
+      eventDay: 'day-1',
+      eventDayLabel: 'Day 1',
+    }] : [];
+  })
+  .sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0))
+  .slice(0, limitCount);
+
 export const registrantRepo = {
   getCollection() {
     const db = getFirestore();
@@ -539,9 +565,10 @@ export const registrantRepo = {
    * Atomic Check-In
    * Guarantees zero race conditions / zero duplicate check-ins across multiple concurrent gate scanners
    */
-  async checkinAtomic(uniqueId, { staffName = 'Gate Scanner', photo = null } = {}) {
+  async checkinAtomic(uniqueId, { staffName = 'Gate Scanner', photo = null, eventDay = 1 } = {}) {
     if (!uniqueId) return { notFound: true };
     const cleanId = uniqueId.toUpperCase().trim();
+    const dayKey = `day_${Number(eventDay) || 1}`;
 
     if (isSupabaseConfigured()) {
       try {
@@ -552,39 +579,70 @@ export const registrantRepo = {
         }
         const registrant = toCamel(current);
         registrant._id = registrant.uniqueId || registrant.id;
-        if (registrant.checkedIn) {
+        const currentDays = registrant.checkinDays || {};
+        const currentEntry = currentDays[dayKey];
+        const legacyDayOneCheckin = Number(eventDay) === 1 && registrant.checkedIn && !currentEntry;
+        if (currentEntry || legacyDayOneCheckin) {
           return {
             alreadyCheckedIn: true,
             registrant,
+            checkinEntry: currentEntry || {
+              checkedInAt: registrant.checkedInAt,
+              checkedInBy: registrant.checkedInBy,
+            },
           };
         }
 
         const checkedInAt = new Date().toISOString();
+        const checkinEntry = { checkedInAt, checkedInBy: staffName, checkedInPhoto: photo || null };
+        const previousDays = { ...currentDays };
+        if (Number(eventDay) > 1 && registrant.checkedIn && !previousDays.day_1) {
+          previousDays.day_1 = {
+            checkedInAt: registrant.checkedInAt,
+            checkedInBy: registrant.checkedInBy || 'Gate Staff',
+            ...(registrant.checkedInPhoto ? { checkedInPhoto: registrant.checkedInPhoto } : {}),
+          };
+        }
+        const checkinDays = { ...previousDays, [dayKey]: checkinEntry };
         const updateFields = {
           checked_in: true,
           checked_in_at: checkedInAt,
           checked_in_by: staffName,
+          checked_in_photo: photo || null,
+          checkin_days: checkinDays,
           updated_at: checkedInAt,
         };
-        if (photo) {
-          updateFields.checked_in_photo = photo;
-        }
 
         const { data: updatedData, error: updateErr } = await sb
           .from('registrants')
           .update(updateFields)
           .eq('unique_id', cleanId)
+          .is(`checkin_days->>${dayKey}`, null)
           .select()
-          .single();
+          .maybeSingle();
 
-        if (!updateErr && updatedData) {
+        if (updateErr) throw updateErr;
+
+        if (updatedData) {
           invalidateCache();
           const updated = toCamel(updatedData);
           updated._id = updated.uniqueId || updated.id;
           return {
             alreadyCheckedIn: false,
             registrant: updated,
+            checkinEntry,
           };
+        }
+
+        const { data: latest } = await sb.from('registrants').select('*').eq('unique_id', cleanId).maybeSingle();
+        if (latest) {
+          const latestRegistrant = toCamel(latest);
+          latestRegistrant._id = latestRegistrant.uniqueId || latestRegistrant.id;
+          const latestEntry = latestRegistrant.checkinDays?.[dayKey] || {
+            checkedInAt: latestRegistrant.checkedInAt,
+            checkedInBy: latestRegistrant.checkedInBy,
+          };
+          return { alreadyCheckedIn: true, registrant: latestRegistrant, checkinEntry: latestEntry };
         }
       } catch (err) {
         console.warn('[registrantRepo] Supabase checkinAtomic notice:', err.message);
@@ -602,30 +660,46 @@ export const registrantRepo = {
         }
 
         const data = doc.data();
-        if (data.checkedIn) {
+        const currentDays = data.checkinDays || {};
+        const currentEntry = currentDays[dayKey];
+        const legacyDayOneCheckin = Number(eventDay) === 1 && data.checkedIn && !currentEntry;
+        if (currentEntry || legacyDayOneCheckin) {
           return {
             alreadyCheckedIn: true,
             registrant: { _id: doc.id, ...data },
+            checkinEntry: currentEntry || {
+              checkedInAt: data.checkedInAt,
+              checkedInBy: data.checkedInBy,
+            },
           };
         }
 
         const checkedInAt = new Date().toISOString();
+        const checkinEntry = { checkedInAt, checkedInBy: staffName, checkedInPhoto: photo || null };
+        const previousDays = { ...currentDays };
+        if (Number(eventDay) > 1 && data.checkedIn && !previousDays.day_1) {
+          previousDays.day_1 = {
+            checkedInAt: data.checkedInAt,
+            checkedInBy: data.checkedInBy || 'Gate Staff',
+            ...(data.checkedInPhoto ? { checkedInPhoto: data.checkedInPhoto } : {}),
+          };
+        }
+        const checkinDays = { ...previousDays, [dayKey]: checkinEntry };
         const updateFields = {
           checkedIn: true,
           checkedInAt,
           checkedInBy: staffName,
+          checkinDays,
+          checkedInPhoto: photo || null,
           updatedAt: checkedInAt,
         };
-
-        if (photo) {
-          updateFields.checkedInPhoto = photo;
-        }
 
         transaction.update(docRef, updateFields);
 
         return {
           alreadyCheckedIn: false,
           registrant: { _id: doc.id, ...data, ...updateFields },
+          checkinEntry,
         };
       });
 
@@ -635,10 +709,30 @@ export const registrantRepo = {
       console.warn('[registrantRepo] checkinAtomic fallback notice:', e.message);
       const existing = await this.findByUniqueId(cleanId);
       if (!existing) return { notFound: true };
-      if (existing.checkedIn) return { alreadyCheckedIn: true, registrant: existing };
+      const currentDays = existing.checkinDays || {};
+      const currentEntry = currentDays[dayKey];
+      if (currentEntry || (Number(eventDay) === 1 && existing.checkedIn && !currentEntry)) {
+        return { alreadyCheckedIn: true, registrant: existing, checkinEntry: currentEntry || existing };
+      }
       const checkedInAt = new Date().toISOString();
-      const updated = await this.update(cleanId, { checkedIn: true, checkedInAt, checkedInBy: staffName });
-      return { alreadyCheckedIn: false, registrant: updated };
+      const checkinEntry = { checkedInAt, checkedInBy: staffName, checkedInPhoto: photo || null };
+      const previousDays = { ...currentDays };
+      if (Number(eventDay) > 1 && existing.checkedIn && !previousDays.day_1) {
+        previousDays.day_1 = {
+          checkedInAt: existing.checkedInAt,
+          checkedInBy: existing.checkedInBy || 'Gate Staff',
+          ...(existing.checkedInPhoto ? { checkedInPhoto: existing.checkedInPhoto } : {}),
+        };
+      }
+      const checkinDays = { ...previousDays, [dayKey]: checkinEntry };
+      const updated = await this.update(cleanId, {
+        checkedIn: true,
+        checkedInAt,
+        checkedInBy: staffName,
+        checkedInPhoto: photo || null,
+        checkinDays,
+      });
+      return { alreadyCheckedIn: false, registrant: updated, checkinEntry };
     }
   },
 
@@ -656,11 +750,12 @@ export const registrantRepo = {
           .order('checked_in_at', { ascending: false })
           .limit(limitCount);
         if (data && !error) {
-          return data.map((d) => {
+          const registrants = data.map((d) => {
             const it = toCamel(d);
             it._id = it.uniqueId || it.id;
             return it;
           });
+          return expandRecentCheckins(registrants, limitCount);
         }
       } catch (err) {
         console.warn('[registrantRepo] Supabase getRecentCheckins notice:', err.message);
@@ -675,14 +770,14 @@ export const registrantRepo = {
         .limit(limitCount)
         .get();
 
-      return snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+      const registrants = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+      return expandRecentCheckins(registrants, limitCount);
     } catch (idxErr) {
       try {
         // Fallback query if composite index is pending or absent
         const snapshot = await collection.where('checkedIn', '==', true).limit(50).get();
         const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
-        items.sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
-        return items.slice(0, limitCount);
+        return expandRecentCheckins(items, limitCount);
       } catch (e) {
         return [];
       }

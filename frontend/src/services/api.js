@@ -267,9 +267,10 @@ export const api = {
         body: JSON.stringify(payload),
       });
     },
-    async undo(registrantId) {
+    async undo(registrantId, eventDay) {
       return request(`/checkin/undo/${registrantId}`, {
         method: 'POST',
+        body: JSON.stringify({ eventDay }),
       });
     },
     async getRecent() {

@@ -3,13 +3,15 @@ import { resolveEventContext } from './registrantController.js';
 import { verifyQRPayload } from '../services/qrService.js';
 import { sendCheckinConfirmationEmail } from '../services/emailService.js';
 import { sendAutoCheckinMessage } from '../services/messagingService.js';
+import { eventRepo } from '../models/eventRepo.js';
+import { getEventDayCount } from '../utils/eventDays.js';
 
 /**
  * Gate Check-In Scanner Processor with Zero Forged QR Code Verification
  */
 export const scanCheckin = async (req, res) => {
   try {
-    const { qrPayload, manualCode, photo, photoBase64 } = req.body;
+    const { qrPayload, manualCode, photo, photoBase64, eventId, eventDay: requestedEventDay } = req.body;
     const rawInput = (qrPayload || manualCode || '').trim();
     const livePhoto = photo || photoBase64 || null;
 
@@ -41,6 +43,29 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
+    const registrantEventId = String(registrant.eventId || 'eventra-2026').toLowerCase();
+    if (eventId && String(eventId).toLowerCase() !== registrantEventId) {
+      return res.status(409).json({
+        success: false,
+        status: 'EVENT_MISMATCH',
+        message: `This pass belongs to a different event. Select the attendee's event before scanning.`,
+      });
+    }
+
+    const eventItem = await eventRepo.findById(registrant.eventId).catch(() => null);
+    const eventDayCount = getEventDayCount(eventItem);
+    const eventDay = requestedEventDay === undefined || requestedEventDay === null || requestedEventDay === ''
+      ? 1
+      : Number(requestedEventDay);
+    if (!Number.isInteger(eventDay) || eventDay < 1 || eventDay > eventDayCount) {
+      return res.status(400).json({
+        success: false,
+        status: 'INVALID_EVENT_DAY',
+        message: `Select a valid event day (1–${eventDayCount}) for this event.`,
+      });
+    }
+    const eventDayLabel = `Day ${eventDay}`;
+
     const verification = verifyQRPayload(rawInput, registrant);
     if (!verification.valid && verification.forged) {
       return res.status(400).json({
@@ -55,45 +80,35 @@ export const scanCheckin = async (req, res) => {
       });
     }
 
-    if (registrant.checkedIn) {
-      return res.status(200).json({
-        success: false,
-        status: 'ALREADY_CHECKED_IN',
-        alreadyCheckedIn: true,
-        message: `⚠️ Already Checked In at ${new Date(registrant.checkedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} by ${registrant.checkedInBy || 'Gate Staff'}`,
-        checkedInAt: registrant.checkedInAt,
-        checkedInBy: registrant.checkedInBy,
-        registrant: {
-          _id: registrant.uniqueId,
-          uniqueId: registrant.uniqueId,
-          name: registrant.name,
-          email: registrant.email,
-          phone: registrant.phone,
-          ticketType: registrant.ticketType,
-          teamName: registrant.teamName,
-          track: registrant.track,
-          checkedIn: true,
-          checkedInAt: registrant.checkedInAt,
-          checkedInBy: registrant.checkedInBy,
-        },
-      });
-    }
-
     const staffName = req.user ? req.user.name : (req.body.scannedBy || 'Gate Scanner');
     const atomicResult = await registrantRepo.checkinAtomic(registrant.uniqueId, {
       staffName,
       photo: livePhoto,
+      eventDay,
     });
+
+    if (atomicResult.notFound) {
+      return res.status(404).json({
+        success: false,
+        status: 'NOT_FOUND',
+        message: 'Registrant disappeared before the check-in could be recorded. Scan the pass again.',
+      });
+    }
 
     if (atomicResult.alreadyCheckedIn) {
       const existing = atomicResult.registrant;
+      const existingDay = atomicResult.checkinEntry || existing.checkinDays?.[`day_${eventDay}`] || {
+        checkedInAt: existing.checkedInAt,
+        checkedInBy: existing.checkedInBy,
+      };
       return res.status(200).json({
         success: false,
         status: 'ALREADY_CHECKED_IN',
         alreadyCheckedIn: true,
-        message: `⚠️ Already Checked In at ${new Date(existing.checkedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} by ${existing.checkedInBy || 'Gate Staff'}`,
-        checkedInAt: existing.checkedInAt,
-        checkedInBy: existing.checkedInBy,
+        message: `⚠️ Already Checked In for ${eventDayLabel} at ${new Date(existingDay.checkedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} by ${existingDay.checkedInBy || 'Gate Staff'}`,
+        checkedInAt: existingDay.checkedInAt,
+        checkedInBy: existingDay.checkedInBy,
+        eventDay,
         registrant: {
           _id: existing.uniqueId,
           uniqueId: existing.uniqueId,
@@ -104,8 +119,9 @@ export const scanCheckin = async (req, res) => {
           teamName: existing.teamName,
           track: existing.track,
           checkedIn: true,
-          checkedInAt: existing.checkedInAt,
-          checkedInBy: existing.checkedInBy,
+          checkedInAt: existingDay.checkedInAt,
+          checkedInBy: existingDay.checkedInBy,
+          checkinDays: existing.checkinDays || {},
         },
       });
     }
@@ -128,7 +144,9 @@ export const scanCheckin = async (req, res) => {
       status: 'SUCCESS',
       emailNotificationSent: true,
       hasLivePhoto: Boolean(livePhoto),
-      message: `✅ Check-in Approved: Welcome to ${eventCtx.eventName || 'Eventra'}, ${updated.name}!`,
+      eventDay,
+      eventDayLabel,
+      message: `✅ Check-in Approved for ${eventDayLabel}: Welcome to ${eventCtx.eventName || 'Eventra'}, ${updated.name}!`,
       registrant: {
         _id: updated.uniqueId,
         uniqueId: updated.uniqueId,
@@ -143,6 +161,7 @@ export const scanCheckin = async (req, res) => {
         checkedIn: true,
         checkedInAt: updated.checkedInAt,
         checkedInBy: staffName,
+        checkinDays: updated.checkinDays || {},
       },
     });
   } catch (error) {
@@ -176,17 +195,40 @@ export const getCheckinStatus = async (req, res) => {
 export const undoCheckin = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestedEventDay = req.body?.eventDay;
     const registrant = await registrantRepo.findByUniqueId(id);
 
     if (!registrant) {
       return res.status(404).json({ success: false, message: 'Registrant not found' });
     }
 
-    const updated = await registrantRepo.update(registrant.uniqueId, {
-      checkedIn: false,
-      checkedInAt: null,
-      checkedInBy: null,
-    });
+    let updates;
+    if (requestedEventDay) {
+      const eventDay = /^day[_-]\d+$/.test(String(requestedEventDay))
+        ? String(requestedEventDay).replace('-', '_')
+        : `day_${Number(requestedEventDay) || 1}`;
+      const checkinDays = { ...(registrant.checkinDays || {}) };
+      delete checkinDays[eventDay];
+      const remainingEntries = Object.values(checkinDays)
+        .sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
+      const latest = remainingEntries[0];
+      updates = {
+        checkinDays,
+        checkedIn: remainingEntries.length > 0,
+        checkedInAt: latest?.checkedInAt || null,
+        checkedInBy: latest?.checkedInBy || null,
+        checkedInPhoto: latest?.checkedInPhoto || null,
+      };
+    } else {
+      updates = {
+        checkedIn: false,
+        checkedInAt: null,
+        checkedInBy: null,
+        checkedInPhoto: null,
+        checkinDays: {},
+      };
+    }
+    const updated = await registrantRepo.update(registrant.uniqueId, updates);
 
     res.json({
       success: true,

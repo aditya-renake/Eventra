@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS public.registrants (
     checked_in_at TIMESTAMPTZ,
     checked_in_by TEXT,
     checked_in_photo TEXT,
+    checkin_days JSONB NOT NULL DEFAULT '{}'::jsonb,
     email_sent BOOLEAN DEFAULT false,
     email_sent_at TIMESTAMPTZ,
     verified BOOLEAN DEFAULT false,
@@ -110,6 +111,7 @@ ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS payment_id TEXT;
 ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS qr_payload TEXT;
 ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS qr_signature TEXT;
 ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS checked_in_photo TEXT;
+ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS checkin_days JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false;
 ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS email_sent_at TIMESTAMPTZ;
 ALTER TABLE public.registrants ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;

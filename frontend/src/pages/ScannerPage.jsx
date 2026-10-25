@@ -3,14 +3,23 @@ import {
   QrCode, 
   Clock, 
   History, 
-  RotateCcw
+  RotateCcw,
+  CalendarDays
 } from 'lucide-react';
 import { QRScanner } from '../components/QRScanner';
 import { api } from '../services/api';
+import { getEventDayCount, getEventDayLabel } from '../utils/eventDays';
 
 export const ScannerPage = ({ onShowToast }) => {
   const [recentScans, setRecentScans] = useState([]);
   const [activeEventName, setActiveEventName] = useState('Eventra');
+  const [events, setEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState('');
+  const [selectedEventDay, setSelectedEventDay] = useState(1);
+
+  const selectedEvent = events.find((event) => (event.id || event.eventId) === selectedEventId);
+  const eventDayCount = getEventDayCount(selectedEvent);
+  const selectedEventDayLabel = getEventDayLabel(selectedEvent, selectedEventDay);
 
   const fetchRecentScans = useCallback(async () => {
     try {
@@ -23,12 +32,29 @@ export const ScannerPage = ({ onShowToast }) => {
 
   useEffect(() => {
     fetchRecentScans();
-    api.event.getConfig()
-      .then((res) => {
-        if (res?.data?.eventName) setActiveEventName(res.data.eventName);
-      })
-      .catch(() => {});
+    Promise.allSettled([api.events.getAll(), api.event.getConfig()]).then(([eventsResult, configResult]) => {
+      const fetchedEvents = eventsResult.status === 'fulfilled' ? (eventsResult.value?.data || []) : [];
+      const config = configResult.status === 'fulfilled' ? (configResult.value?.data || {}) : {};
+      setEvents(fetchedEvents);
+
+      const preferredId = config.activeEventId;
+      const initialEvent = fetchedEvents.find((event) => (event.id || event.eventId) === preferredId)
+        || fetchedEvents.find((event) => event.isFlagship)
+        || fetchedEvents[0];
+
+      if (initialEvent) {
+        setSelectedEventId(initialEvent.id || initialEvent.eventId);
+        setActiveEventName(initialEvent.name || config.eventName || 'Eventra');
+      } else if (config.eventName) {
+        setActiveEventName(config.eventName);
+      }
+    });
   }, [fetchRecentScans]);
+
+  useEffect(() => {
+    if (selectedEvent) setActiveEventName(selectedEvent.name || 'Eventra');
+    setSelectedEventDay(1);
+  }, [selectedEventId]);
 
   const handleScanCompleted = () => {
     fetchRecentScans();
@@ -36,7 +62,7 @@ export const ScannerPage = ({ onShowToast }) => {
 
   const handleUndo = async (item) => {
     try {
-      await api.checkin.undo(item._id || item.uniqueId);
+      await api.checkin.undo(item.uniqueId || item._id, item.eventDay);
       onShowToast({
         type: 'info',
         title: 'Check-in Reverted',
@@ -77,7 +103,54 @@ export const ScannerPage = ({ onShowToast }) => {
         
         {/* Left Column: Live Camera Scanner */}
         <div>
-          <QRScanner onScanComplete={handleScanCompleted} onShowToast={onShowToast} />
+          <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '7px', color: 'var(--text-muted)', fontSize: '11px', fontWeight: '800', letterSpacing: '0.4px' }}>
+                EVENT
+                <select
+                  className="input-control select-control"
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
+                  disabled={!events.length}
+                >
+                  {events.length === 0 && <option value="">Loading events…</option>}
+                  {events.map((event) => {
+                    const eventId = event.id || event.eventId;
+                    return <option key={eventId} value={eventId}>{event.name}</option>;
+                  })}
+                </select>
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '7px', color: 'var(--text-muted)', fontSize: '11px', fontWeight: '800', letterSpacing: '0.4px' }}>
+                EVENT DAY · {eventDayCount} {eventDayCount === 1 ? 'DAY' : 'DAYS'}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CalendarDays size={16} color="#22d3ee" />
+                  <select
+                    className="input-control select-control"
+                    value={selectedEventDay}
+                    onChange={(e) => setSelectedEventDay(Number(e.target.value))}
+                    disabled={!selectedEventId}
+                  >
+                    {Array.from({ length: eventDayCount }, (_, index) => index + 1).map((day) => (
+                      <option key={day} value={day}>{getEventDayLabel(selectedEvent, day)}</option>
+                    ))}
+                  </select>
+                </span>
+              </label>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '9px' }}>
+              The selected day is recorded separately, so the same pass can be scanned again on another event day.
+            </div>
+          </div>
+
+          <QRScanner
+            onScanComplete={handleScanCompleted}
+            onShowToast={onShowToast}
+            eventId={selectedEventId}
+            eventName={selectedEvent?.name || activeEventName}
+            eventDay={selectedEventDay}
+            eventDayLabel={selectedEventDayLabel}
+          />
         </div>
 
         {/* Right Column: Live Recent Check-Ins Feed */}
@@ -100,7 +173,7 @@ export const ScannerPage = ({ onShowToast }) => {
             ) : (
               recentScans.map((item) => (
                 <div
-                  key={item._id || item.uniqueId}
+                  key={`${item.uniqueId || item._id}-${item.eventDay || 'legacy'}`}
                   style={{
                     background: '#0b0f19',
                     border: '1px solid var(--border-subtle)',
@@ -117,7 +190,10 @@ export const ScannerPage = ({ onShowToast }) => {
                       {item.uniqueId}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                      Checked in at {new Date(item.checkedInAt).toLocaleTimeString()} by {item.checkedInBy || 'Gate Staff'}
+                      {events.find((event) => (event.id || event.eventId) === item.eventId)?.name
+                        ? `${events.find((event) => (event.id || event.eventId) === item.eventId).name} · `
+                        : ''}
+                      {item.eventDayLabel || 'Day 1'} · Checked in at {item.checkedInAt ? new Date(item.checkedInAt).toLocaleTimeString() : '—'} by {item.checkedInBy || 'Gate Staff'}
                     </div>
                   </div>
 
@@ -128,7 +204,7 @@ export const ScannerPage = ({ onShowToast }) => {
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => handleUndo(item)}
-                      title="Undo check-in for this pass"
+                      title={`Undo ${item.eventDayLabel || 'this day'} check-in for this pass`}
                       style={{ padding: '6px', color: '#f87171' }}
                     >
                       <RotateCcw size={13} />
