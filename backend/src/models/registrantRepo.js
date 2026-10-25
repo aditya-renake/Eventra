@@ -57,10 +57,14 @@ export const registrantRepo = {
       if (cached) return cached;
     }
 
-    const collection = this.getCollection();
-    const doc = await collection.doc(cleanId).get();
-    if (doc.exists) {
-      return { _id: doc.id, ...doc.data() };
+    try {
+      const collection = this.getCollection();
+      const doc = await collection.doc(cleanId).get();
+      if (doc && doc.exists) {
+        return { _id: doc.id, ...doc.data() };
+      }
+    } catch (err) {
+      console.warn('[registrantRepo] findByUniqueId notice:', err.message);
     }
     return null;
   },
@@ -89,12 +93,16 @@ export const registrantRepo = {
       }
     }
 
-    const collection = this.getCollection();
-    const snapshot = await collection.where('email', '==', cleanEmail).get();
-    if (!snapshot.empty) {
-      const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
-      items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      return items;
+    try {
+      const collection = this.getCollection();
+      const snapshot = await collection.where('email', '==', cleanEmail).get();
+      if (snapshot && !snapshot.empty) {
+        const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
+        items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return items;
+      }
+    } catch (err) {
+      console.warn('[registrantRepo] findAllByEmail notice:', err.message);
     }
     return [];
   },
