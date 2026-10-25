@@ -56,6 +56,35 @@ export const api = {
     isAuthenticated() {
       return !!localStorage.getItem('hs26_auth_token');
     },
+
+    // Attendee / Student Session helpers
+    async attendeeSignIn(email, name = '') {
+      const data = await request('/auth/attendee/signin', {
+        method: 'POST',
+        body: JSON.stringify({ email, name }),
+      });
+      if (data.token) {
+        localStorage.setItem('eventra_attendee_token', data.token);
+        localStorage.setItem('eventra_attendee_profile', JSON.stringify(data.attendee));
+      }
+      return data;
+    },
+    getAttendee() {
+      try {
+        const a = localStorage.getItem('eventra_attendee_profile');
+        return a ? JSON.parse(a) : null;
+      } catch {
+        return null;
+      }
+    },
+    setAttendee(attendee, token) {
+      if (attendee) localStorage.setItem('eventra_attendee_profile', JSON.stringify(attendee));
+      if (token) localStorage.setItem('eventra_attendee_token', token);
+    },
+    logoutAttendee() {
+      localStorage.removeItem('eventra_attendee_token');
+      localStorage.removeItem('eventra_attendee_profile');
+    },
   },
 
   events: {
@@ -122,6 +151,9 @@ export const api = {
     },
     async getPublicPass(uniqueId) {
       return request(`/registrants/pass/${encodeURIComponent(uniqueId)}`);
+    },
+    async getAttendeeProfile(email) {
+      return request(`/registrants/attendee/profile?email=${encodeURIComponent(email)}`);
     },
     async create(data) {
       return request('/registrants', {

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { staffRepo } from '../models/staffRepo.js';
+import { registrantRepo } from '../models/registrantRepo.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hackseries_2026_jwt_super_secret_key_8899';
 
@@ -133,4 +134,48 @@ export const getMe = async (req, res) => {
     success: true,
     user: req.user,
   });
+};
+
+/**
+ * 1-Click Attendee / Student Sign-In (Google or Direct Email)
+ */
+export const attendeeSignIn = async (req, res) => {
+  try {
+    const { email, name } = req.body || {};
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+    }
+
+    const registrants = await registrantRepo.findAllByEmail(cleanEmail);
+    const latest = registrants[0] || null;
+    const attendeeName = name || latest?.name || cleanEmail.split('@')[0] || 'Attendee';
+
+    const token = jwt.sign(
+      {
+        role: 'attendee',
+        email: cleanEmail,
+        name: attendeeName,
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    return res.json({
+      success: true,
+      token,
+      attendee: {
+        email: cleanEmail,
+        name: attendeeName,
+        phone: latest?.phone || '',
+        institution: latest?.institution || '',
+        githubUrl: latest?.githubUrl || '',
+      },
+      passesCount: registrants.length,
+      message: `Signed in as ${attendeeName}`,
+    });
+  } catch (error) {
+    console.error('Attendee sign-in error:', error);
+    return res.status(500).json({ success: false, message: 'Attendee sign-in failed', error: error.message });
+  }
 };

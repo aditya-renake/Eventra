@@ -47,6 +47,7 @@ export const EventLandingPage = ({
   const [lookupInput, setLookupInput] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [retrievedPass, setRetrievedPass] = useState(null);
+  const [retrievedPasses, setRetrievedPasses] = useState([]);
   const [eventConfig, setEventConfig] = useState(null);
   const [allEvents, setAllEvents] = useState([]);
   const [flagshipEvent, setFlagshipEvent] = useState(null);
@@ -135,16 +136,24 @@ export const EventLandingPage = ({
       const res = await api.registrants.getPublicPass(lookupInput.trim());
       if (res.data?.uniqueId) {
         sounds.playSuccess();
+        const passList = res.passes && res.passes.length > 0 ? res.passes : [res.data];
+        setRetrievedPasses(passList);
         setRetrievedPass(res.data);
+        if (res.attendee) {
+          api.auth.setAttendee(res.attendee);
+        }
         onShowToast?.({
           type: 'success',
-          title: 'Pass Verified! 🎟️',
-          message: `Found entry pass for ${res.data.name}. You can now send it to WhatsApp or download it.`,
+          title: `Pass Verified! 🎟️ (${passList.length} Pass${passList.length === 1 ? '' : 'es'})`,
+          message: passList.length > 1
+            ? `Found ${passList.length} registered event passes. Toggle between them below.`
+            : `Found entry pass for ${res.data.name}. You can now send it to WhatsApp or download it.`,
         });
       }
     } catch (err) {
       sounds.playError();
       setRetrievedPass(null);
+      setRetrievedPasses([]);
       onShowToast?.({
         type: 'error',
         title: 'Pass Not Found',
@@ -672,6 +681,44 @@ export const EventLandingPage = ({
                   Look up another pass
                 </button>
               </div>
+
+              {/* Multi-Pass Event Switcher if user is registered for multiple events */}
+              {retrievedPasses.length > 1 && (
+                <div style={{ marginBottom: '22px', textAlign: 'center', background: 'rgba(89, 110, 230, 0.08)', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '10px' }}>
+                    🎟️ You have {retrievedPasses.length} registered campus events (Click to switch pass):
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {retrievedPasses.map((p) => {
+                      const isCurrent = retrievedPass?.uniqueId === p.uniqueId;
+                      return (
+                        <button
+                          key={p.uniqueId}
+                          type="button"
+                          onClick={() => {
+                            sounds.playClick();
+                            setRetrievedPass(p);
+                          }}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '999px',
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            border: isCurrent ? '1px solid var(--eventra-indigo)' : '1px solid var(--border-subtle)',
+                            background: isCurrent ? 'var(--eventra-indigo)' : 'var(--bg-card)',
+                            color: isCurrent ? '#FFFFFF' : 'var(--eventra-ink)',
+                            boxShadow: isCurrent ? '0 4px 14px rgba(89, 110, 230, 0.35)' : 'none',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          🎟️ {p.eventName || 'Campus Event'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Holographic Generated Pass Ticket */}
               <div className="holo-ticket" style={{ maxWidth: '460px', margin: '0 auto', boxShadow: '0 10px 40px rgba(0,0,0,0.6)' }}>

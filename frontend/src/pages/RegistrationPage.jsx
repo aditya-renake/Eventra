@@ -150,6 +150,37 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [pendingOrder, setPendingOrder] = useState(null);
+  const [prefillProfile, setPrefillProfile] = useState(null);
+  const [alreadyRegisteredPass, setAlreadyRegisteredPass] = useState(null);
+
+  // Check email for existing campus registrations & smart pre-fill
+  const checkEmailForExistingProfile = async (emailToCheck) => {
+    if (!emailToCheck || !emailToCheck.includes('@') || !emailToCheck.includes('.')) {
+      setPrefillProfile(null);
+      setAlreadyRegisteredPass(null);
+      return;
+    }
+    try {
+      const res = await api.registrants.getAttendeeProfile(emailToCheck);
+      if (res?.success && res.found) {
+        const currentEvId = eventConfig.eventId || eventConfig.activeEventId || 'eventra-2026';
+        const match = res.passes?.find((p) => (p.eventId || 'eventra-2026') === currentEvId);
+        if (match) {
+          setAlreadyRegisteredPass(match);
+        } else {
+          setAlreadyRegisteredPass(null);
+        }
+        if (res.attendee) {
+          setPrefillProfile(res.attendee);
+        }
+      } else {
+        setPrefillProfile(null);
+        setAlreadyRegisteredPass(null);
+      }
+    } catch (e) {
+      // background prefill check error ignored
+    }
+  };
 
   // Detect In-App Browsers (WhatsApp, Instagram, etc. which block standard native intent links)
   const isInAppBrowser = typeof navigator !== 'undefined' && /FBAN|FBAV|Instagram|WhatsApp|Telegram|Line|MicroMessenger/i.test(navigator.userAgent || '');
@@ -418,6 +449,15 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
 
   const completeRegistration = (uniqueId, message = 'Your digital pass is ready.') => {
     sounds.playSuccess();
+    if (formData.email) {
+      api.auth.setAttendee({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        institution: formData.institution,
+        githubUrl: formData.githubUrl,
+      });
+    }
     onShowToast?.({
       type: 'success',
       title: 'You’re registered!',
@@ -767,6 +807,62 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
                 </div>
                 <p className="registration-section-note">We’ll use these details to generate your entry pass and send event updates.</p>
 
+                {/* Already Registered Alert for this Event */}
+                {alreadyRegisteredPass && (
+                  <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '14px 18px', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CheckCircle2 size={18} color="#D97706" />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#92400E' }}>You already have an active pass for this event!</div>
+                        <div style={{ fontSize: '12px', color: '#B45309' }}>Pass ID: <code style={{ fontWeight: '800', color: '#78350F' }}>{alreadyRegisteredPass.uniqueId}</code> ({alreadyRegisteredPass.ticketType})</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRegistrationSuccess?.(alreadyRegisteredPass.uniqueId)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '12px', background: '#FFFFFF' }}
+                    >
+                      View Pass <ArrowRight size={13} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Smart Pre-fill Banner */}
+                {prefillProfile && !alreadyRegisteredPass && (!formData.phone || !formData.institution) && (
+                  <div style={{ background: '#EEF0FF', border: '1px solid #C7D2FE', borderRadius: '12px', padding: '14px 18px', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Sparkles size={18} color="#596EE6" />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E1B4B' }}>Welcome back, {prefillProfile.name}!</div>
+                        <div style={{ fontSize: '12px', color: '#4B5563' }}>Auto-fill your contact & college info from your prior registrations?</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sounds.playSuccess();
+                        setFormData((prev) => ({
+                          ...prev,
+                          name: prefillProfile.name || prev.name,
+                          phone: prefillProfile.phone || prev.phone,
+                          institution: prefillProfile.institution || prev.institution,
+                          githubUrl: prefillProfile.githubUrl || prev.githubUrl,
+                        }));
+                        onShowToast?.({
+                          type: 'success',
+                          title: 'Details Pre-filled! ⚡',
+                          message: 'Saved contact and college info applied to your registration.',
+                        });
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Sparkles size={13} /> 1-Click Auto-Fill
+                    </button>
+                  </div>
+                )}
+
                 <div className="registration-fields-grid">
                   <div className="registration-field-block">
                     <label htmlFor="registration-name">Full name <span>*</span></label>
@@ -795,7 +891,11 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
                         autoComplete="email"
                         placeholder="you@college.edu"
                         value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        onChange={(e) => {
+                          handleInputChange('email', e.target.value);
+                          checkEmailForExistingProfile(e.target.value);
+                        }}
+                        onBlur={(e) => checkEmailForExistingProfile(e.target.value)}
                         required
                       />
                     </div>

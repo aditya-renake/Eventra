@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ScannerPage } from './pages/ScannerPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegistrationPage } from './pages/RegistrationPage';
+import { AttendeePortalPage } from './pages/AttendeePortalPage';
 import { api } from './services/api';
 import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'lucide-react';
 
@@ -77,6 +78,8 @@ export function App() {
         } else {
           setCurrentView('login');
         }
+      } else if (path === '/portal' || path === '/passes' || hash === '#portal' || hash === '#passes' || hash === '#my-passes' || hash === '#/portal' || hash === '#/passes') {
+        setCurrentView('portal');
       } else if (path === '/register' || hash.startsWith('#register') || hash.startsWith('#/register')) {
         if (rawHash.includes('event=')) {
           const q = new URLSearchParams(rawHash.split('?')[1] || '').get('event');
@@ -85,7 +88,7 @@ export function App() {
           }
         }
         setCurrentView('register');
-      } else if (path !== '/' && !['/dashboard', '/scanner', '/login', '/register'].includes(path)) {
+      } else if (path !== '/' && !['/dashboard', '/scanner', '/login', '/register', '/portal', '/passes'].includes(path)) {
         // Support short share links like eventra.live/<slug>
         const cleanSlug = path.replace(/^\/+|\/+$/g, '');
         if (cleanSlug && !cleanSlug.includes('.')) {
@@ -232,6 +235,14 @@ export function App() {
           <DigitalPassPage
             uniqueId={activePassId}
             onBack={handleBackToLanding}
+            onShowToast={handleShowToast}
+          />
+        )}
+
+        {currentView === 'portal' && (
+          <AttendeePortalPage
+            onNavigateToPass={handleNavigateToPass}
+            onNavigateToRegister={handleNavigateToRegister}
             onShowToast={handleShowToast}
           />
         )}

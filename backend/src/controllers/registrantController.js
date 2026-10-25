@@ -181,8 +181,8 @@ export const handleWebhookSubmission = async (req, res) => {
     const eventCtx = await resolveEventContext(eventId);
     const targetEventId = eventCtx.eventId || 'eventra-2026';
 
-    let existing = await registrantRepo.findByEmail(cleanEmail);
-    if (existing && (existing.eventId || 'eventra-2026') === targetEventId) {
+    let existing = await registrantRepo.findByEmailAndEvent(cleanEmail, targetEventId);
+    if (existing) {
       const updated = await registrantRepo.update(existing.uniqueId, {
         formResponses: { ...existing.formResponses, ...formResponses },
         phone: phone ? phone.trim() : existing.phone,
@@ -315,60 +315,168 @@ export const createRegistrant = async (req, res) => {
 
 /**
  * Public Pass Lookup (by uniqueId or Email) for attendee mobile portal
+ * If an email is queried, returns ALL passes across all events for that attendee
  */
 export const getPublicPass = async (req, res) => {
   try {
     const { idOrEmail } = req.params;
     res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=15');
-    const registrant = await registrantRepo.findByIdOrEmail(idOrEmail);
+    
+    const cleanQuery = String(idOrEmail || '').trim();
+    const isEmail = cleanQuery.includes('@');
 
-    if (!registrant) {
+    let registrants = [];
+    if (isEmail) {
+      registrants = await registrantRepo.findAllByEmail(cleanQuery);
+    } else {
+      const single = await registrantRepo.findByUniqueId(cleanQuery);
+      if (single) registrants = [single];
+    }
+
+    if (!registrants || registrants.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'No Eventra pass found matching the provided ID or Email address.',
       });
     }
 
-    const eventCtx = await resolveEventContext(registrant.eventId);
+    // Resolve full event context for all passes
+    const enrichedPasses = await Promise.all(
+      registrants.map(async (registrant) => {
+        const eventCtx = await resolveEventContext(registrant.eventId);
+        return {
+          uniqueId: registrant.uniqueId,
+          eventId: registrant.eventId || eventCtx.eventId || 'eventra-2026',
+          eventName: eventCtx.eventName || 'Eventra 2026',
+          eventTagline: eventCtx.eventTagline || '',
+          eventDate: eventCtx.eventDate || 'Dates TBA',
+          eventTime: eventCtx.eventTime || 'Schedule TBA',
+          eventVenue: eventCtx.eventVenue || 'Campus Venue',
+          venueHall: eventCtx.venueHall || '',
+          bannerUrl: eventCtx.bannerUrl || '',
+          themeColor: eventCtx.themeColor || '#596EE6',
+          organizerName: eventCtx.organizerName || '',
+          organizerEmail: eventCtx.organizerEmail || '',
+          organizerPhone: eventCtx.organizerPhone || '',
+          clubName: eventCtx.clubName || '',
+          collegeName: eventCtx.collegeName || '',
+          mapUrl: eventCtx.mapUrl || '',
+          whatsappUrl: eventCtx.whatsappUrl || '',
+          discordUrl: eventCtx.discordUrl || '',
+          brochureUrl: eventCtx.brochureUrl || '',
+          broadcastNotice: eventCtx.broadcastActive ? eventCtx.broadcastNotice : '',
+          name: registrant.name,
+          email: registrant.email,
+          phone: registrant.phone,
+          ticketType: registrant.ticketType,
+          teamName: registrant.teamName,
+          track: registrant.track,
+          institution: registrant.institution,
+          formResponses: registrant.formResponses || {},
+          qrCodeDataUrl: registrant.qrCodeDataUrl,
+          qrPayload: registrant.qrPayload,
+          checkedIn: registrant.checkedIn,
+          checkedInAt: registrant.checkedInAt,
+          verified: registrant.verified,
+          verificationStatus: registrant.verificationStatus,
+          createdAt: registrant.createdAt,
+        };
+      })
+    );
+
+    const primary = enrichedPasses[0];
 
     res.json({
       success: true,
-      data: {
-        uniqueId: registrant.uniqueId,
-        eventId: registrant.eventId || eventCtx.eventId || 'eventra-2026',
-        eventName: eventCtx.eventName || 'Eventra 2026',
-        eventTagline: eventCtx.eventTagline || '',
-        eventDate: eventCtx.eventDate || 'Dates TBA',
-        eventTime: eventCtx.eventTime || 'Schedule TBA',
-        eventVenue: eventCtx.eventVenue || 'Campus Venue',
-        venueHall: eventCtx.venueHall || '',
-        organizerName: eventCtx.organizerName || '',
-        organizerEmail: eventCtx.organizerEmail || '',
-        organizerPhone: eventCtx.organizerPhone || '',
-        clubName: eventCtx.clubName || '',
-        collegeName: eventCtx.collegeName || '',
-        mapUrl: eventCtx.mapUrl || '',
-        whatsappUrl: eventCtx.whatsappUrl || '',
-        discordUrl: eventCtx.discordUrl || '',
-        brochureUrl: eventCtx.brochureUrl || '',
-        broadcastNotice: eventCtx.broadcastActive ? eventCtx.broadcastNotice : '',
-        name: registrant.name,
-        email: registrant.email,
-        phone: registrant.phone,
-        ticketType: registrant.ticketType,
-        teamName: registrant.teamName,
-        track: registrant.track,
-        institution: registrant.institution,
-        formResponses: registrant.formResponses || {},
-        qrCodeDataUrl: registrant.qrCodeDataUrl,
-        qrPayload: registrant.qrPayload,
-        checkedIn: registrant.checkedIn,
-        checkedInAt: registrant.checkedInAt,
-        createdAt: registrant.createdAt,
+      data: primary,
+      count: enrichedPasses.length,
+      passes: enrichedPasses,
+      attendee: {
+        name: primary.name,
+        email: primary.email,
+        phone: primary.phone,
+        institution: primary.institution,
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to retrieve pass', error: error.message });
+  }
+};
+
+/**
+ * Attendee Profile & Smart Pre-fill lookup
+ * Queries prior registrations by email to auto-fill registration forms or power attendee portal
+ */
+export const getAttendeeProfile = async (req, res) => {
+  try {
+    const rawEmail = String(req.query.email || req.body.email || '').trim().toLowerCase();
+    if (!rawEmail || !rawEmail.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Valid email parameter required.' });
+    }
+
+    const registrants = await registrantRepo.findAllByEmail(rawEmail);
+    if (!registrants || registrants.length === 0) {
+      return res.json({
+        success: true,
+        found: false,
+        count: 0,
+        passes: [],
+        attendee: null,
+        registeredEventIds: [],
+      });
+    }
+
+    const enrichedPasses = await Promise.all(
+      registrants.map(async (r) => {
+        const eventCtx = await resolveEventContext(r.eventId);
+        return {
+          uniqueId: r.uniqueId,
+          eventId: r.eventId || eventCtx.eventId || 'eventra-2026',
+          eventName: eventCtx.eventName || 'Eventra 2026',
+          eventTagline: eventCtx.eventTagline || '',
+          eventDate: eventCtx.eventDate || 'Dates TBA',
+          eventTime: eventCtx.eventTime || 'Schedule TBA',
+          eventVenue: eventCtx.eventVenue || 'Campus Venue',
+          venueHall: eventCtx.venueHall || '',
+          bannerUrl: eventCtx.bannerUrl || '',
+          themeColor: eventCtx.themeColor || '#596EE6',
+          name: r.name,
+          email: r.email,
+          phone: r.phone,
+          ticketType: r.ticketType,
+          teamName: r.teamName,
+          track: r.track,
+          institution: r.institution,
+          githubUrl: r.githubUrl,
+          qrCodeDataUrl: r.qrCodeDataUrl,
+          checkedIn: r.checkedIn,
+          checkedInAt: r.checkedInAt,
+          verified: r.verified,
+          verificationStatus: r.verificationStatus,
+          createdAt: r.createdAt,
+        };
+      })
+    );
+
+    const latest = registrants[0];
+    const registeredEventIds = enrichedPasses.map((p) => p.eventId);
+
+    res.json({
+      success: true,
+      found: true,
+      count: enrichedPasses.length,
+      passes: enrichedPasses,
+      attendee: {
+        name: latest.name,
+        email: latest.email,
+        phone: latest.phone,
+        institution: latest.institution,
+        githubUrl: latest.githubUrl,
+      },
+      registeredEventIds,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to retrieve attendee profile', error: error.message });
   }
 };
 

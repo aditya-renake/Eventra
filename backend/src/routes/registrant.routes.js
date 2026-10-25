@@ -4,6 +4,7 @@ import {
   handleWebhookSubmission,
   createRegistrant,
   getPublicPass,
+  getAttendeeProfile,
   getRegistrantById,
   regenerateQR,
   deleteRegistrant,
@@ -19,7 +20,10 @@ const router = express.Router();
 // Primary Intake Webhook for external attendee registration
 router.post('/webhook', handleWebhookSubmission);
 
-// Public Digital Pass Lookup (by UniqueId or Email)
+// Public Attendee Profile & Smart Pre-fill Lookup
+router.get('/attendee/profile', getAttendeeProfile);
+
+// Public Digital Pass Lookup (by UniqueId or Email - returns all passes if email)
 router.get('/pass/:idOrEmail', getPublicPass);
 
 // Protected Staff / Admin Routes

@@ -61,6 +61,19 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
             PASS LOOKUP
           </a>
 
+          <button
+            className={`pill-nav-item ${currentView === 'portal' ? 'active' : ''}`}
+            onClick={() => handleNavClick('portal')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontWeight: currentView === 'portal' ? '800' : '600'
+            }}
+          >
+            <Ticket size={13} /> MY PASSES
+          </button>
+
           {user && (
             <>
               {['admin', 'super_admin', 'event_head', 'root_owner'].includes(user?.role) && (
@@ -196,6 +209,14 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
           >
             <Ticket size={15} color="#596EE6" /> Digital Pass Lookup
           </a>
+
+          <button
+            className={`btn btn-sm ${currentView === 'portal' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
+            onClick={() => handleNavClick('portal')}
+          >
+            <Ticket size={15} color={currentView === 'portal' ? '#fff' : '#596EE6'} /> 🎟️ My Passes (Student Portal)
+          </button>
 
           {user && (
             <>

@@ -69,15 +69,23 @@ export const registrantRepo = {
    * Find registrant by email address
    */
   async findByEmail(email) {
-    if (!email) return null;
+    const all = await this.findAllByEmail(email);
+    return all.length > 0 ? all[0] : null;
+  },
+
+  /**
+   * Find ALL registrants by email address across all events (newest first)
+   */
+  async findAllByEmail(email) {
+    if (!email) return [];
     const cleanEmail = email.toLowerCase().trim();
 
-    // Check in-memory cache first if warm (returning newest)
+    // Check in-memory cache first if warm (returning all matches)
     if (memoryCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
       const matches = memoryCache.filter((r) => String(r.email).toLowerCase().trim() === cleanEmail);
       if (matches.length > 0) {
         matches.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        return matches[0];
+        return matches;
       }
     }
 
@@ -86,9 +94,21 @@ export const registrantRepo = {
     if (!snapshot.empty) {
       const items = snapshot.docs.map((doc) => ({ _id: doc.id, ...doc.data() }));
       items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      return items[0];
+      return items;
     }
-    return null;
+    return [];
+  },
+
+  /**
+   * Find a registrant for a specific event by email
+   */
+  async findByEmailAndEvent(email, eventId) {
+    if (!email) return null;
+    const cleanEmail = email.toLowerCase().trim();
+    const targetEvId = eventId || 'eventra-2026';
+
+    const all = await this.findAllByEmail(cleanEmail);
+    return all.find((r) => (r.eventId || 'eventra-2026') === targetEvId) || null;
   },
 
   /**
