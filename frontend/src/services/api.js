@@ -58,6 +58,28 @@ export const api = {
     },
 
     // Attendee / Student Session helpers
+    async attendeeRegister({ name, username, email, password, institution = '', phone = '' }) {
+      const data = await request('/auth/attendee/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, username, email, password, institution, phone }),
+      });
+      if (data.token) {
+        localStorage.setItem('eventra_attendee_token', data.token);
+        localStorage.setItem('eventra_attendee_profile', JSON.stringify(data.user));
+      }
+      return data;
+    },
+    async attendeeLogin(identifier, password) {
+      const data = await request('/auth/attendee/login', {
+        method: 'POST',
+        body: JSON.stringify({ identifier, password }),
+      });
+      if (data.token) {
+        localStorage.setItem('eventra_attendee_token', data.token);
+        localStorage.setItem('eventra_attendee_profile', JSON.stringify(data.user));
+      }
+      return data;
+    },
     async attendeeSignIn(email, name = '') {
       const data = await request('/auth/attendee/signin', {
         method: 'POST',

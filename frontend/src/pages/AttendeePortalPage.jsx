@@ -150,9 +150,16 @@ export const AttendeePortalPage = ({ onNavigateToPass, onNavigateToRegister, onS
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span className="badge badge-aces" style={{ fontSize: '10px' }}>STUDENT PASSBOOK</span>
                 {attendee && (
-                  <span className="badge badge-emerald" style={{ fontSize: '10px' }}>
-                    <CheckCircle2 size={11} /> VERIFIED ATTENDEE
-                  </span>
+                  <>
+                    <span className="badge badge-emerald" style={{ fontSize: '10px' }}>
+                      <CheckCircle2 size={11} /> VERIFIED ATTENDEE
+                    </span>
+                    {attendee.username && (
+                      <span className="badge badge-indigo" style={{ fontSize: '10px' }}>
+                        @{attendee.username}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -214,6 +221,18 @@ export const AttendeePortalPage = ({ onNavigateToPass, onNavigateToRegister, onS
                 <Search size={15} /> {loading ? 'Fetching...' : 'Access My Passes'}
               </button>
             </form>
+
+            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <span>Prefer an account with username & password?</span>
+              <div style={{ display: 'flex', gap: '14px' }}>
+                <a href="#login" style={{ color: 'var(--eventra-indigo, #596EE6)', fontWeight: '700', textDecoration: 'none' }}>
+                  🔑 Sign In
+                </a>
+                <a href="#login" style={{ color: 'var(--eventra-indigo, #596EE6)', fontWeight: '700', textDecoration: 'none' }}>
+                  ✨ Create Free Account
+                </a>
+              </div>
+            </div>
           </div>
         )}
       </div>

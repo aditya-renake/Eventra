@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { staffRepo } from '../models/staffRepo.js';
 import { registrantRepo } from '../models/registrantRepo.js';
+import { userRepo } from '../models/userRepo.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hackseries_2026_jwt_super_secret_key_8899';
 
@@ -212,5 +213,151 @@ export const attendeeSignIn = async (req, res) => {
   } catch (error) {
     console.error('Attendee sign-in error:', error);
     return res.status(500).json({ success: false, message: 'Attendee sign-in failed', error: error.message });
+  }
+};
+
+/**
+ * Register a new Attendee / Student Account
+ */
+export const attendeeRegister = async (req, res) => {
+  try {
+    const { name, username, email, password, institution, phone } = req.body || {};
+    const cleanName = String(name || '').trim();
+    const cleanUsername = String(username || '').toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
+    const cleanEmail = String(email || '').toLowerCase().trim();
+    const cleanPassword = String(password || '').trim();
+
+    if (!cleanName || !cleanUsername || !cleanEmail || !cleanPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Full name, username, email address, and password are required.',
+      });
+    }
+
+    if (cleanUsername.length < 3) {
+      return res.status(400).json({ success: false, message: 'Username must be at least 3 characters.' });
+    }
+
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
+    if (cleanPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    // Check if username is reserved for staff
+    if (cleanUsername === 'adityarenake' || cleanUsername === 'gate_scanner_1') {
+      return res.status(400).json({ success: false, message: 'This username is reserved. Please pick another.' });
+    }
+
+    // Check if username already exists
+    const existingUser = await userRepo.findByUsername(cleanUsername);
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: 'Username is already taken. Please choose another.' });
+    }
+
+    // Check if email already registered
+    const existingEmail = await userRepo.findByEmail(cleanEmail);
+    if (existingEmail) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
+    }
+
+    // Create user
+    const newUser = await userRepo.createUser({
+      name: cleanName,
+      username: cleanUsername,
+      email: cleanEmail,
+      password: cleanPassword,
+      institution,
+      phone,
+    });
+
+    // Find any existing passes registered under this email
+    const passes = await registrantRepo.findAllByEmail(cleanEmail);
+
+    const token = jwt.sign(
+      {
+        userId: newUser.username,
+        username: newUser.username,
+        email: newUser.email,
+        name: newUser.name,
+        role: 'attendee',
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: `Account created successfully! Welcome to Eventra, ${newUser.name}.`,
+      token,
+      user: newUser,
+      passesCount: passes.length,
+    });
+  } catch (error) {
+    console.error('Attendee register error:', error);
+    return res.status(500).json({ success: false, message: 'Account creation failed.', error: error.message });
+  }
+};
+
+/**
+ * Attendee Login with Username/Email and Password
+ */
+export const attendeeLogin = async (req, res) => {
+  try {
+    const { identifier, username, email, password } = req.body || {};
+    const rawIdentifier = String(identifier || username || email || '').toLowerCase().trim();
+    const rawPassword = String(password || '').trim();
+
+    if (!rawIdentifier || !rawPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username/Email and password are required.',
+      });
+    }
+
+    const user = await userRepo.findByIdentifier(rawIdentifier);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'No attendee account found matching this username or email.',
+      });
+    }
+
+    const isMatch = await userRepo.verifyPassword(rawPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect password. Please try again.',
+      });
+    }
+
+    const passes = await registrantRepo.findAllByEmail(user.email);
+
+    const token = jwt.sign(
+      {
+        userId: user.username,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        role: 'attendee',
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    const { passwordHash: _, ...safeUser } = user;
+
+    return res.json({
+      success: true,
+      message: `Welcome back, ${user.name}!`,
+      token,
+      user: safeUser,
+      passesCount: passes.length,
+    });
+  } catch (error) {
+    console.error('Attendee login error:', error);
+    return res.status(500).json({ success: false, message: 'Attendee login failed.', error: error.message });
   }
 };
