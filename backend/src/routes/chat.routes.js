@@ -53,11 +53,13 @@ router.post('/', async (req, res) => {
     };
     const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.text }] }));
     contents.at(-1).parts.unshift({ text: 'Current Eventra reference data: ' + JSON.stringify(facts).slice(0, 24000) });
-    const model = encodeURIComponent(process.env.GEMINI_MODEL || 'gemini-3.5-flash');
-    const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':streamGenerateContent?alt=sse', {
+    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+    const generationConfig = { maxOutputTokens: 1024 };
+    if (model === 'gemini-3.5-flash') generationConfig.thinkingConfig = { thinkingLevel: 'minimal' };
+    const upstream = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':streamGenerateContent?alt=sse', {
       method: 'POST', signal: controller.signal,
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: instructions }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: instructions }] }, contents, generationConfig }),
     });
     if (!upstream.ok || !upstream.body) throw new Error('Provider unavailable');
     res.type('application/x-ndjson');

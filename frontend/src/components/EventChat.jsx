@@ -11,6 +11,26 @@ const questions = {
   dashboard: ['How do attendees register?', 'How does QR check-in work?'],
   scanner: ['How do I scan a pass?', 'What if a pass has already been scanned?'],
 };
+function quickReply(text, page, registration) {
+  const question = text.toLowerCase().replace(/[?!.]+$/, '').trim();
+  switch (question) {
+    case 'how do i find my pass':
+    case 'where can i find my pass':
+    case 'how do i access my passes':
+      return 'Open My Passes and use the email you registered with to find your event pass.';
+    case 'how do i use my qr pass':
+    case 'how does qr check-in work':
+    case 'how does event check-in work':
+      return 'Open your digital pass and show its QR code to the check-in staff at the entrance.';
+    case 'my payment is pending. what should i do':
+      return 'Check the payment status on your registration page. Wait for verification before making another payment.';
+    case 'how much is due':
+      if (page === 'register' && registration?.step === 'review' && registration.amount) {
+        return 'The amount shown for your selected pass is ' + registration.amount + '.';
+      }
+  }
+}
+
 function suggestions(page, registration) {
   if (page !== 'register') return questions[page] || questions.landing;
   if (registration?.payment === 'pending verification') return ['My payment is pending. What should I do?', 'When will I get my pass?'];
@@ -41,10 +61,17 @@ export function EventChat({ page, eventId, registration }) {
   async function send(value) {
     const text = value.trim();
     if (!text || request.current) return;
+    const history = [...messages, { role: 'user', text }];
+    const answer = quickReply(text, page, registration);
+    if (answer) {
+      setMessages([...history, { role: 'assistant', text: answer }]);
+      setDraft('');
+      setError('');
+      return;
+    }
     const controller = new AbortController();
     request.current = controller;
     const timer = setTimeout(() => controller.abort(), 32000);
-    const history = [...messages, { role: 'user', text }];
     setMessages([...history, { role: 'assistant', text: '' }]);
     setDraft('');
     setError('');
