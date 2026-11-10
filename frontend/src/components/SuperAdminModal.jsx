@@ -1050,7 +1050,7 @@ export const SuperAdminModal = ({
               <div style={{ background: '#060913', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '16px', fontSize: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ color: '#9ca3af' }}>Active Outgoing Mailer:</span>
-                  <strong style={{ color: '#22d3ee' }}>{telemetry?.activeMailer || 'Gmail SMTP (tigeradi1504@gmail.com)'}</strong>
+                  <strong style={{ color: '#22d3ee' }}>{telemetry?.activeMailer || 'Gmail SMTP (careseventra@gmail.com)'}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#9ca3af' }}>Active Staff Operators:</span>
@@ -1182,7 +1182,7 @@ export const SuperAdminModal = ({
                       className="input" 
                       value={organizerEmail} 
                       onChange={(e) => setOrganizerEmail(e.target.value)} 
-                      placeholder="tigeradi1504@gmail.com"
+                      placeholder="careseventra@gmail.com"
                       style={{ width: '100%' }}
                     />
                   </div>
@@ -1678,7 +1678,7 @@ export const SuperAdminModal = ({
                     <Mail size={13} /> SMTP DISPATCH ENGINE
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginTop: '4px' }}>{telemetry?.activeMailer || 'Gmail SMTP TLS'}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>tigeradi1504@gmail.com</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>careseventra@gmail.com</div>
                 </div>
 
                 <div style={{ background: '#090d18', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>

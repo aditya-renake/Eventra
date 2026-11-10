@@ -2,9 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initFirebase } from './config/firebase.js';
-import { isSupabaseConfigured } from './config/supabase.js';
+import { getSupabase, isSupabaseConfigured } from './config/supabase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { createRateLimit } from './middleware/rateLimit.js';
+import { randomUUID } from 'node:crypto';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 import chatRoutes from './routes/chat.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -21,25 +24,50 @@ const app = express();
 
 // Global Middleware
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '10mb', verify: (req, _res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request Logger
+// Personal/admin responses are private by default. Only public DTO handlers opt into CDN caching.
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  const started = process.hrtime.bigint();
+  req.requestId = randomUUID();
+  res.setHeader('X-Request-Id', req.requestId);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - started) / 1e6;
+    // Avoid logging URLs/query strings containing pass IDs, emails or auth tokens.
+    if (res.statusCode >= 500 || durationMs > 1000 || process.env.REQUEST_LOGGING === 'all') {
+      console.log(JSON.stringify({ event: 'http_request', requestId: req.requestId,
+        method: req.method, route: req.route?.path || 'unmatched', status: res.statusCode,
+        durationMs: Math.round(durationMs) }));
+    }
+  });
   next();
 });
 
+app.use(createRateLimit({
+  consume: async (rules) => {
+    const client = getSupabase();
+    if (!client) throw new Error('Shared rate limiter requires Supabase');
+    const { data, error } = await client.rpc('consume_api_rate_limits', { p_rules: rules });
+    if (error) throw error;
+    return data;
+  },
+}));
+
 // Initialize Google Cloud Firestore
-initFirebase();
+if (!isSupabaseConfigured()) initFirebase();
 
 // Ensure staff users exist if in persistent server mode
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (process.env.NODE_ENV === 'development' && process.env.SEED_DEFAULT_STAFF === 'true') {
   staffRepo.seedDefaultAdmin().catch(() => {});
 }
 
 // Mount Routes
 app.use(['/api/chat', '/chat'], chatRoutes);
+app.use('/api/internal/notifications', notificationRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/registrants', registrantRoutes);

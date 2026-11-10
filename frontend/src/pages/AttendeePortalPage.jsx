@@ -1,3 +1,4 @@
+import { useSeatCounts } from '../services/seatAvailability';
 import React, { useState, useEffect } from 'react';
 import { 
   Ticket, 
@@ -23,6 +24,7 @@ import { api } from '../services/api';
 import { sounds } from '../utils/soundEffects';
 
 export const AttendeePortalPage = ({ onNavigateToPass, onNavigateToRegister, onShowToast }) => {
+  const counts = useSeatCounts();
   const [emailInput, setEmailInput] = useState('');
   const [attendee, setAttendee] = useState(() => api.auth.getAttendee());
   const [passes, setPasses] = useState([]);
@@ -424,11 +426,12 @@ export const AttendeePortalPage = ({ onNavigateToPass, onNavigateToRegister, onS
                   </span>
                   <button
                     type="button"
+                    disabled={counts[ev.id || ev.eventId] === 0}
                     onClick={() => onNavigateToRegister?.(ev.id || ev.eventId)}
                     className="btn btn-secondary btn-sm"
                     style={{ fontSize: '11px', padding: '5px 12px' }}
                   >
-                    Register <ArrowRight size={12} />
+                    {counts[ev.id || ev.eventId] === 0 ? 'Registration closed' : 'Register'} <ArrowRight size={12} />
                   </button>
                 </div>
               </div>

@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QrCode, LayoutDashboard, Globe, LogOut, Lock, Menu, X, ShieldCheck, Flame, Compass, Ticket, Info, Trophy, Clock, Sparkles } from 'lucide-react';
 
 export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 24);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleNavClick = (view) => {
     setCurrentView(view);
@@ -10,8 +19,8 @@ export const Navbar = ({ currentView, setCurrentView, user, onLogout }) => {
   };
 
   return (
-    <div className="floating-nav-container">
-      <header className="floating-nav-pill">
+    <div className={`floating-nav-container ${isScrolled ? 'is-scrolled' : ''}`}>
+      <header className={`floating-nav-pill ${isScrolled ? 'is-scrolled' : ''}`}>
         
         {/* Eventra brand logo */}
         <button

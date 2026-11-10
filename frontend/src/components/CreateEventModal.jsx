@@ -1582,7 +1582,7 @@ export const CreateEventModal = ({ onClose, onEventCreated, onShowToast, initial
                       type="email"
                       required
                       className="wizard-input"
-                      placeholder="e.g. tigeradi1504@gmail.com"
+                      placeholder="e.g. careseventra@gmail.com"
                       value={formData.organizerEmail}
                       onChange={(e) => setFormData({ ...formData, organizerEmail: e.target.value })}
                     />

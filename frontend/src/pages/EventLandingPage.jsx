@@ -1,3 +1,5 @@
+import { useSeatCounts } from '../services/seatAvailability';
+import { imageUrl } from '../utils/imageUrl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ExternalLink, 
@@ -107,6 +109,7 @@ export const EventLandingPage = ({
   const clubCode = flagshipEvent?.clubCode || eventConfig?.clubCode || '';
   const organizerName = flagshipEvent?.organizerName || eventConfig?.organizerName || 'Aditya Renake';
   const mode = flagshipEvent?.mode || eventConfig?.mode || 'in_person';
+  const remaining = useSeatCounts()[flagshipEvent?.id || flagshipEvent?.eventId || eventConfig?.activeEventId || effectiveId];
   const totalCapacity = flagshipEvent?.totalCapacity || eventConfig?.totalCapacity || 500;
   const entryFee = flagshipEvent?.entryFee !== undefined ? Number(flagshipEvent.entryFee) : (eventConfig?.entryFee !== undefined ? Number(eventConfig.entryFee) : 5);
   const isFree = flagshipEvent?.pricingType === 'free' || entryFee === 0;
@@ -258,7 +261,7 @@ export const EventLandingPage = ({
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: '#FFFFFF', border: '1px solid #E2E8F8', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: '700', color: '#29304A', boxShadow: '0 2px 6px rgba(41, 48, 74, 0.04)' }}>
               <Users size={15} color="#596EE6" />
-              <span>{totalCapacity} Seats</span>
+              <span>{remaining == null ? 'Seat availability unavailable' : (remaining === 1 ? '1 seat left' : remaining + ' seats left')}</span>
             </div>
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: isFree ? '#ECFDF5' : '#EEF0FF', border: isFree ? '1px solid #A7F3D0' : '1px solid #DDE3FF', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: '800', color: isFree ? '#059669' : '#596EE6' }}>
@@ -271,8 +274,8 @@ export const EventLandingPage = ({
           <div className="event-hero-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
-              onClick={() => onNavigateToRegister(effectiveId)}
-              className="event-hero-cta"
+              disabled={remaining === 0} onClick={() => onNavigateToRegister(effectiveId)}
+              className="event-hero-cta shimmer-interactive"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -289,7 +292,7 @@ export const EventLandingPage = ({
               }}
             >
               <Ticket size={18} />
-              <span>Get Your Pass ({isFree ? 'Free' : `₹${entryFee}`})</span>
+              <span>{remaining === 0 ? 'Registration closed' : `Get Your Pass (${isFree ? 'Free' : '₹' + entryFee})`}</span>
               <ArrowUpRight size={16} />
             </button>
 
@@ -366,7 +369,7 @@ export const EventLandingPage = ({
             }}
             title="Click to view full event details in separate window"
           >
-            <img src={bannerUrl} alt={eventName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={imageUrl(bannerUrl)} fetchPriority="high" decoding="async" alt={eventName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div className="event-hero-image-shade" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(41, 48, 74, 0.1) 0%, rgba(41, 48, 74, 0.85) 100%)' }} />
             
             {/* Topline Badge */}
@@ -393,7 +396,7 @@ export const EventLandingPage = ({
           </div>
 
           {/* Floating Badge 1: Trophy / Pass */}
-          <div className="event-float-card event-prize-card" onClick={handleOpenDetails} style={{ cursor: 'pointer' }}>
+          <div className="event-float-card event-prize-card animate-float-gentle" onClick={handleOpenDetails} style={{ cursor: 'pointer' }}>
             <span className="event-float-icon"><Trophy size={18} /></span>
             <span>
               <small>{eventCategory}</small>
@@ -403,7 +406,7 @@ export const EventLandingPage = ({
           </div>
 
           {/* Floating Badge 2: Open Details */}
-          <div className="event-float-card event-tracks-card" onClick={handleOpenDetails} style={{ cursor: 'pointer' }}>
+          <div className="event-float-card event-tracks-card animate-float-gentle" onClick={handleOpenDetails} style={{ cursor: 'pointer', animationDelay: '1.8s' }}>
             <span className="event-track-orbit"><Sparkles size={16} /></span>
             <span>
               <small>Explore Agenda & Tracks</small>

@@ -7,7 +7,7 @@ export const InteractiveBackground = () => {
   useEffect(() => {
     // Check for prefers-reduced-motion
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mediaQuery.matches) return;
+    if (mediaQuery.matches || window.matchMedia('(hover: none)').matches) return;
 
     const handleMouseMove = (e) => {
       setMousePos({ x: e.clientX, y: e.clientY });

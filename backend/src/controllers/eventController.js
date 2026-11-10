@@ -1,5 +1,9 @@
 import { eventRepo } from '../models/eventRepo.js';
 import { staffRepo } from '../models/staffRepo.js';
+import { publicEvent, publicEventConfig, publicCatalogHeaders } from '../utils/publicEvent.js';
+import { createShortCache } from '../utils/shortCache.js';
+
+const publicCache = createShortCache({ ttlMs: 5000, maxEntries: 100 });
 
 /**
  * Public & Staff: Get all club events (Fresh real-time response)
@@ -7,11 +11,12 @@ import { staffRepo } from '../models/staffRepo.js';
 export const getClubEvents = async (req, res) => {
   try {
     const { category, status, search } = req.query;
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    const events = await eventRepo.getAll({ category, status, search });
+    const filters = { category, status, search };
+    const events = await publicCache.get(`events:${JSON.stringify(filters)}`, async () => (await eventRepo.getAll(filters)).map(publicEvent));
+    publicCatalogHeaders(req, res);
     return res.json({ success: true, data: events });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to fetch events', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to fetch events' });
   }
 };
 
@@ -21,14 +26,14 @@ export const getClubEvents = async (req, res) => {
 export const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    const eventItem = await eventRepo.findById(id);
+    const eventItem = await publicCache.get(`event:${id}`, () => eventRepo.findById(id));
     if (!eventItem) {
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
-    return res.json({ success: true, data: eventItem });
+    publicCatalogHeaders(req, res);
+    return res.json({ success: true, data: publicEvent(eventItem) });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to fetch event', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to fetch event' });
   }
 };
 
@@ -43,13 +48,14 @@ export const createClubEvent = async (req, res) => {
     }
 
     const newEvent = await eventRepo.create(data);
+    publicCache.clear();
     return res.status(201).json({
       success: true,
       message: `Event "${newEvent.name}" created successfully!`,
       data: newEvent,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to create event', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to create event' });
   }
 };
 
@@ -61,6 +67,7 @@ export const updateClubEvent = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     const updated = await eventRepo.update(id, updates);
+    publicCache.clear();
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
@@ -70,7 +77,7 @@ export const updateClubEvent = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to update event', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to update event' });
   }
 };
 
@@ -81,12 +88,13 @@ export const deleteClubEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const deleted = await eventRepo.delete(id);
+    publicCache.clear();
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
     return res.json({ success: true, message: 'Event deleted successfully' });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to delete event', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to delete event' });
   }
 };
 
@@ -98,7 +106,7 @@ export const getStaffList = async (req, res) => {
     const staff = await staffRepo.getAll();
     return res.json({ success: true, data: staff });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to fetch staff members', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to fetch staff members' });
   }
 };
 
@@ -130,7 +138,7 @@ export const createStaffMember = async (req, res) => {
       data: safe,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to create staff account', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to create staff account' });
   }
 };
 
@@ -148,7 +156,7 @@ export const updateStaffMember = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to update staff member', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to update staff member' });
   }
 };
 
@@ -162,7 +170,7 @@ export const deleteStaffMember = async (req, res) => {
     await staffRepo.deleteStaff(cleanUser);
     return res.json({ success: true, message: `Access revoked and staff member "${cleanUser}" removed successfully!` });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to delete staff member', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to delete staff member' });
   }
 };
 
@@ -183,7 +191,7 @@ export const purgeAllStaffExceptOwner = async (req, res) => {
       count,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to purge staff accounts', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to purge staff accounts' });
   }
 };
 
@@ -194,6 +202,7 @@ export const setFlagshipEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const targetEvent = await eventRepo.setFlagship(id);
+    publicCache.clear();
     if (!targetEvent) {
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
@@ -203,7 +212,7 @@ export const setFlagshipEvent = async (req, res) => {
       data: targetEvent,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to set flagship event', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to set flagship event' });
   }
 };
 
@@ -212,12 +221,14 @@ export const setFlagshipEvent = async (req, res) => {
  */
 export const getEventConfig = async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    const { configRepo } = await import('../models/configRepo.js');
-    const config = await configRepo.getConfig();
+    const config = await publicCache.get('config', async () => {
+      const { configRepo } = await import('../models/configRepo.js');
+      return publicEventConfig(await configRepo.getConfig());
+    });
+    publicCatalogHeaders(req, res);
     return res.json({ success: true, data: config });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to fetch event configuration', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to fetch event configuration' });
   }
 };
 
@@ -229,12 +240,28 @@ export const updateEventConfig = async (req, res) => {
     const { configRepo } = await import('../models/configRepo.js');
     const updates = req.body;
     const updated = await configRepo.updateConfig(updates);
+    publicCache.clear();
     return res.json({
       success: true,
       message: 'Event configuration updated successfully!',
       data: updated,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to update event configuration', error: error.message });
+    return res.status(error.statusCode || 500).json({ success: false, code: error.code, message: error.statusCode && error.statusCode < 500 ? error.message : 'Failed to update event configuration' });
   }
+};
+
+// Private staff editing endpoints always bypass shared caches.
+export const getAdminEventConfig = async (req, res, next) => {
+  try {
+    const { configRepo } = await import('../models/configRepo.js');
+    return res.json({ success: true, data: await configRepo.getConfig() });
+  } catch (error) { next(error); }
+};
+
+export const getAdminClubEvents = async (req, res, next) => {
+  try {
+    const { category, status, search } = req.query;
+    return res.json({ success: true, data: await eventRepo.getAll({ category, status, search }) });
+  } catch (error) { next(error); }
 };

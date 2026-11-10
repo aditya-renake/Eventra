@@ -1,3 +1,5 @@
+import { useSeatCounts } from '../services/seatAvailability';
+import { imageUrl } from '../utils/imageUrl';
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
@@ -41,6 +43,7 @@ export const EventDetailsPage = ({
   onShowToast,
 }) => {
   const [event, setEvent] = useState(null);
+  const remaining = useSeatCounts()[event?.id || event?.eventId];
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
@@ -209,12 +212,12 @@ export const EventDetailsPage = ({
 
           <button
             type="button"
-            onClick={() => onNavigateToRegister(event.id || event.eventId)}
+            disabled={remaining === 0} onClick={() => onNavigateToRegister(event.id || event.eventId)}
             className="btn btn-primary btn-sm"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', borderRadius: '10px', fontWeight: '800' }}
           >
             <Ticket size={14} />
-            <span>Register ({isFree ? 'Free' : `₹${event.entryFee}`})</span>
+            <span>{remaining === 0 ? 'Registration closed' : `Register (${isFree ? 'Free' : '₹' + event.entryFee})`}</span>
             <ArrowUpRight size={14} />
           </button>
         </div>
@@ -234,7 +237,9 @@ export const EventDetailsPage = ({
         {/* Banner Cover Image */}
         <div style={{ position: 'relative', height: '320px', overflow: 'hidden', background: '#EEF0FF' }}>
           <img
-            src={event.bannerUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80'}
+            src={imageUrl(event.bannerUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d')}
+            fetchPriority="high"
+            decoding="async"
             alt={event.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
@@ -330,8 +335,8 @@ export const EventDetailsPage = ({
               <Users size={20} />
             </div>
             <div className="event-details-metric-body">
-              <div className="event-details-metric-label">Capacity Limit</div>
-              <div className="event-details-metric-value">{event.totalCapacity || 250} Attendees</div>
+              <div className="event-details-metric-label">Seats remaining</div>
+              <div className="event-details-metric-value">{remaining == null ? 'Unavailable' : remaining}</div>
               <div className="event-details-metric-sub success-pill">Instant QR Check-in</div>
             </div>
           </div>
@@ -339,11 +344,11 @@ export const EventDetailsPage = ({
           <div className="event-details-metric-action">
             <button
               type="button"
-              onClick={() => onNavigateToRegister(event.id || event.eventId)}
+              disabled={remaining === 0} onClick={() => onNavigateToRegister(event.id || event.eventId)}
               className="btn btn-primary"
               style={{ padding: '12px 24px', borderRadius: '12px', fontSize: '14px', fontWeight: '800', width: '100%', justifyContent: 'center' }}
             >
-              <Ticket size={16} /> Register Now
+              <Ticket size={16} /> {remaining === 0 ? 'Registration closed' : 'Register Now'}
             </button>
           </div>
         </div>
@@ -519,11 +524,11 @@ export const EventDetailsPage = ({
 
             <button
               type="button"
-              onClick={() => onNavigateToRegister(event.id || event.eventId)}
+              disabled={remaining === 0} onClick={() => onNavigateToRegister(event.id || event.eventId)}
               className="btn btn-primary"
               style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', justifyContent: 'center' }}
             >
-              <Ticket size={16} /> Get Your Pass Now
+              <Ticket size={16} /> {remaining === 0 ? 'Registration closed' : 'Get Your Pass Now'}
             </button>
 
             {Array.isArray(event.ticketTiers) && event.ticketTiers.length > 0 && (

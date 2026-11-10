@@ -12,7 +12,7 @@ export const getTransporter = async () => {
   let resendApiKey = (process.env.RESEND_API_KEY || '').trim();
   let sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim();
   let customHost = (process.env.SMTP_HOST || '').trim();
-  let user = (process.env.SMTP_USER || 'tigeradi1504@gmail.com').trim();
+  let user = (process.env.SMTP_USER || 'careseventra@gmail.com').trim();
   let pass = (process.env.SMTP_PASS || '').trim();
 
   try {
@@ -23,6 +23,10 @@ export const getTransporter = async () => {
     if (cfg?.smtpHost) customHost = cfg.smtpHost.trim();
     if (cfg?.resendApiKey) resendApiKey = cfg.resendApiKey.trim();
   } catch (e) {}
+
+  if (user.includes('@gmail.com') || customHost.includes('gmail')) {
+    pass = pass.replace(/\s+/g, '');
+  }
 
   if (resendApiKey || pass.startsWith('re_') || customHost.includes('resend.com') || user.toLowerCase() === 'resend') {
     const activeResendKey = resendApiKey || pass;
@@ -455,7 +459,7 @@ export const sendPassEmail = async (registrant, eventConfig = {}) => {
   const organizerPhone = eventConfig.organizerPhone || '';
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const passUrl = `${clientUrl}/pass/${registrant.uniqueId}`;
-  const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
+  const senderEmail = process.env.SMTP_USER || 'careseventra@gmail.com';
 
   const qrBuffer = await generateQRCodeBuffer(registrant.qrPayload);
 
@@ -572,7 +576,7 @@ export const buildCheckinConfirmationEmailHtml = ({
   eventName = 'Eventra 2026',
   eventVenue = 'Campus Venue',
   organizerName = 'Eventra Operations',
-  organizerEmail = 'tigeradi1504@gmail.com',
+  organizerEmail = 'careseventra@gmail.com',
   clientUrl = 'http://localhost:5173',
 }) => {
   const passUrl = `${clientUrl}/pass/${uniqueId}`;
@@ -688,9 +692,9 @@ export const sendCheckinConfirmationEmail = async (registrant, eventConfig = {})
     const eventName = eventConfig.eventName || 'Eventra 2026';
     const eventVenue = eventConfig.eventVenue || 'Campus Venue';
     const organizerName = eventConfig.clubName || eventConfig.organizerName || 'Eventra Operations';
-    const organizerEmail = eventConfig.organizerEmail || 'tigeradi1504@gmail.com';
+    const organizerEmail = eventConfig.organizerEmail || 'careseventra@gmail.com';
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
+    const senderEmail = process.env.SMTP_USER || 'careseventra@gmail.com';
 
     const attachments = [];
     let hasLivePhoto = false;
@@ -760,7 +764,7 @@ export const buildRegistrationReceivedEmailHtml = ({
   eventName = 'Eventra 2026',
   eventVenue = 'Campus Venue',
   organizerName = 'Eventra Operations',
-  organizerEmail = 'tigeradi1504@gmail.com',
+  organizerEmail = 'careseventra@gmail.com',
 }) => {
   return `
 <!DOCTYPE html>
@@ -853,8 +857,8 @@ export const sendRegistrationReceivedEmail = async (registrant, eventConfig = {}
     const eventDate = eventConfig.eventDate || 'Dates TBA';
     const eventVenue = eventConfig.eventVenue || 'Campus Venue';
     const organizerName = eventConfig.clubName || eventConfig.organizerName || 'Eventra Operations';
-    const organizerEmail = eventConfig.organizerEmail || 'tigeradi1504@gmail.com';
-    const senderEmail = process.env.SMTP_USER || 'tigeradi1504@gmail.com';
+    const organizerEmail = eventConfig.organizerEmail || 'careseventra@gmail.com';
+    const senderEmail = process.env.SMTP_USER || 'careseventra@gmail.com';
 
     const html = buildRegistrationReceivedEmailHtml({
       attendeeName: registrant.name,

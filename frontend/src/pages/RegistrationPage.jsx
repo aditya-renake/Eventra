@@ -1,3 +1,4 @@
+import { useSeatCounts } from '../services/seatAvailability';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -131,6 +132,7 @@ const loadRazorpay = () => new Promise((resolve) => {
 export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBackToLanding, onShowToast, onChatContext }) => {
   const formRef = useRef(null);
   const [eventConfig, setEventConfig] = useState(DEFAULT_CONFIG);
+  const remaining = useSeatCounts()[eventConfig.eventId || selectedEventId];
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
@@ -531,6 +533,7 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
       } catch (e) {}
 
       const options = {
+        timeout: 600,
         key: razorpayKey,
         amount: orderRes?.amount || (amountDue * 100),
         currency: orderRes?.currency || 'INR',
@@ -633,6 +636,7 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (remaining == null || remaining === 0) return;
     if (step < STEPS.length - 1) {
       handleContinue();
       return;
@@ -647,6 +651,7 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
       const participantPayload = buildParticipantPayload();
       const orderRes = await api.payment.createOrder(participantPayload);
 
+      window.dispatchEvent(new Event('eventra:seats-changed'));
       if (orderRes?.isFree) {
         completeRegistration(orderRes.data?.uniqueId || orderRes.uniqueId, 'Registration successful!');
         return;
@@ -655,6 +660,7 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
       await launchRazorpayCheckout(orderRes);
     } catch (error) {
       sounds.playError();
+      window.dispatchEvent(new Event('eventra:seats-changed'));
       setErrorMsg(error.message || 'Registration failed. Please try again.');
       onShowToast?.({
         type: 'error',
@@ -1189,14 +1195,15 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
               </section>
             )}
 
+            <p role="status">{remaining == null ? 'Checking seat availability…' : remaining === 0 ? 'Registration closed. This event is full.' : (remaining === 1 ? '1 seat left' : remaining + ' seats left')}</p>
             <div className="registration-form-actions">
               {step > 0 ? (
                 <button type="button" className="registration-button-secondary" onClick={() => { setErrorMsg(''); setStep((current) => current - 1); }} disabled={isLoading}><ArrowLeft size={16} /> Back</button>
               ) : <span className="registration-action-spacer" />}
               {step < STEPS.length - 1 ? (
-                <button type="button" className="registration-button-primary" onClick={handleContinue}>Continue <ArrowRight size={16} /></button>
+                <button type="button" className="registration-button-primary" disabled={remaining == null || remaining === 0} onClick={handleContinue}>Continue <ArrowRight size={16} /></button>
               ) : (
-                <button type="submit" className="registration-button-primary" disabled={isLoading}>
+                <button type="submit" className="registration-button-primary" disabled={isLoading || remaining == null || remaining === 0}>
                   {isLoading ? <><span className="registration-spinner" /> Processing…</> : amountDue > 0 ? <><CreditCard size={17} /> Continue to payment <ArrowRight size={16} /></> : <><CheckCircle2 size={17} /> Complete registration <ArrowRight size={16} /></>}
                 </button>
               )}

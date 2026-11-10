@@ -3959,3 +3959,258 @@ body {
   .app-theme-light .event-wizard-footer { padding: 12px 14px; }
   .app-theme-light .event-wizard-container [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+/* Avoid expensive decorative animation on touch devices and reduced-motion setups. */
+@media (prefers-reduced-motion: reduce), (hover: none) {
+  .interactive-ambient { display: none; }
+}
+
+/* =========================================================================
+   ADVANCED SCROLL EXPERIENCE & MODERN MOTION ENGINE
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html, body {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Sleek Modern Scrollbar */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F4F9;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #596EE6 0%, #8B5CF6 100%);
+  border-radius: 9999px;
+  border: 2px solid #F1F4F9;
+  transition: background 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #475AC4 0%, #7C3AED 100%);
+}
+
+/* 1. Top Dynamic Scroll Progress Indicator */
+@keyframes scroll-progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3.5px;
+  background: linear-gradient(90deg, #596EE6 0%, #8B5CF6 34%, #EC4899 72%, #06B6D4 100%);
+  transform-origin: 0 50%;
+  box-shadow: 0 1px 10px rgba(89, 110, 230, 0.7), 0 0 18px rgba(139, 92, 246, 0.45);
+  z-index: 99999;
+  pointer-events: none;
+  transform: scaleX(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: scroll())) {
+    .scroll-progress-bar {
+      animation: scroll-progress-grow auto linear;
+      animation-timeline: scroll();
+    }
+  }
+}
+
+/* 2. Native Scroll-Driven ViewTimeline Reveal Effects */
+@keyframes scroll-fade-lift {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    .app-theme-light .event-proof-strip,
+    .app-theme-light #about-section,
+    .app-theme-light #lookup-section,
+    .app-theme-light #events-hub-section,
+    .app-theme-light .event-card-item,
+    .app-theme-light .event-details-card,
+    .app-theme-light .stat-card {
+      animation: scroll-fade-lift auto cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 24%;
+    }
+  }
+}
+
+/* 3. Floating Smooth Scroll-to-Top Action Button */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 74px;
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #596EE6 0%, #7C3AED 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(89, 110, 230, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 920;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px) scale(0.85);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              background 0.25s ease;
+}
+
+.back-to-top-btn.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.back-to-top-btn:hover {
+  transform: translateY(-4px) scale(1.08) !important;
+  box-shadow: 0 14px 32px rgba(89, 110, 230, 0.6), 0 0 20px rgba(139, 92, 246, 0.45) !important;
+  background: linear-gradient(135deg, #687CF0 0%, #8B5CF6 100%);
+}
+
+.back-to-top-btn:active {
+  transform: translateY(-1px) scale(0.96) !important;
+}
+
+@media (max-width: 640px) {
+  .back-to-top-btn {
+    bottom: 68px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* 4. Live Status Pulsing Radar Dot */
+@keyframes live-radar-ping {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.live-radar-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10B981;
+  animation: live-radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 5. Ambient Gentle Float for Badges & Accents */
+@keyframes ambient-gentle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-float-gentle {
+  animation: ambient-gentle-float 4.2s ease-in-out infinite;
+}
+
+/* 6. Dynamic Shimmer Sweep on Hover */
+@keyframes sweep-light {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+.shimmer-interactive {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-interactive::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+  transition: transform 0.6s ease;
+}
+
+.shimmer-interactive:hover::after {
+  animation: sweep-light 0.85s ease-out;
+}
+
+/* 7. Enhanced Card Hover Elevation & Colored Glow */
+.app-theme-light .event-card-item {
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 320ms ease,
+              border-color 320ms ease !important;
+}
+
+.app-theme-light .event-card-item:hover {
+  transform: translateY(-8px) scale(1.015) !important;
+  box-shadow: 0 22px 46px rgba(41, 48, 74, 0.12), 0 0 0 1px rgba(89, 110, 230, 0.22) !important;
+}
+
+/* 8. Proof Strip Cards Hover Lift */
+.app-theme-light .event-proof-strip > div {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), background-color 260ms ease;
+  border-radius: 12px;
+}
+.app-theme-light .event-proof-strip > div:hover {
+  transform: translateY(-3px);
+  background: rgba(89, 110, 230, 0.04);
+}
+
+/* 9. Scrolled Floating Navbar State */
+.floating-nav-pill.is-scrolled {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border-color: rgba(89, 110, 230, 0.32) !important;
+  box-shadow: 0 14px 40px rgba(41, 48, 74, 0.12), 0 2px 8px rgba(89, 110, 230, 0.08) !important;
+  transform: translateY(-1px) scale(0.995);
+}
+
+/* 10. Click Press Feedback */
+button:active:not(:disabled),
+.btn:active:not(:disabled),
+.pill-nav-item:active {
+  transform: scale(0.975);
+}

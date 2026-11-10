@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { 
   Users, 
   CheckCircle2, 
@@ -24,7 +24,7 @@ import { WebhookGuideModal } from '../components/WebhookGuideModal';
 import { EmailTemplateModal } from '../components/EmailTemplateModal';
 import { BulkEmailModal } from '../components/BulkEmailModal';
 import { SuperAdminModal } from '../components/SuperAdminModal';
-import { ExcelImportModal } from '../components/ExcelImportModal';
+const ExcelImportModal = lazy(() => import('../components/ExcelImportModal').then(module => ({ default: module.ExcelImportModal })));
 import { CreateEventModal } from '../components/CreateEventModal';
 import { TeamManagementModal } from '../components/TeamManagementModal';
 import { LivePaymentLedgerModal } from '../components/LivePaymentLedgerModal';
@@ -41,7 +41,9 @@ const getInitialCachedData = () => {
 };
 
 export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEvent }) => {
-  const cachedInitial = getInitialCachedData();
+  const [cachedInitial] = useState(getInitialCachedData);
+  const requestSequence = useRef(0);
+  const paymentSequence = useRef(0);
 
   // Multi-Event State
   const [eventsList, setEventsList] = useState([]);
@@ -81,6 +83,11 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
 
   // Filter States
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [checkedInFilter, setCheckedInFilter] = useState('');
   const [emailSentFilter, setEmailSentFilter] = useState('');
   const [verifiedFilter, setVerifiedFilter] = useState('');
@@ -152,6 +159,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
 
   // High-Speed Concurrent Fetch with SWR Caching
   const fetchData = useCallback(async (page = 1, silent = false) => {
+    const sequence = ++requestSequence.current;
     try {
       if (!silent && registrants.length === 0) {
         setLoading(true);
@@ -162,7 +170,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
       const params = {
         page,
         limit: pagination.limit,
-        search,
+        search: debouncedSearch,
         checkedIn: checkedInFilter,
         emailSent: emailSentFilter,
         verified: verifiedFilter,
@@ -176,6 +184,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
         !eventConfig ? api.event.getConfig().catch(() => null) : Promise.resolve(null),
       ]);
 
+      if (sequence !== requestSequence.current) return;
       if (regRes) {
         const nextRegistrants = regRes.data || [];
         const nextPagination = regRes.pagination || {};
@@ -201,7 +210,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
         setEventConfig(configRes.data);
       }
     } catch (err) {
-      if (!silent) {
+      if (!silent && sequence === requestSequence.current) {
         onShowToast({
           type: 'error',
           title: 'Data Fetch Error',
@@ -209,16 +218,20 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
         });
       }
     } finally {
-      setLoading(false);
-      setIsBackgroundSyncing(false);
+      if (sequence === requestSequence.current) {
+        setLoading(false);
+        setIsBackgroundSyncing(false);
+      }
     }
-  }, [pagination.limit, search, checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId, eventConfig, registrants.length, onShowToast]);
+  }, [pagination.limit, debouncedSearch, checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId, eventConfig, registrants.length, onShowToast]);
 
   // Live Razorpay Financial Telemetry Query
   const fetchPaymentStats = useCallback(async (evId) => {
+    const sequence = ++paymentSequence.current;
     try {
       setLoadingPaymentStats(true);
       const res = await api.payment.getLiveStats(evId);
+      if (sequence !== paymentSequence.current) return;
       const statsData = res?.data || (res?.success ? res : res);
       if (statsData && (statsData.totalRevenue !== undefined || statsData.transactions !== undefined)) {
         setLivePaymentStats(statsData);
@@ -226,29 +239,37 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
     } catch (err) {
       console.warn('Live payment stats query warning:', err);
     } finally {
-      setLoadingPaymentStats(false);
+      if (sequence === paymentSequence.current) setLoadingPaymentStats(false);
     }
   }, []);
 
   // Initial and reactive fetch on filter change or event change
   useEffect(() => {
     fetchData(1, registrants.length > 0);
-    fetchPaymentStats(selectedEventId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId]);
+  }, [debouncedSearch, checkedInFilter, emailSentFilter, verifiedFilter, trackFilter, ticketFilter, selectedEventId]);
 
   // Live Auto-Polling (Pulls new submissions and live Razorpay revenue into dashboard)
   useEffect(() => {
     const pollTimer = setInterval(() => {
+      if (document.hidden) return;
       fetchData(pagination.page, true);
-      fetchPaymentStats(selectedEventId);
-    }, 4500);
+    }, 15000);
     return () => clearInterval(pollTimer);
   }, [fetchData, fetchPaymentStats, pagination.page, selectedEventId]);
 
+  useEffect(() => {
+    fetchPaymentStats(selectedEventId);
+    const timer = setInterval(() => {
+      if (!document.hidden) fetchPaymentStats(selectedEventId);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [fetchPaymentStats, selectedEventId]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchData(1);
+    if (debouncedSearch === search.trim()) fetchData(1);
+    else setDebouncedSearch(search.trim());
   };
 
   const handleExportCSV = async () => {
@@ -1135,6 +1156,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
       )}
 
       {showExcelImport && (
+        <Suspense fallback={<div role="status">Loading importer…</div>}>
         <ExcelImportModal
           isOpen={showExcelImport}
           eventId={selectedEventId}
@@ -1143,6 +1165,7 @@ export const DashboardPage = ({ onShowToast, onNavigateToScanner, onViewLiveEven
           onShowToast={onShowToast}
           onRefresh={() => fetchData(pagination.page)}
         />
+        </Suspense>
       )}
 
       {showWebhookGuide && (

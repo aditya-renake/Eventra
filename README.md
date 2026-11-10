@@ -47,6 +47,8 @@ Any unauthorized reproduction, modification, distribution, reverse engineering, 
 - [Platform Overview](#-platform-overview)
 - [Key Architectural Capabilities](#-key-architectural-capabilities)
 - [Interactive System Flow](#-interactive-system-flow)
+- [Quick Start & Setup](#-quick-start--setup)
+- [Production Deployment (Vercel)](#-production-deployment-vercel)
 - [REST API Specifications](#-rest-api-specifications)
 - [Statutory License & Legal Notice](#-statutory-license--legal-notice)
 
@@ -123,6 +125,75 @@ Built around a high-performance **React 18** frontend and an asynchronous **Node
 
 ---
 
+## 🚀 Quick Start & Setup
+
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- **Git**
+
+### 1. Clone & Install
+
+```bash
+# Clone the repository
+git clone https://github.com/aditya-renake/Eventra.git
+cd Eventra
+
+# Install backend dependencies
+cd backend && npm install
+
+# Install frontend dependencies
+cd ../frontend && npm install
+```
+
+### 2. Configure Environment
+
+Copy the template configuration file:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+### 3. Launch Development Environment
+
+Run backend and frontend in separate terminal tabs:
+
+```bash
+# Terminal 1: Backend API (Default: http://localhost:5001)
+cd backend
+npm run dev
+
+# Terminal 2: Frontend Client (Default: http://localhost:5173)
+cd frontend
+npm run dev
+```
+
+Visit `http://localhost:5173` to explore the interface.
+
+---
+
+## ☁️ Production Deployment (Vercel)
+
+The repository includes a root `vercel.json` and a serverless API adapter (`api/index.js`), enabling the complete full-stack platform (React Single Page App + Express REST API) to deploy into a single Vercel project without microservice fragmentation.
+
+<details>
+<summary><strong>Step-by-Step Vercel Deployment Instructions</strong></summary>
+
+1. Fork or push this repository to your private GitHub organization.
+2. In the [Vercel Dashboard](https://vercel.com/new), select **Import Project** and link your repository.
+3. Configure project settings:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `./`
+   - **Build Command**: `cd frontend && npm install && npm run build`
+   - **Output Directory**: `frontend/dist`
+4. Add your production environment variables (`MONGODB_URI`, `QR_SIGNING_SECRET`, `JWT_SECRET`, `SMTP_*`) in the **Environment Variables** panel.
+5. Click **Deploy**. Your custom domain will automatically route requests:
+   - Web Application: `https://your-domain.vercel.app/`
+   - Gate Scanner: `https://your-domain.vercel.app/scanner`
+   - API Endpoints: `https://your-domain.vercel.app/api/*`
+</details>
+
+---
 
 ## 📡 REST API Specifications
 
@@ -179,4 +250,6 @@ For licensing inquiries, enterprise deployment permissions, or official correspo
 
 ## Ask Eventra
 
-Set `GEMINI_API_KEY` in the backend environment and restart or redeploy. Visitors can open Ask Eventra on any page and select a suggested question or type their own.
+Set `GEMINI_API_KEY` in `backend/.env` for local development or in the deployment's server environment, then restart the backend or redeploy. The optional `GEMINI_MODEL` defaults to `gemini-3.5-flash`. Chat uses the existing shared rate limiter with a default of ten questions per IP per minute.
+
+The chat opens on the current page. Selecting a suggested question sends it immediately. Suggestions change with the current view and registration step. The conversation stays in browser memory during navigation and clears on reload.

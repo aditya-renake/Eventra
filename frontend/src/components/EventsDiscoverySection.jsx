@@ -1,3 +1,5 @@
+import { useSeatCounts } from '../services/seatAvailability';
+import { imageUrl } from '../utils/imageUrl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, 
@@ -27,6 +29,7 @@ export const EventsDiscoverySection = ({
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const counts = useSeatCounts();
   const categories = [
     { id: 'all', label: '🔥 All Events' },
     { id: 'Hackathon', label: '💻 Hackathons' },
@@ -243,7 +246,8 @@ export const EventsDiscoverySection = ({
                 {/* Event Banner */}
                 <div style={{ position: 'relative', height: '175px', overflow: 'hidden', background: '#EEF0FF' }}>
                   <img
-                    src={ev.bannerUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80'}
+                    src={imageUrl(ev.bannerUrl || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d', 720)}
+                    decoding="async"
                     alt={ev.name}
                     loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
@@ -284,9 +288,13 @@ export const EventsDiscoverySection = ({
                           color: isLive ? '#059669' : '#596EE6',
                           border: isLive ? '1px solid #A7F3D0' : '1px solid #DDE3FF',
                           letterSpacing: '0.04em',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
                         }}
                       >
-                        {isLive ? '● LIVE' : 'UPCOMING'}
+                        {isLive && <span className="live-radar-dot" />}
+                        {isLive ? 'LIVE' : 'UPCOMING'}
                       </span>
                       <span
                         style={{
@@ -385,7 +393,7 @@ export const EventsDiscoverySection = ({
                     {ev.totalCapacity && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Users size={14} color="#596EE6" style={{ flexShrink: 0 }} />
-                        <span>Capacity: {ev.totalCapacity} Seats</span>
+                        <span>{counts[ev.id || ev.eventId] == null ? 'Seat availability unavailable' : (counts[ev.id || ev.eventId] === 1 ? '1 seat left' : counts[ev.id || ev.eventId] + ' seats left')}</span>
                       </div>
                     )}
                   </div>
@@ -394,6 +402,7 @@ export const EventsDiscoverySection = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '14px', borderTop: '1px solid #E2E8F8' }}>
                     <button
                       type="button"
+                      disabled={counts[ev.id || ev.eventId] === 0}
                       onClick={(e) => {
                         e.stopPropagation();
                         sounds.playClick();
@@ -414,7 +423,7 @@ export const EventsDiscoverySection = ({
                         border: 'none',
                       }}
                     >
-                      <span>Register</span>
+                      <span>{counts[ev.id || ev.eventId] === 0 ? 'Registration closed' : 'Register'}</span>
                       <ArrowUpRight size={14} />
                     </button>
 

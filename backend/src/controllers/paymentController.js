@@ -3,6 +3,7 @@ import { registrantRepo } from '../models/registrantRepo.js';
 import { configRepo } from '../models/configRepo.js';
 import { eventRepo } from '../models/eventRepo.js';
 import { resolveEventContext } from './registrantController.js';
+import { holdSeat, requireAvailableSeat } from '../services/seatService.js';
 import { createOrder, verifyPaymentSignature, getRazorpayClient } from '../services/paymentService.js';
 import { generatePassSignature, createQRPayload, generateQRCodeDataUrl } from '../services/qrService.js';
 import { sendPassEmail } from '../services/emailService.js';
@@ -37,8 +38,10 @@ export const initiateRegistrationOrder = async (req, res) => {
     const config = await configRepo.getConfig();
     const isPaymentEnabled = config.enablePaymentGateway !== false;
 
-    const targetEventId = String(eventId || config.activeEventId || 'eventra-2026').toLowerCase().trim();
-    const ev = await eventRepo.findById(targetEventId).catch(() => null);
+    const requestedId = String(eventId || config.activeEventId || 'eventra-2026').toLowerCase().trim();
+    const ev = await eventRepo.findById(requestedId);
+    const targetEventId = ev?.id || requestedId;
+    await requireAvailableSeat(targetEventId);
     const eventCtx = await resolveEventContext(targetEventId);
 
     let passPrice = 5;
@@ -149,6 +152,8 @@ export const initiateRegistrationOrder = async (req, res) => {
       },
     });
 
+    if (!order.orderId) throw Object.assign(new Error('Checkout could not be started. Please try again.'), { statusCode: 503 });
+    await holdSeat(targetEventId, order.orderId);
     return res.json({
       success: true,
       isFree: false,
@@ -169,6 +174,7 @@ export const initiateRegistrationOrder = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.statusCode) return res.status(error.statusCode).json({ message: error.message, code: error.code });
     console.error('❌ Create registration order error:', error);
     return res.status(500).json({ success: false, message: 'Failed to initiate order', error: error.message });
   }
@@ -335,10 +341,11 @@ export const verifyAndCompleteRegistration = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: `Payment Verified! Pass ${uniqueId} issued successfully.`,
+      message: `Payment Verified! Pass ${newRegistrant.uniqueId} issued successfully.`,
       data: newRegistrant,
     });
   } catch (error) {
+    if (error.code === 'EVENT_FULL') return res.status(409).json({ code: error.code, message: 'The seat hold expired and the event is full. If your payment was debited, contact the organizer with the payment reference. Please do not pay again.' });
     console.error('❌ Payment verification error:', error);
     return res.status(500).json({ success: false, message: 'Payment verification failed', error: error.message });
   }
@@ -437,7 +444,7 @@ export const checkOrderStatus = async (req, res) => {
     const cleanEmail = String(participantData.email || successfulPayment?.email || '').toLowerCase().trim();
     const attendeeName = (participantData.name || successfulPayment?.notes?.name || 'Participant').trim();
     const ticketType = participantData.ticketType || successfulPayment?.notes?.ticketType || 'Standard Pass';
-    const rawEventId = participantData.eventId || order?.notes?.eventId || successfulPayment?.notes?.eventId;
+    const rawEventId = order?.notes?.eventId || participantData.eventId || successfulPayment?.notes?.eventId;
     const eventCtx = await resolveEventContext(rawEventId);
     const targetEventId = eventCtx.eventId || 'eventra-2026';
 
@@ -482,10 +489,11 @@ export const checkOrderStatus = async (req, res) => {
     return res.status(201).json({
       success: true,
       isPaid: true,
-      message: `Payment Verified! Pass ${uniqueId} issued successfully.`,
+      message: `Payment Verified! Pass ${newRegistrant.uniqueId} issued successfully.`,
       data: newRegistrant,
     });
   } catch (error) {
+    if (error.code === 'EVENT_FULL') return res.status(409).json({ code: error.code, message: 'The seat hold expired and the event is full. If your payment was debited, contact the organizer with the payment reference. Please do not pay again.' });
     console.error('checkOrderStatus error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }

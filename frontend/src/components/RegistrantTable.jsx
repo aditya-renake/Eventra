@@ -154,7 +154,7 @@ export const RegistrantTable = ({
       onShowToast({
         type: 'success',
         title: 'Pass Email Dispatched! 🎟️',
-        message: `Official QR pass sent from tigeradi1504@gmail.com to ${reg.email}`,
+        message: `Official QR pass sent from careseventra@gmail.com to ${reg.email}`,
       });
       if (res.result?.previewUrl) {
         window.open(res.result.previewUrl, '_blank');
@@ -622,7 +622,7 @@ export const RegistrantTable = ({
                           className="btn btn-sm btn-primary"
                           onClick={() => handleSendEmail(reg)}
                           disabled={sendingId === regId}
-                          title={`1-Click: Send Pass Email from tigeradi1504@gmail.com to ${reg.email}`}
+                          title={`1-Click: Send Pass Email from careseventra@gmail.com to ${reg.email}`}
                           style={{ padding: '6px 12px', fontSize: '11px' }}
                         >
                           {sendingId === regId ? (

@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, lazy, Suspense, useCallback } from 'react';
+import { SeatAvailability } from './services/seatAvailability';
 import { EventChat } from './components/EventChat';
 import { Navbar } from './components/Navbar';
 import { InteractiveBackground } from './components/InteractiveBackground';
-import { EventLandingPage } from './pages/EventLandingPage';
-import { EventDetailsPage } from './pages/EventDetailsPage';
-import { DigitalPassPage } from './pages/DigitalPassPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ScannerPage } from './pages/ScannerPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegistrationPage } from './pages/RegistrationPage';
-import { AttendeePortalPage } from './pages/AttendeePortalPage';
+const EventLandingPage = lazy(() => import('./pages/EventLandingPage').then(module => ({ default: module.EventLandingPage })));
+const EventDetailsPage = lazy(() => import('./pages/EventDetailsPage').then(module => ({ default: module.EventDetailsPage })));
+const DigitalPassPage = lazy(() => import('./pages/DigitalPassPage').then(module => ({ default: module.DigitalPassPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const ScannerPage = lazy(() => import('./pages/ScannerPage').then(module => ({ default: module.ScannerPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then(module => ({ default: module.LoginPage })));
+const RegistrationPage = lazy(() => import('./pages/RegistrationPage').then(module => ({ default: module.RegistrationPage })));
+const AttendeePortalPage = lazy(() => import('./pages/AttendeePortalPage').then(module => ({ default: module.AttendeePortalPage })));
 import { api } from './services/api';
-import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Info, XCircle, Instagram, Github, ArrowUp } from 'lucide-react';
+
+const REVEAL_SELECTOR = '.event-hero, .event-proof-strip, #about-section, #lookup-section, #events-hub-section, .event-card-item, .event-details-reveal';
 
 export function App() {
   const [currentView, setCurrentView] = useState('landing');
@@ -20,6 +23,32 @@ export function App() {
   const [user, setUser] = useState(() => api.auth.getUser());
   const [registrationContext, setRegistrationContext] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Monitor scroll for Back-to-Top button & progressive enhancement for scroll progress indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+
+      // Fallback for browsers that do not support native CSS animation-timeline: scroll()
+      if (!window.CSS || !CSS.supports || !CSS.supports('animation-timeline', 'scroll()')) {
+        const bar = document.getElementById('scroll-progress-bar');
+        if (bar) {
+          const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+          const scrolled = window.scrollY;
+          const ratio = scrollable > 0 ? scrolled / scrollable : 0;
+          bar.style.transform = `scaleX(${Math.min(Math.max(ratio, 0), 1)})`;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Check URL pathname & hash on initial load and on hashchange
   useEffect(() => {
@@ -114,14 +143,60 @@ export function App() {
     };
   }, []);
 
-  const handleShowToast = ({ type = 'info', title, message }) => {
+  useLayoutEffect(() => {
+    if (!['landing', 'event-details'].includes(currentView)) return undefined;
+
+    const root = document.querySelector(`.app-view-${currentView}`);
+    if (!root) return undefined;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+      root.querySelectorAll(REVEAL_SELECTOR).forEach((element) => element.classList.add('is-visible'));
+      return undefined;
+    }
+
+    const observed = new WeakSet();
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -32px 0px' });
+
+    const registerRevealTargets = (node) => {
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const targets = [];
+      if (node.matches(REVEAL_SELECTOR)) targets.push(node);
+      targets.push(...node.querySelectorAll(REVEAL_SELECTOR));
+      targets.forEach((target) => {
+        if (observed.has(target)) return;
+        observed.add(target);
+        target.classList.add('reveal-on-scroll');
+        revealObserver.observe(target);
+      });
+    };
+
+    registerRevealTargets(root);
+    const mutationObserver = new MutationObserver((records) => {
+      records.forEach((record) => record.addedNodes.forEach(registerRevealTargets));
+    });
+    mutationObserver.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      mutationObserver.disconnect();
+      revealObserver.disconnect();
+    };
+  }, [currentView]);
+
+  const handleShowToast = useCallback(({ type = 'info', title, message }) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, type, title, message }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
-  };
+  }, []);
 
   const handleLogout = () => {
     api.auth.logout();
@@ -182,6 +257,9 @@ export function App() {
 
   return (
     <div className={`app-theme-light ${currentView === 'register' ? 'app-registration-light' : ''}`} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {/* Dynamic Scroll Progress Bar with Native Scroll-Driven Animation & Fallback */}
+      <div id="scroll-progress-bar" className="scroll-progress-bar" aria-hidden="true" />
+
       {/* High-Impact Interactive Ambient Floating Background Everywhere */}
       <InteractiveBackground />
       
@@ -202,7 +280,9 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main className={`app-view app-view-${currentView}`} style={{ flex: 1 }}>
+      <SeatAvailability>
+      <main key={currentView} className={`app-view app-view-${currentView}`} style={{ flex: 1 }}>
+        <Suspense fallback={<div role="status" style={{ padding: '64px', textAlign: 'center' }}>Loading page…</div>}>
         {currentView === 'landing' && (
           <EventLandingPage
             selectedEventId={selectedEventId}
@@ -287,7 +367,9 @@ export function App() {
             onShowToast={handleShowToast}
           />
         )}
+        </Suspense>
       </main>
+      </SeatAvailability>
       <EventChat page={currentView} eventId={currentView === 'event-details' ? selectedEventId : undefined}
         registration={currentView === 'register' ? registrationContext : null} />
 
@@ -349,12 +431,23 @@ export function App() {
         </div>
       </footer>
 
+      {/* Floating Smooth Scroll-to-Top Button */}
+      <button
+        type="button"
+        className={`back-to-top-btn ${showScrollTop ? 'is-active' : ''}`}
+        onClick={handleScrollToTop}
+        title="Scroll back to top"
+        aria-label="Scroll back to top"
+      >
+        <ArrowUp size={18} strokeWidth={2.5} />
+      </button>
+
       {/* Global Toast Notification System */}
       <div className="toast-container">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="toast"
+            className={`toast toast-${t.type}`}
             style={{
               borderLeft: `4px solid ${
                 t.type === 'success'

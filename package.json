@@ -7,8 +7,9 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build": "cd frontend && npm install && npm run build",
-    "start": "node backend/src/server.js"
+    "build": "npm ci --prefix frontend --no-audit --no-fund && npm run build --prefix frontend",
+    "start": "node backend/src/server.js",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

@@ -16,7 +16,7 @@ const startServer = async () => {
 🌐 API URL: http://localhost:${PORT}
 ⚡ Webhook: http://localhost:${PORT}/api/registrants/webhook
 🛡️ Anti-Forgery Cryptographic QR System: ACTIVE
-📧 Email Sender: ${process.env.SMTP_USER || 'aditya.renake@outlook.com'}
+📧 Email Sender: ${process.env.SMTP_USER || 'careseventra@gmail.com'}
 ══════════════════════════════════════════════════════════════
     `);
   });

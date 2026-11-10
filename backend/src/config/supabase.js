@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '../utils/fetchWithTimeout.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -12,6 +13,7 @@ if (supabaseUrl && supabaseKey) {
   try {
     clientInstance = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false },
+      global: { fetch: fetchWithTimeout },
     });
     console.log(`✅ Supabase Database Connected (${supabaseUrl}).`);
   } catch (err) {

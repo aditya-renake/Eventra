@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-const getHtml5Qrcode = () => window.Html5Qrcode;
+import { Html5Qrcode } from 'html5-qrcode';
+const getHtml5Qrcode = () => Html5Qrcode;
 import { 
   Camera, 
   CameraOff, 

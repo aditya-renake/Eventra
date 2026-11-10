@@ -85,6 +85,7 @@ export const sendAutoCheckinMessage = async (registrant, eventCtx = {}) => {
     try {
       const response = await fetch(whatsappApiUrl, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: whatsappToken,
@@ -92,6 +93,7 @@ export const sendAutoCheckinMessage = async (registrant, eventCtx = {}) => {
           body: textMessage,
         }),
       });
+      if (!response.ok) throw new Error(`Messaging provider returned ${response.status}`);
       const data = await response.json();
       return { success: true, provider: 'whatsapp_gateway', result: data };
     } catch (err) {
@@ -104,6 +106,7 @@ export const sendAutoCheckinMessage = async (registrant, eventCtx = {}) => {
       const smsPhone = phone.startsWith('91') && phone.length === 12 ? phone.slice(2) : phone;
       const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: {
           authorization: fast2SmsKey,
           'Content-Type': 'application/json',
@@ -116,6 +119,7 @@ export const sendAutoCheckinMessage = async (registrant, eventCtx = {}) => {
           numbers: smsPhone,
         }),
       });
+      if (!response.ok) throw new Error(`Messaging provider returned ${response.status}`);
       const data = await response.json();
       return { success: true, provider: 'fast2sms', result: data };
     } catch (err) {
@@ -195,6 +199,7 @@ export const sendAutoPassWhatsApp = async (registrant, eventCtx = {}) => {
     try {
       const response = await fetch(whatsappApiUrl, {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: whatsappToken,
@@ -202,6 +207,7 @@ export const sendAutoPassWhatsApp = async (registrant, eventCtx = {}) => {
           body: textMessage,
         }),
       });
+      if (!response.ok) throw new Error(`Messaging provider returned ${response.status}`);
       const data = await response.json();
       return { success: true, provider: 'whatsapp_gateway', result: data };
     } catch (err) {
@@ -214,6 +220,7 @@ export const sendAutoPassWhatsApp = async (registrant, eventCtx = {}) => {
       const smsPhone = phone.startsWith('91') && phone.length === 12 ? phone.slice(2) : phone;
       const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: {
           authorization: fast2SmsKey,
           'Content-Type': 'application/json',
@@ -226,6 +233,7 @@ export const sendAutoPassWhatsApp = async (registrant, eventCtx = {}) => {
           numbers: smsPhone,
         }),
       });
+      if (!response.ok) throw new Error(`Messaging provider returned ${response.status}`);
       const data = await response.json();
       return { success: true, provider: 'fast2sms', result: data };
     } catch (err) {
