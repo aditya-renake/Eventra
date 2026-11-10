@@ -110,7 +110,23 @@ export function createRegistrantRepository({ getSupabase, isSupabaseConfigured, 
       const stamp = new Date(now()).toISOString();
       const cleanId = normalizedId(data.uniqueId);
       const item = await prepareRegistrantForStorage({ ...data, id: cleanId, uniqueId: cleanId, eventId: normalizedEvent(data.eventId), email: String(data.email || '').trim().toLowerCase(), createdAt: data.createdAt || stamp, updatedAt: stamp });
-      const { data: created } = await result(sb.rpc('create_registrant_atomic', { p_registrant: toSnake(item), p_notifications: notifications }), 'registration');
+      let created;
+      try {
+        ({ data: created } = await result(sb.rpc('create_registrant_atomic', { p_registrant: toSnake(item), p_notifications: notifications }), 'registration'));
+      } catch (error) {
+        if (error.cause?.code !== 'PGRST202' || notifications.length) throw error;
+        // Older installations use the capacity migration's insert trigger. Confirm the
+        // migration exists before writing, and let its locked check claim the seat.
+        await result(sb.rpc('event_seats_available', { p_event_id: item.eventId }), 'seat availability');
+        try {
+          ({ data: created } = await result(sb.from('registrants').insert(toSnake(item)).select('*').single(), 'registration'));
+        } catch (insertError) {
+          if (insertError.code !== 'REGISTRATION_EXISTS' || !item.orderId) throw insertError;
+          const existing = await repo.findByOrderId(item.orderId);
+          if (existing?.eventId !== item.eventId) throw insertError;
+          return existing;
+        }
+      }
       invalidate();
       return hydrated(created);
     },
@@ -162,7 +178,16 @@ export function createRegistrantRepository({ getSupabase, isSupabaseConfigured, 
       const clean = String(id).trim();
       if (isSupabaseConfigured()) {
         // Separate indexed equality lookups avoid interpolating user text into PostgREST filters.
-        return await lookup('order_reference', clean, options) || await lookup('payment_reference', clean, options);
+        try {
+          return await lookup('order_reference', clean, options) || await lookup('payment_reference', clean, options);
+        } catch (error) {
+          if (error.cause?.code !== '42703') throw error;
+          for (const field of ['order_id', 'payment_id', 'razorpay_order_id', 'razorpay_payment_id']) {
+            const match = await lookup(field, clean, options);
+            if (match) return match;
+          }
+          return null;
+        }
       }
       return (await legacyAll()).find(item => [item.orderId, item.paymentId, item.razorpayOrderId, item.razorpayPaymentId].includes(clean)) || null;
     },
