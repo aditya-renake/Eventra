@@ -1,31 +1,18 @@
+import { createHash } from 'node:crypto';
+import { FieldValue } from 'firebase-admin/firestore';
+import { readSeats, seatError } from '../services/seatService.js';
+import { addNotificationJobs } from '../services/notificationQueue.js';
+
 const DEFAULT_EVENT = 'eventra-2026';
 const BATCH_SIZE = 200;
 const STATS_TTL_MS = 5000;
-export const LIST_COLUMNS = 'id,unique_id,event_id,name,email,phone,institution,ticket_type,team_name,track,github_url,payment_status,payment_amount,amount_paid,currency,order_id,payment_id,razorpay_order_id,razorpay_payment_id,utr_number,checked_in,checked_in_at,checked_in_by,email_sent,email_sent_at,verified,verification_status,paid_at,created_at,updated_at';
 const SORT_COLUMNS = { createdAt: 'created_at', updatedAt: 'updated_at', name: 'name', email: 'email', uniqueId: 'unique_id', checkedInAt: 'checked_in_at', ticketType: 'ticket_type', amountPaid: 'amount_paid' };
-const GENERATED_COLUMNS = new Set(['emailNormalized', 'isVerified', 'paymentReference', 'orderReference', 'utrNormalized', 'searchText']);
 const normalizedId = value => String(value || '').trim().toUpperCase();
 const normalizedEvent = value => String(value || DEFAULT_EVENT).trim().toLowerCase();
 const integer = (value, fallback, max = Number.MAX_SAFE_INTEGER) => Math.min(max, Math.max(1, Number.parseInt(value, 10) || fallback));
 const isFilter = value => value !== undefined && value !== '' && value !== 'all';
 const booleanFilter = value => value === true || value === 'true';
 const verified = item => item.verified === true || String(item.verificationStatus).toLowerCase() === 'verified';
-const escapeLike = value => value.replace(/[\\%_]/g, char => `\\${char}`);
-
-export function databaseError(error, operation) {
-  const code = error?.code;
-  const marker = ['EVENT_FULL', 'EVENT_NOT_FOUND', 'REGISTRATION_EXISTS', 'PAYMENT_CONFLICT', 'INVALID_REGISTRATION', 'INVALID_EVENT_DAY'].find(value => String(error?.message || '').includes(value));
-  const missing = ['PGRST202', 'PGRST204', '42883', '42703'].includes(code);
-  const result = new Error(missing
-    ? 'Database scaling migration is required. Apply migrations 001, 002, and 003 before serving registration traffic.'
-    : marker ? marker.replaceAll('_', ' ').toLowerCase() : `Database ${operation} failed`);
-  result.code = missing ? 'SCHEMA_MIGRATION_REQUIRED' : marker || code || 'DATABASE_ERROR';
-  result.status = missing ? 503 : marker === 'EVENT_NOT_FOUND' ? 404 : marker === 'INVALID_REGISTRATION' || marker === 'INVALID_EVENT_DAY' ? 400 : marker || code === '23505' ? 409 : 503;
-  result.statusCode = result.status;
-  result.cause = error;
-  return result;
-}
-
 function localStats(items) {
   const total = items.length;
   const checked = items.filter(item => item.checkedIn).length;
@@ -45,52 +32,42 @@ function localStats(items) {
   return { totalRegistrants: total, checkedInCount: checked, checkedInPercentage: total ? Math.round(checked / total * 100) : 0, emailSentCount: sent, pendingEmailCount: total - sent, verifiedCount: items.filter(verified).length, verifiedPendingEmailCount: items.filter(item => verified(item) && !item.emailSent).length, totalRevenue: revenue, paidRegistrantsCount: paid, freeRegistrantsCount: total - paid, averageOrderValue: paid ? Math.round(revenue / paid) : 0, ticketBreakdown: breakdown };
 }
 
-export function createRegistrantRepository({ getSupabase, isSupabaseConfigured, getFirestore, toCamel, toSnake, prepareRegistrantForStorage = async item => item, hydrateRegistrantMedia = async item => item, storeCheckinPhoto = async photo => photo, now = Date.now }) {
+export function paymentKeys(db, item) {
+  const keys = new Set();
+  for (const value of [item.paymentId, item.razorpayPaymentId, item.orderId, item.razorpayOrderId]) {
+    if (value) keys.add('payment:' + String(value).trim());
+  }
+  if (item.utrNumber) keys.add('utr:' + String(item.utrNumber).trim().toUpperCase());
+  return [...keys].map(key => db.collection('registration_payment_keys').doc(createHash('sha256').update(key).digest('hex')));
+}
+
+function previousDays(item) {
+  if (Object.keys(item.checkinDays || {}).length || !item.checkedIn) return { ...item.checkinDays };
+  return { day_1: { checkedInAt: item.checkedInAt || null, checkedInBy: item.checkedInBy || null, checkedInPhoto: item.checkedInPhoto || null } };
+}
+
+function dayKey(day) {
+  const n = Number(String(day).replace(/^day[_-]/, ''));
+  if (!Number.isInteger(n) || n < 1) throw Object.assign(new Error('Invalid event day'), { statusCode: 400 });
+  return 'day_' + n;
+}
+
+const documentItem = doc => doc.exists ? { ...doc.data(), _id: doc.id } : null;
+
+export function createRegistrantRepository({ getFirestore, now = Date.now }) {
   const statsCache = new Map();
   const statsPending = new Map();
   let generation = 0;
   function invalidate() { generation += 1; statsCache.clear(); statsPending.clear(); }
-  function requireSupabase() {
-    if (!isSupabaseConfigured()) {
-      const error = new Error('Supabase and the database scaling migrations are required for atomic registrations and check-ins.');
-      error.code = 'DATABASE_REQUIRED'; error.status = 503; error.statusCode = 503;
-      throw error;
-    }
-    return getSupabase();
+  async function firstMatch(key, value) {
+    if (!value) return null;
+    const result = await repo.getCollection().where(key, '==', value).limit(1).get();
+    return result.empty ? null : documentItem(result.docs[0]);
   }
-  async function result(query, operation) {
-    let response;
-    try { response = await query; } catch (error) { throw databaseError(error, operation); }
-    if (response.error) throw databaseError(response.error, operation);
-    return response;
-  }
-  function fromRow(row) {
-    if (!row) return null;
-    const item = toCamel(row);
-    for (const key of GENERATED_COLUMNS) delete item[key];
-    item._id = item.uniqueId || item.id;
-    return item;
-  }
-  async function hydrated(row, options) { return row ? hydrateRegistrantMedia(fromRow(row), options) : null; }
-  function filterQuery(query, options = {}) {
-    if (options.eventId && options.eventId !== 'all') query = query.eq('event_id', normalizedEvent(options.eventId));
-    if (isFilter(options.checkedIn)) query = query.eq('checked_in', booleanFilter(options.checkedIn));
-    if (isFilter(options.emailSent)) query = query.eq('email_sent', booleanFilter(options.emailSent));
-    if (isFilter(options.verified)) query = query.eq('is_verified', booleanFilter(options.verified));
-    if (options.ticketType && options.ticketType !== 'all') query = query.eq('ticket_type', options.ticketType);
-    if (options.track && options.track !== 'all') query = query.eq('track', options.track);
-    if (String(options.search || '').trim()) query = query.ilike('search_text', `%${escapeLike(String(options.search).trim().toLowerCase())}%`);
-    return query;
-  }
-  async function lookup(column, value, options) {
-    const { data } = await result(getSupabase().from('registrants').select('*').eq(column, value).maybeSingle(), 'lookup');
-    return hydrated(data, options);
-  }
-  async function legacyAll(options = {}) {
-    const snapshot = await getFirestore().collection('registrants').get();
-    let items = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
-    if (options.eventId && options.eventId !== 'all') items = items.filter(item => normalizedEvent(item.eventId) === normalizedEvent(options.eventId));
-    return items;
+  async function readRegistrants(options = {}) {
+    let query = getFirestore().collection('registrants');
+    if (options.eventId && options.eventId !== 'all') query = query.where('eventId', '==', normalizedEvent(options.eventId));
+    return (await query.get()).docs.map(documentItem);
   }
   function localFilters(items, options) {
     return items.filter(item => {
@@ -106,152 +83,162 @@ export function createRegistrantRepository({ getSupabase, isSupabaseConfigured, 
   const repo = {
     getCollection: () => getFirestore().collection('registrants'),
     async create(data, { notifications = [] } = {}) {
-      const sb = requireSupabase();
+      const db = getFirestore();
+      const id = normalizedId(data.uniqueId);
+      const eventId = normalizedEvent(data.eventId);
+      const email = String(data.email || '').trim().toLowerCase();
+      if (!id || !email) throw Object.assign(new Error('Invalid registration'), { statusCode: 400 });
       const stamp = new Date(now()).toISOString();
-      const cleanId = normalizedId(data.uniqueId);
-      const item = await prepareRegistrantForStorage({ ...data, id: cleanId, uniqueId: cleanId, eventId: normalizedEvent(data.eventId), email: String(data.email || '').trim().toLowerCase(), createdAt: data.createdAt || stamp, updatedAt: stamp });
-      const { data: created } = await result(sb.rpc('create_registrant_atomic', { p_registrant: toSnake(item), p_notifications: notifications }), 'registration');
+      const item = { ...data, id, uniqueId: id, eventId, email, createdAt: data.createdAt || stamp, updatedAt: stamp };
+      if (item.utrNumber) item.utrNumber = String(item.utrNumber).trim().toUpperCase();
+      const orderId = item.orderId || item.razorpayOrderId;
+      const conflict = code => Object.assign(new Error(code), { status: 409, statusCode: 409, code });
+      await db.runTransaction(async tx => {
+        const seats = await readSeats(db, tx, eventId, orderId);
+        const collection = repo.getCollection();
+        const duplicate = await tx.get(collection.where('email', '==', email).where('eventId', '==', eventId).limit(1));
+        if (!duplicate.empty || (await tx.get(collection.doc(id))).exists) throw conflict('REGISTRATION_EXISTS');
+        const paymentRefs = paymentKeys(db, item);
+        if (paymentRefs.length && (await tx.getAll(...paymentRefs)).some(doc => doc.exists)) throw conflict('PAYMENT_CONFLICT');
+        if (!seats.reserved && !seats.remaining) throw seatError({ code: 'EVENT_FULL' });
+        if (orderId) {
+          const hold = db.collection('event_seat_holds').doc(orderId);
+          const existing = await tx.get(hold);
+          if (existing.exists && existing.get('eventId') !== eventId) throw conflict('ORDER_EVENT_MISMATCH');
+        }
+        await addNotificationJobs(db, tx, notifications);
+        if (orderId) tx.delete(db.collection('event_seat_holds').doc(orderId));
+        for (const ref of paymentRefs) tx.create(ref, { uniqueId: id });
+        tx.create(collection.doc(id), item);
+        tx.update(seats.ref, { seatRevision: FieldValue.increment(1) });
+      });
       invalidate();
-      return hydrated(created);
+      return { ...item, _id: id };
     },
-    async findByUniqueId(uniqueId, options) {
+    async findByUniqueId(uniqueId) {
       if (!uniqueId) return null;
-      const id = normalizedId(uniqueId);
-      if (isSupabaseConfigured()) return lookup('unique_id', id, options);
-      const doc = await repo.getCollection().doc(id).get();
-      return doc.exists ? hydrateRegistrantMedia({ _id: doc.id, ...doc.data() }, options) : null;
+      return documentItem(await repo.getCollection().doc(normalizedId(uniqueId)).get());
     },
-    async findAllByEmail(email, options) {
+    async findAllByEmail(email) {
       if (!email) return [];
-      const cleanEmail = String(email).trim().toLowerCase();
-      if (!isSupabaseConfigured()) return Promise.all((await legacyAll()).filter(item => String(item.email).trim().toLowerCase() === cleanEmail).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(item => hydrateRegistrantMedia(item, options)));
-      const items = [];
-      let offset = 0;
-      while (true) {
-        const { data } = await result(getSupabase().from('registrants').select('*').eq('email_normalized', cleanEmail).order('created_at', { ascending: false }).order('id', { ascending: true }).range(offset, offset + BATCH_SIZE - 1), 'email lookup');
-        if (!data?.length) break;
-        items.push(...await Promise.all(data.map(row => hydrated(row, options))));
-        offset += data.length;
-        if (data.length < BATCH_SIZE) break;
-      }
-      return items;
+      const result = await repo.getCollection().where('email', '==', String(email).trim().toLowerCase()).get();
+      return result.docs.map(documentItem).sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     },
-    async findByEmail(email, options) { return (await repo.findAllByEmail(email, options))[0] || null; },
-    async findByEmailAndEvent(email, eventId, options) {
-      if (!email) return null;
-      if (!isSupabaseConfigured()) return (await repo.findAllByEmail(email, options)).find(item => normalizedEvent(item.eventId) === normalizedEvent(eventId)) || null;
-      const { data } = await result(getSupabase().from('registrants').select('*').eq('email_normalized', String(email).trim().toLowerCase()).eq('event_id', normalizedEvent(eventId)).maybeSingle(), 'event attendee lookup');
-      return hydrated(data, options);
+    async findByEmail(email) { return (await repo.findAllByEmail(email))[0] || null; },
+    async findByEmailAndEvent(email, eventId) {
+      return (await repo.findAllByEmail(email)).find(item => normalizedEvent(item.eventId) === normalizedEvent(eventId)) || null;
     },
-    async findByIdOrEmail(query, options) { if (!query) return null; return String(query).includes('@') ? repo.findByEmail(query, options) : repo.findByUniqueId(query, options); },
-    async findByPhone(phone, options) {
-      if (!phone) return null;
-      if (isSupabaseConfigured()) {
-        const { data } = await result(getSupabase().from('registrants').select('*').eq('phone', String(phone).trim()).order('created_at', { ascending: false }).limit(1).maybeSingle(), 'phone lookup');
-        return hydrated(data, options);
-      }
-      return (await legacyAll()).find(item => String(item.phone || '').trim() === String(phone).trim()) || null;
+    async findByIdOrEmail(query) {
+      if (!query) return null;
+      return String(query).includes('@') ? repo.findByEmail(query) : repo.findByUniqueId(query);
     },
-    async findByUtr(utr, options) {
-      if (!utr) return null;
-      if (isSupabaseConfigured()) return lookup('utr_normalized', String(utr).trim().toUpperCase(), options);
-      return (await legacyAll()).find(item => String(item.utrNumber || '').trim().toUpperCase() === String(utr).trim().toUpperCase()) || null;
-    },
-    async findByOrderId(id, options) {
+    async findByPhone(phone) { return firstMatch('phone', String(phone || '').trim()); },
+    async findByUtr(utr) { return firstMatch('utrNumber', String(utr || '').trim().toUpperCase()); },
+    async findByOrderId(id) {
       if (!id) return null;
-      const clean = String(id).trim();
-      if (isSupabaseConfigured()) {
-        // Separate indexed equality lookups avoid interpolating user text into PostgREST filters.
-        return await lookup('order_reference', clean, options) || await lookup('payment_reference', clean, options);
+      for (const key of ['orderId', 'razorpayOrderId', 'paymentId', 'razorpayPaymentId']) {
+        const match = await firstMatch(key, String(id).trim());
+        if (match) return match;
       }
-      return (await legacyAll()).find(item => [item.orderId, item.paymentId, item.razorpayOrderId, item.razorpayPaymentId].includes(clean)) || null;
+      return null;
     },
     async getAll(options = {}) {
       const page = integer(options.page, 1);
       const limit = integer(options.limit, 50, BATCH_SIZE);
       let items; let total; let stats;
-      if (isSupabaseConfigured()) {
-        const query = filterQuery(getSupabase().from('registrants').select(LIST_COLUMNS, { count: 'exact' }), options)
-          .order(SORT_COLUMNS[options.sortBy] || 'created_at', { ascending: options.sortOrder === 'asc', nullsFirst: false })
-          .order('id', { ascending: true }).range((page - 1) * limit, page * limit - 1);
-        const [response, aggregate] = await Promise.all([result(query, 'list'), repo.getAggregateStats(options.eventId)]);
-        items = await Promise.all((response.data || []).map(row => hydrated(row, { includeQr: false, includePhoto: false })));
-        total = response.count || 0; stats = aggregate;
-      } else {
-        const all = await legacyAll(options); stats = localStats(all);
-        const filtered = localFilters(all, options).sort((a, b) => { const key = SORT_COLUMNS[options.sortBy] ? options.sortBy : 'createdAt'; return String(a[key] || '').localeCompare(String(b[key] || '')) * (options.sortOrder === 'asc' ? 1 : -1); });
-        total = filtered.length;
-        items = filtered.slice((page - 1) * limit, page * limit).map(({ qrCodeDataUrl, checkedInPhoto, checkinDays, ...item }) => item);
-      }
+      const all = await readRegistrants(options); stats = localStats(all);
+      const filtered = localFilters(all, options).sort((a, b) => { const key = SORT_COLUMNS[options.sortBy] ? options.sortBy : 'createdAt'; return String(a[key] || '').localeCompare(String(b[key] || '')) * (options.sortOrder === 'asc' ? 1 : -1); });
+      total = filtered.length;
+      items = filtered.slice((page - 1) * limit, page * limit).map(({ qrCodeDataUrl, checkedInPhoto, checkinDays, ...item }) => item);
       const totalPages = Math.ceil(total / limit);
       return { items, pagination: { page, limit, totalItems: total, totalPages, hasNextPage: page < totalPages, hasPrevPage: page > 1 }, stats };
     },
     async *iterateAll(options = {}) {
-      if (!isSupabaseConfigured()) { yield* localFilters(await legacyAll(options), options); return; }
-      let cursor = null;
-      while (true) {
-        let query = filterQuery(getSupabase().from('registrants').select(LIST_COLUMNS), options).order('id', { ascending: true }).limit(BATCH_SIZE);
-        if (cursor) query = query.gt('id', cursor);
-        const { data } = await result(query, 'export');
-        if (!data?.length) break;
-        for (const row of data) yield fromRow(row);
-        cursor = data.at(-1).id;
-        if (data.length < BATCH_SIZE) break;
-      }
+      yield* localFilters(await readRegistrants(options), options);
     },
     async getAllForExport(options = {}) { const items = []; for await (const item of repo.iterateAll(options)) items.push(item); return items; },
     async update(uniqueId, updates) {
       if (!uniqueId) return null;
-      const id = normalizedId(uniqueId);
-      const prepared = await prepareRegistrantForStorage({ ...updates, uniqueId: id, updatedAt: new Date(now()).toISOString() });
-      // Identity changes and generated columns must never be written by a general profile update.
-      for (const key of ['id', '_id', 'uniqueId', ...GENERATED_COLUMNS]) delete prepared[key];
-      if ('email' in prepared) prepared.email = String(prepared.email).trim().toLowerCase();
-      if ('eventId' in prepared) {
-        throw Object.assign(new Error('Changing a registration event requires a new atomic registration.'), { code: 'INVALID_REGISTRATION', status: 400, statusCode: 400 });
-      }
-      if (isSupabaseConfigured()) {
-        const { data } = await result(getSupabase().from('registrants').update(toSnake(prepared)).eq('unique_id', id).select('*').maybeSingle(), 'update');
-        invalidate(); return hydrated(data);
-      }
-      const ref = repo.getCollection().doc(id); const existing = await ref.get();
-      if (!existing.exists) return null;
-      await ref.update(prepared); invalidate(); return hydrateRegistrantMedia({ _id: id, ...existing.data(), ...prepared });
+      if ('eventId' in updates) throw Object.assign(new Error('Cannot change registration event'), { statusCode: 400 });
+      const db = getFirestore();
+      const ref = repo.getCollection().doc(normalizedId(uniqueId));
+      const { id, _id, uniqueId: ignored, ...patch } = updates;
+      if ('email' in patch) patch.email = String(patch.email).trim().toLowerCase();
+      if (patch.utrNumber) patch.utrNumber = patch.utrNumber.trim().toUpperCase();
+      patch.updatedAt = new Date(now()).toISOString();
+      const updated = await db.runTransaction(async tx => {
+        const item = documentItem(await tx.get(ref));
+        if (!item) return null;
+        const next = { ...item, ...patch };
+        if (patch.email && patch.email !== item.email) {
+          const duplicates = await tx.get(repo.getCollection().where('eventId','==',item.eventId).where('email','==',patch.email).limit(1));
+          if (!duplicates.empty) throw Object.assign(new Error('Registration exists'), { statusCode: 409 });
+        }
+        const oldKeys = paymentKeys(db, item);
+        const newKeys = paymentKeys(db, next);
+        const added = newKeys.filter(key => !oldKeys.some(old => old.id === key.id));
+        if (added.length && (await tx.getAll(...added)).some(doc => doc.exists)) throw Object.assign(new Error('Payment conflict'), { statusCode: 409 });
+        for (const key of added) tx.create(key, { uniqueId: ref.id });
+        for (const key of oldKeys) if (!newKeys.some(other => other.id === key.id)) tx.delete(key);
+        tx.update(ref, patch);
+        return next;
+      });
+      invalidate();
+      return updated;
     },
     async delete(uniqueId) {
       if (!uniqueId) return false;
-      const id = normalizedId(uniqueId);
-      if (isSupabaseConfigured()) {
-        const { data } = await result(getSupabase().from('registrants').delete().eq('unique_id', id).select('id'), 'delete');
-        invalidate(); return Boolean(data?.length);
-      }
-      await repo.getCollection().doc(id).delete(); invalidate(); return true;
+      const db = getFirestore();
+      const ref = repo.getCollection().doc(normalizedId(uniqueId));
+      const deleted = await db.runTransaction(async tx => {
+        const doc = await tx.get(ref);
+        if (!doc.exists) return false;
+        for (const key of paymentKeys(db, doc.data())) tx.delete(key);
+        tx.delete(ref);
+        return true;
+      });
+      invalidate();
+      return deleted;
     },
     async checkinAtomic(uniqueId, { staffName = 'Gate Scanner', photo = null, eventDay = 1, notifications = [] } = {}) {
       if (!uniqueId) return { notFound: true };
-      const sb = requireSupabase(); const id = normalizedId(uniqueId);
-      if (!Number.isInteger(Number(eventDay)) || Number(eventDay) < 1) throw Object.assign(new Error('Invalid event day'), { status: 400, statusCode: 400, code: 'INVALID_EVENT_DAY' });
-      const photoReference = await storeCheckinPhoto(photo, { uniqueId: id, eventDay: Number(eventDay) });
-      const { data } = await result(sb.rpc('checkin_registrant_atomic', { p_unique_id: id, p_staff_name: staffName, p_photo: photoReference, p_event_day: Number(eventDay), p_notifications: notifications }), 'check-in');
+      const day = dayKey(eventDay);
+      const db = getFirestore();
+      const ref = repo.getCollection().doc(normalizedId(uniqueId));
+      const result = await db.runTransaction(async tx => {
+        const item = documentItem(await tx.get(ref));
+        if (!item) return { notFound: true };
+        const days = previousDays(item);
+        if (days[day]) return { alreadyCheckedIn: true, registrant: item, checkinEntry: days[day] };
+        const entry = { checkedInAt: new Date(now()).toISOString(), checkedInBy: staffName, checkedInPhoto: photo };
+        const patch = { ...entry, checkedIn: true, checkinDays: { ...days, [day]: entry }, updatedAt: entry.checkedInAt };
+        await addNotificationJobs(db, tx, notifications);
+        tx.update(ref, patch);
+        return { registrant: { ...item, ...patch }, checkinEntry: entry };
+      });
       invalidate();
-      if (!data?.registrant) return data;
-      const registrant = await hydrated(data.registrant, { includeQr: false, includePhoto: true });
-      return { ...data, registrant, checkinEntry: registrant.checkinDays?.[`day_${Number(eventDay)}`] || data.checkinEntry };
+      return result;
     },
     async undoCheckinAtomic(uniqueId, { eventDay = null } = {}) {
-      if (!uniqueId) return null;
-      const day = eventDay === null || eventDay === undefined || eventDay === '' ? null : Number(String(eventDay).replace(/^day[_-]/, ''));
-      if (day !== null && (!Number.isInteger(day) || day < 1)) throw Object.assign(new Error('Invalid event day'), { status: 400, statusCode: 400, code: 'INVALID_EVENT_DAY' });
-      const { data } = await result(requireSupabase().rpc('undo_registrant_checkin_atomic', { p_unique_id: normalizedId(uniqueId), p_event_day: day }), 'undo check-in');
-      invalidate(); return hydrated(data, { includeQr: false, includePhoto: true });
+      const ref = repo.getCollection().doc(normalizedId(uniqueId));
+      const result = await getFirestore().runTransaction(async tx => {
+        const item = documentItem(await tx.get(ref));
+        if (!item) return null;
+        const days = eventDay ? previousDays(item) : {};
+        if (eventDay) delete days[dayKey(eventDay)];
+        const latest = Object.values(days).sort((a,b) => String(b.checkedInAt).localeCompare(String(a.checkedInAt)))[0];
+        const patch = { checkinDays: days, checkedIn: Boolean(latest), checkedInAt: latest?.checkedInAt || null,
+          checkedInBy: latest?.checkedInBy || null, checkedInPhoto: latest?.checkedInPhoto || null };
+        tx.update(ref, patch);
+        return { ...item, ...patch };
+      });
+      invalidate();
+      return result;
     },
     async getRecentCheckins(limitCount = 20) {
       const limit = integer(limitCount, 20, 100);
-      let registrants;
-      if (isSupabaseConfigured()) {
-        const { data } = await result(getSupabase().from('registrants').select(`${LIST_COLUMNS},checked_in_photo,checkin_days`).eq('checked_in', true).order('checked_in_at', { ascending: false }).limit(limit), 'recent check-ins');
-        registrants = await Promise.all((data || []).map(row => hydrated(row, { includeQr: false, includePhoto: true })));
-      } else registrants = (await legacyAll()).filter(item => item.checkedIn);
+      const recent = await repo.getCollection().where('checkedIn', '==', true).get();
+      const registrants = recent.docs.map(documentItem);
       return registrants.flatMap(item => {
         const days = Object.entries(item.checkinDays || {});
         return days.length ? days.map(([day, entry]) => ({ ...item, ...entry, _id: `${item.uniqueId}-${day}`, eventDay: day, eventDayLabel: `Day ${Number(day.replace(/^day[_-]/, '')) || 1}` })) : [{ ...item, eventDay: 'day_1', eventDayLabel: 'Day 1' }];
@@ -264,11 +251,7 @@ export function createRegistrantRepository({ getSupabase, isSupabaseConfigured, 
       if (statsPending.has(key)) return statsPending.get(key);
       const version = generation;
       const pending = (async () => {
-        let stats;
-        if (isSupabaseConfigured()) {
-          const { data } = await result(getSupabase().rpc('registrant_aggregate_stats', { p_event_id: key === 'all' ? null : key }), 'aggregate statistics');
-          stats = data;
-        } else stats = localStats(await legacyAll({ eventId: key }));
+        const stats = localStats(await readRegistrants({ eventId: key }));
         if (version === generation) {
           if (statsCache.size >= 100) statsCache.delete(statsCache.keys().next().value);
           statsCache.set(key, { at: now(), value: stats });

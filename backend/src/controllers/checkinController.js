@@ -196,39 +196,8 @@ export const undoCheckin = async (req, res) => {
   try {
     const { id } = req.params;
     const requestedEventDay = req.body?.eventDay;
-    const registrant = await registrantRepo.findByUniqueId(id);
-
-    if (!registrant) {
-      return res.status(404).json({ success: false, message: 'Registrant not found' });
-    }
-
-    let updates;
-    if (requestedEventDay) {
-      const eventDay = /^day[_-]\d+$/.test(String(requestedEventDay))
-        ? String(requestedEventDay).replace('-', '_')
-        : `day_${Number(requestedEventDay) || 1}`;
-      const checkinDays = { ...(registrant.checkinDays || {}) };
-      delete checkinDays[eventDay];
-      const remainingEntries = Object.values(checkinDays)
-        .sort((a, b) => new Date(b.checkedInAt || 0) - new Date(a.checkedInAt || 0));
-      const latest = remainingEntries[0];
-      updates = {
-        checkinDays,
-        checkedIn: remainingEntries.length > 0,
-        checkedInAt: latest?.checkedInAt || null,
-        checkedInBy: latest?.checkedInBy || null,
-        checkedInPhoto: latest?.checkedInPhoto || null,
-      };
-    } else {
-      updates = {
-        checkedIn: false,
-        checkedInAt: null,
-        checkedInBy: null,
-        checkedInPhoto: null,
-        checkinDays: {},
-      };
-    }
-    const updated = await registrantRepo.update(registrant.uniqueId, updates);
+    const updated = await registrantRepo.undoCheckinAtomic(id, { eventDay: requestedEventDay });
+    if (!updated) return res.status(404).json({ success: false, message: 'Registrant not found' });
 
     res.json({
       success: true,

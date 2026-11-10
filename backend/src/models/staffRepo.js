@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getSupabase, isSupabaseConfigured, toCamel, toSnake } from '../config/supabase.js';
+import { getFirestore } from '../config/firebase.js';
 
 let hasSeededStaff = false;
 
@@ -31,17 +31,8 @@ export const staffRepo = {
     if (!username) return null;
     const cleanUsername = username.toLowerCase().trim();
 
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        const { data, error } = await sb.from('staff_users').select('*').ilike('username', cleanUsername).maybeSingle();
-        if (data && !error) {
-          return toCamel(data);
-        }
-      } catch (err) {
-        console.warn('[staffRepo] Supabase findByUsername notice:', err.message);
-      }
-    }
+    const doc = await getFirestore().collection('staff_users').doc(cleanUsername).get();
+    if (doc.exists) return doc.data();
 
     // Default Fallback
     const fallback = DEFAULT_STAFF.find((s) => s.username === cleanUsername);
@@ -55,17 +46,8 @@ export const staffRepo = {
     if (!email) return null;
     const cleanEmail = email.toLowerCase().trim();
 
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        const { data, error } = await sb.from('staff_users').select('*').ilike('email', cleanEmail).maybeSingle();
-        if (data && !error) {
-          return toCamel(data);
-        }
-      } catch (err) {
-        console.warn('[staffRepo] Supabase findByEmail notice:', err.message);
-      }
-    }
+    const result = await getFirestore().collection('staff_users').where('email', '==', cleanEmail).limit(1).get();
+    if (!result.empty) return result.docs[0].data();
 
     const fallback = DEFAULT_STAFF.find((s) => s.email === cleanEmail);
     return fallback || null;
@@ -105,14 +87,7 @@ export const staffRepo = {
       updatedAt: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        await sb.from('staff_users').upsert(toSnake(user));
-      } catch (err) {
-        console.warn('[staffRepo] Supabase createStaff notice:', err.message);
-      }
-    }
+    await getFirestore().collection('staff_users').doc(cleanUsername).create(user);
 
     return user;
   },
@@ -131,39 +106,20 @@ export const staffRepo = {
   async updateLastLogin(username) {
     if (!username) return;
     const cleanUsername = username.toLowerCase().trim();
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        await sb
-          .from('staff_users')
-          .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .ilike('username', cleanUsername);
-      } catch (e) {
-        console.warn('[staffRepo] updateLastLogin error:', e.message);
-      }
-    }
+    const ref = getFirestore().collection('staff_users').doc(cleanUsername);
+    if ((await ref.get()).exists) await ref.update({ lastLogin: new Date().toISOString() });
   },
 
   /**
    * Get all registered staff users
    */
   async getAll() {
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        const { data, error } = await sb.from('staff_users').select('*');
-        if (data && !error && data.length > 0) {
-          return data.map((d) => {
-            const camel = toCamel(d);
-            delete camel.passwordHash;
-            if (camel.username === 'adityarenake') camel.role = 'root_owner';
-            return camel;
-          });
-        }
-      } catch (e) {
-        console.warn('[staffRepo] Supabase getAll error:', e.message);
-      }
-    }
+    const snapshot = await getFirestore().collection('staff_users').get();
+    if (!snapshot.empty) return snapshot.docs.map(doc => {
+      const { passwordHash, ...staff } = doc.data();
+      if (staff.username === 'adityarenake') staff.role = 'root_owner';
+      return staff;
+    });
     return DEFAULT_STAFF;
   },
 
@@ -181,14 +137,7 @@ export const staffRepo = {
       delete nextUpdates.password;
     }
 
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        await sb.from('staff_users').update(toSnake(nextUpdates)).ilike('username', cleanUsername);
-      } catch (e) {
-        console.warn('[staffRepo] updateStaff notice:', e.message);
-      }
-    }
+    await getFirestore().collection('staff_users').doc(cleanUsername).update(nextUpdates);
 
     const updated = await this.findByUsername(cleanUsername);
     if (updated) {
@@ -207,15 +156,7 @@ export const staffRepo = {
     if (cleanUsername === 'adityarenake') {
       throw new Error('Cannot delete the Main Event Organizer (Aditya Renake)');
     }
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        await sb.from('staff_users').delete().ilike('username', cleanUsername);
-        return true;
-      } catch (e) {
-        console.warn('[staffRepo] deleteStaff error:', e.message);
-      }
-    }
+    await getFirestore().collection('staff_users').doc(cleanUsername).delete();
     return true;
   },
 
@@ -225,24 +166,10 @@ export const staffRepo = {
   async seedDefaultAdmin() {
     if (hasSeededStaff) return;
     hasSeededStaff = true;
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        // Remove revoked users
-        await sb.from('staff_users').delete().in('username', ['sohamchitnis', 'haritirawal']);
-
-        for (const staff of DEFAULT_STAFF) {
-          const { data } = await sb.from('staff_users').select('id').ilike('username', staff.username).maybeSingle();
-          if (!data) {
-            await this.createStaff({
-              ...staff,
-              password: staff.username === 'adityarenake' ? 'Aditya@11' : 'Scanner@11',
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('[staffRepo] seedDefaultAdmin notice:', e.message);
-      }
+    const staffUsers = getFirestore().collection('staff_users');
+    for (const staff of DEFAULT_STAFF) {
+      const password = staff.role === 'scanner' ? process.env.SCANNER_PASSWORD : process.env.ADMIN_PASSWORD;
+      if (password && !(await staffUsers.doc(staff.username).get()).exists) await this.createStaff({ ...staff, password });
     }
   },
 };

@@ -253,3 +253,14 @@ For licensing inquiries, enterprise deployment permissions, or official correspo
 Set `GEMINI_API_KEY` in `backend/.env` for local development or in the deployment's server environment, then restart the backend or redeploy. The optional `GEMINI_MODEL` defaults to `gemini-3.5-flash`. Chat uses the existing shared rate limiter with a default of ten questions per IP per minute.
 
 The chat opens on the current page. Selecting a suggested question sends it immediately. Suggestions change with the current view and registration step. The conversation stays in browser memory during navigation and clears on reload.
+
+## Firestore database
+
+The API and notification worker use the default Firestore database. Configure the same Firebase project and server-only credential on both. Set `FIREBASE_PROJECT_ID` and use Application Default Credentials or `FIREBASE_SERVICE_ACCOUNT` as shown in `backend/.env.example`. Keep Firestore client access disabled for Eventra's backend collections, including users, staff, registrations, and notification jobs. For local integration tests set `FIRESTORE_EMULATOR_HOST` to the emulator's host and port and use a demo project ID.
+
+### Moving existing records
+
+1. Create the default Firestore database, verify its access rules, and configure a fresh server credential. Preserve a backup of the source and destination.
+2. From the repository root, run `node --env-file=backend/.env backend/src/scripts/migrateToFirestore.js --project=YOUR_PROJECT_ID` with the source `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` available. This checks source rows against the destination and reports conflicts. Existing destination-only documents are retained. Review them before cutover.
+3. Pause registration, administrative writes, and notification workers. Resolve reported conflicts and repeat the check. Run the same command with `--apply` to copy records, then repeat it with `--verify` to check that every source document and payment reference matches. Keep source writes paused until the new backend is serving traffic. The copy is resumable and preserves password hashes, pass IDs, payment references, unexpired seat holds, and notification state.
+4. Deploy the API and worker with the Firebase credential, smoke-test staff login, pass lookup, registration, and check-in, then resume traffic. Enable Firestore TTL on `api_rate_limits.expiresAt` for expired bucket cleanup.
