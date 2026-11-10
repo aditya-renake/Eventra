@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { EventChat } from './components/EventChat';
 import { Navbar } from './components/Navbar';
 import { InteractiveBackground } from './components/InteractiveBackground';
 import { EventLandingPage } from './pages/EventLandingPage';
@@ -17,6 +18,7 @@ export function App() {
   const [activePassId, setActivePassId] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [user, setUser] = useState(() => api.auth.getUser());
+  const [registrationContext, setRegistrationContext] = useState(null);
   const [toasts, setToasts] = useState([]);
 
   // Check URL pathname & hash on initial load and on hashchange
@@ -222,6 +224,7 @@ export function App() {
 
         {currentView === 'register' && (
           <RegistrationPage
+            onChatContext={setRegistrationContext}
             selectedEventId={selectedEventId}
             onRegistrationSuccess={(passId) => {
               handleNavigateToPass(passId);
@@ -285,6 +288,8 @@ export function App() {
           />
         )}
       </main>
+      <EventChat page={currentView} eventId={currentView === 'event-details' ? selectedEventId : undefined}
+        registration={currentView === 'register' ? registrationContext : null} />
 
       {/* Footer */}
       <footer style={{ background: '#030712', borderTop: '1px solid var(--border-subtle)', padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-dim)' }}>

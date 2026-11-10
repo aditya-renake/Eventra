@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from './config/supabase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+import chatRoutes from './routes/chat.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import registrantRoutes from './routes/registrant.routes.js';
 import checkinRoutes from './routes/checkin.routes.js';
@@ -38,6 +39,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 }
 
 // Mount Routes
+app.use(['/api/chat', '/chat'], chatRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/registrants', registrantRoutes);

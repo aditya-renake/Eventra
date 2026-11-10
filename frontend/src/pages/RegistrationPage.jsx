@@ -128,7 +128,7 @@ const loadRazorpay = () => new Promise((resolve) => {
   }, { once: true });
 });
 
-export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBackToLanding, onShowToast }) => {
+export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBackToLanding, onShowToast, onChatContext }) => {
   const formRef = useRef(null);
   const [eventConfig, setEventConfig] = useState(DEFAULT_CONFIG);
   const [step, setStep] = useState(0);
@@ -407,9 +407,19 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
   const paymentEnabled = eventConfig.enablePaymentGateway !== false && eventConfig.pricingType !== 'free';
   const amountDue = paymentEnabled ? (selectedTier?.price ?? 0) : 0;
 
+  const [invalidField, setInvalidField] = useState('');
+  const chatEventId = eventConfig.eventId || selectedEventId || eventConfig.activeEventId;
+  useEffect(() => {
+    onChatContext?.({ eventId: chatEventId, step: ['pass', 'attendee', 'review'][step],
+      ticket: selectedTier?.type, amount: '₹' + amountDue, invalidField,
+      payment: pendingOrder ? 'pending verification' : errorMsg ? 'notice visible' : 'no confirmation' });
+    return () => onChatContext?.(null);
+  }, [onChatContext, chatEventId, step, selectedTier?.type, amountDue, invalidField, pendingOrder, errorMsg]);
+
   const reqFields = eventConfig.requiredFields || DEFAULT_CONFIG.requiredFields;
 
   const handleInputChange = (field, value) => {
+    setInvalidField('');
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
       // If user picks a sub-event as ticketType and it's also in tracks, keep track in sync
@@ -738,7 +748,7 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
           </div>
         )}
 
-        <form ref={formRef} className="registration-layout" onSubmit={handleSubmit}>
+        <form onInvalidCapture={() => setInvalidField(formRef.current?.querySelector(':invalid')?.id?.replace(/^registration-/, '') || 'attendee details')} ref={formRef} className="registration-layout" onSubmit={handleSubmit}>
           <div className="registration-form-card">
             {step === 0 && (
               <section className="registration-form-step" aria-labelledby="pass-heading">

@@ -176,3 +176,7 @@ For licensing inquiries, enterprise deployment permissions, or official correspo
 <div align="center">
   <sub>Engineered with precision for Eventra 2026 • Registered Statutory Intellectual Property of Aditya Vinod Renake</sub>
 </div>
+
+## Ask Eventra
+
+Set `GEMINI_API_KEY` in the backend environment and restart or redeploy. Visitors can open Ask Eventra on any page and select a suggested question or type their own.
