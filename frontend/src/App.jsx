@@ -144,6 +144,7 @@ export function App() {
   }, []);
 
   useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     if (!['landing', 'event-details'].includes(currentView)) return undefined;
 
     const root = document.querySelector(`.app-view-${currentView}`);

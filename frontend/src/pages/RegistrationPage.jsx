@@ -155,6 +155,14 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
   const [prefillProfile, setPrefillProfile] = useState(null);
   const [alreadyRegisteredPass, setAlreadyRegisteredPass] = useState(null);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [step]);
+
   // Check email for existing campus registrations & smart pre-fill
   const checkEmailForExistingProfile = async (emailToCheck) => {
     if (!emailToCheck || !emailToCheck.includes('@') || !emailToCheck.includes('.')) {
@@ -636,7 +644,7 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (remaining == null || remaining === 0) return;
+    if (remaining === 0) return;
     if (step < STEPS.length - 1) {
       handleContinue();
       return;
@@ -1195,15 +1203,15 @@ export const RegistrationPage = ({ selectedEventId, onRegistrationSuccess, onBac
               </section>
             )}
 
-            <p role="status">{remaining == null ? 'Checking seat availability…' : remaining === 0 ? 'Registration closed. This event is full.' : (remaining === 1 ? '1 seat left' : remaining + ' seats left')}</p>
+            <p role="status">{remaining == null ? 'Seats available' : remaining === 0 ? 'Registration closed. This event is full.' : (remaining === 1 ? '1 seat left' : remaining + ' seats left')}</p>
             <div className="registration-form-actions">
               {step > 0 ? (
                 <button type="button" className="registration-button-secondary" onClick={() => { setErrorMsg(''); setStep((current) => current - 1); }} disabled={isLoading}><ArrowLeft size={16} /> Back</button>
               ) : <span className="registration-action-spacer" />}
               {step < STEPS.length - 1 ? (
-                <button type="button" className="registration-button-primary" disabled={remaining == null || remaining === 0} onClick={handleContinue}>Continue <ArrowRight size={16} /></button>
+                <button type="button" className="registration-button-primary" disabled={remaining === 0} onClick={handleContinue}>Continue <ArrowRight size={16} /></button>
               ) : (
-                <button type="submit" className="registration-button-primary" disabled={isLoading || remaining == null || remaining === 0}>
+                <button type="submit" className="registration-button-primary" disabled={isLoading || remaining === 0}>
                   {isLoading ? <><span className="registration-spinner" /> Processing…</> : amountDue > 0 ? <><CreditCard size={17} /> Continue to payment <ArrowRight size={16} /></> : <><CheckCircle2 size={17} /> Complete registration <ArrowRight size={16} /></>}
                 </button>
               )}

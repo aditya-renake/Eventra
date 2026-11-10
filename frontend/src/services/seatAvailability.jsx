@@ -14,10 +14,12 @@ export function SeatAvailability({ children }) {
       try {
         const response = await fetch('/api/events/seat-availability', { cache: 'no-store', signal: controller.signal });
         if (!response.ok) throw new Error('Availability unavailable');
-        const { data } = await response.json();
-        setCounts(Object.fromEntries(data.map(({ id, remaining }) => [id, remaining])));
+        const json = await response.json();
+        if (Array.isArray(json?.data)) {
+          setCounts(Object.fromEntries(json.data.map(({ id, remaining }) => [id, remaining])));
+        }
       } catch {
-        if (!controller.signal.aborted) setCounts({});
+        // Retain previous seat counts on transient fetch failures
       } finally {
         loading = false;
       }
