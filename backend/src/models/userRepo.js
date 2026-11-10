@@ -1,66 +1,16 @@
 import bcrypt from 'bcryptjs';
-import { getSupabase, isSupabaseConfigured, toCamel, toSnake } from '../config/supabase.js';
-
-// In-memory cache & fallback store for registered attendee users
-const memoryUsers = new Map();
+import { getFirestore } from '../config/firebase.js';
 
 export const userRepo = {
-  /**
-   * Find user by username
-   */
   async findByUsername(username) {
-    if (!username) return null;
-    const clean = username.toLowerCase().trim();
-
-    if (memoryUsers.has(clean)) {
-      return memoryUsers.get(clean);
-    }
-
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        const { data, error } = await sb.from('users').select('*').ilike('username', clean).maybeSingle();
-        if (data && !error) {
-          const user = toCamel(data);
-          memoryUsers.set(clean, user);
-          return user;
-        }
-      } catch (err) {
-        console.warn('[userRepo] Supabase findByUsername notice:', err.message);
-      }
-    }
-
-    return null;
+    const id = String(username || '').trim().toLowerCase();
+    if (!id || id.includes('/')) return null;
+    return (await getFirestore().collection('users').doc(id).get()).data() || null;
   },
 
-  /**
-   * Find user by email
-   */
   async findByEmail(email) {
-    if (!email) return null;
-    const clean = email.toLowerCase().trim();
-
-    for (const u of memoryUsers.values()) {
-      if (u.email && u.email.toLowerCase().trim() === clean) {
-        return u;
-      }
-    }
-
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        const { data, error } = await sb.from('users').select('*').ilike('email', clean).maybeSingle();
-        if (data && !error) {
-          const user = toCamel(data);
-          memoryUsers.set(user.username, user);
-          return user;
-        }
-      } catch (err) {
-        console.warn('[userRepo] Supabase findByEmail notice:', err.message);
-      }
-    }
-
-    return null;
+    const query = getFirestore().collection('users').where('email', '==', String(email || '').trim().toLowerCase());
+    return (await query.limit(1).get()).docs[0]?.data() || null;
   },
 
   /**
@@ -100,22 +50,13 @@ export const userRepo = {
       updatedAt: new Date().toISOString(),
     };
 
-    // Cache in-memory immediately
-    memoryUsers.set(cleanUsername, newUser);
-
-    // Persist to Supabase if configured
-    if (isSupabaseConfigured()) {
-      try {
-        const sb = getSupabase();
-        const dbRow = toSnake(newUser);
-        const { error } = await sb.from('users').upsert(dbRow);
-        if (error) {
-          console.warn('[userRepo] Supabase user insert warning:', error.message);
-        }
-      } catch (err) {
-        console.warn('[userRepo] Supabase persist notice:', err.message);
-      }
-    }
+    const db = getFirestore();
+    const users = db.collection('users');
+    await db.runTransaction(async tx => {
+      const duplicate = await tx.get(users.where('email', '==', cleanEmail).limit(1));
+      if (!duplicate.empty) throw Object.assign(new Error('Email already registered'), { status: 409 });
+      tx.create(users.doc(cleanUsername), newUser);
+    });
 
     const { passwordHash: _, ...safeUser } = newUser;
     return safeUser;

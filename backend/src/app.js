@@ -1,11 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { initFirebase } from './config/firebase.js';
-import { getSupabase, isSupabaseConfigured } from './config/supabase.js';
+import { getFirestore } from './config/firebase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { createRateLimit, consumeMemoryLimits } from './middleware/rateLimit.js';
+import { consumeFirestoreLimits, consumeMemoryLimits, createRateLimit } from './middleware/rateLimit.js';
 import { randomUUID } from 'node:crypto';
 import notificationRoutes from './routes/notificationRoutes.js';
 
@@ -49,23 +48,15 @@ app.use((req, res, next) => {
 
 app.use(createRateLimit({
   consume: async (rules) => {
-    const client = getSupabase();
-    if (client) {
-      try {
-        const { data, error } = await client.rpc('consume_api_rate_limits', { p_rules: rules });
-        if (!error && data && typeof data.allowed === 'boolean') {
-          return data;
-        }
-      } catch {
-        // Fall back to memory limiter if remote RPC is not installed or unreachable
-      }
+    try {
+      const db = getFirestore();
+      if (db) return await consumeFirestoreLimits(db, rules);
+    } catch {
+      // Fall back to memory limiter if remote rate limit storage is degraded
     }
     return consumeMemoryLimits(rules);
   },
 }));
-
-// Initialize Google Cloud Firestore
-if (!isSupabaseConfigured()) initFirebase();
 
 // Ensure staff users exist if in persistent server mode
 if (process.env.NODE_ENV === 'development' && process.env.SEED_DEFAULT_STAFF === 'true') {
@@ -100,8 +91,7 @@ app.use('/', paymentRoutes);
 app.get(['/api/health', '/health', '/api'], (req, res) => {
   res.json({
     status: 'online',
-    database: isSupabaseConfigured() ? 'Supabase PostgreSQL' : 'Google Cloud Firestore',
-    supabaseConnected: isSupabaseConfigured(),
+    database: 'Google Cloud Firestore',
     event: 'Eventra 2026',
     environment: process.env.NODE_ENV || 'production',
     timestamp: new Date(),

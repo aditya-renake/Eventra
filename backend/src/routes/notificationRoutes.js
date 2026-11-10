@@ -24,7 +24,7 @@ router.get('/status', async (req, res) => {
   catch (error) { res.status(503).json({ success: false, message: error.message }); }
 });
 router.post('/retry/:id', async (req, res) => {
-  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid job ID.' });
+  if (!/^[0-9a-f]{64}$/i.test(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid job ID.' });
   try {
     const retried = await retryDeadNotification(req.params.id);
     res.status(retried ? 202 : 404).json({ success: retried, queued: retried });

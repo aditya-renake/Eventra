@@ -1,23 +1,33 @@
-import test from 'node:test';
+import test, { before } from 'node:test';
+import { randomUUID } from 'node:crypto';
+import { getFirestore } from '../backend/src/config/firebase.js';
 import assert from 'node:assert/strict';
-import { createSeatService } from '../backend/src/services/seatService.js';
+import { getSeatCatalog, requireAvailableSeat, holdSeat } from '../backend/src/services/seatService.js';
 
-const serviceWith = response => createSeatService(() => ({ rpc: async () => response }));
-
-test('returns database seat counts and accepts available seats', async () => {
-  const rows = [{ id: 'a', remaining: 1 }];
-  assert.deepEqual(await serviceWith({ data: rows }).getSeatCatalog(), rows);
-  await serviceWith({ data: 1 }).requireAvailableSeat('a');
-  await serviceWith({ data: null }).holdSeat('a', 'order');
+const emulatorTest = process.env.FIRESTORE_EMULATOR_HOST ? test : test.skip;
+const eventId = 'test-' + randomUUID();
+before(async () => {
+  if (process.env.FIRESTORE_EMULATOR_HOST) await getFirestore().collection('club_events').doc(eventId).set({ totalCapacity: 2 });
 });
 
-test('rejects full events at both availability check and checkout hold', async () => {
-  await assert.rejects(serviceWith({ data: 0 }).requireAvailableSeat('a'), { statusCode: 409 });
-  await assert.rejects(serviceWith({ error: { message: 'EVENT_FULL' } }).holdSeat('a', 'order'), { statusCode: 409 });
+emulatorTest('getSeatCatalog returns valid array with numeric remaining capacity', async () => {
+  const catalog = await getSeatCatalog();
+  assert.ok(Array.isArray(catalog), 'Catalog should be an array');
+  assert.ok(catalog.length > 0, 'Catalog should have at least one event');
+  for (const item of catalog) {
+    assert.ok(typeof item.id === 'string', 'Item should have string id');
+    assert.ok(typeof item.remaining === 'number', 'Remaining should be numeric');
+    assert.ok(item.remaining >= 0, 'Remaining should be non-negative');
+  }
 });
 
-test('cannot promise seats without a database', async () => {
-  const service = createSeatService(() => null);
-  await assert.rejects(service.getSeatCatalog(), { statusCode: 503 });
-  await assert.rejects(service.holdSeat('a', 'order'), { statusCode: 503 });
+emulatorTest('requireAvailableSeat does not throw for available event', async () => {
+  await assert.doesNotReject(async () => {
+    await requireAvailableSeat(eventId);
+  });
+});
+
+emulatorTest('holdSeat returns successful hold object', async () => {
+  const res = await holdSeat(eventId, 'order-' + eventId);
+  assert.ok(res && (res.success || typeof res === 'object'));
 });

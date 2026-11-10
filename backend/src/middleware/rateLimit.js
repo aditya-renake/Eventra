@@ -86,6 +86,24 @@ export function createRateLimit({ consume, env = process.env, log = console.erro
   };
 }
 
+export function consumeFirestoreLimits(db, rules) {
+  return db.runTransaction(async tx => {
+    const refs = rules.map(rule => db.collection('api_rate_limits').doc(rule.key));
+    const docs = await tx.getAll(...refs);
+    const now = Date.now();
+    let retryAfter = 0;
+    for (const [i, rule] of rules.entries()) {
+      const previous = docs[i].data();
+      const active = previous?.expiresAt.toMillis() > now;
+      const count = active ? previous.count + 1 : 1;
+      const expiry = active ? previous.expiresAt.toMillis() : now + rule.window_seconds * 1000;
+      tx.set(refs[i], { count, expiresAt: new Date(expiry) });
+      if (count > rule.limit) retryAfter = Math.max(retryAfter, Math.ceil((expiry - now) / 1000));
+    }
+    return { allowed: retryAfter === 0, retry_after: retryAfter };
+  });
+}
+
 const memoryBuckets = new Map();
 
 export function consumeMemoryLimits(rules) {
