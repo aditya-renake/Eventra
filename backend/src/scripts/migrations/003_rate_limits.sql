@@ -14,7 +14,7 @@ RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_tem
 DECLARE
   rule JSONB;
   stored public.api_rate_limits%ROWTYPE;
-  current_time TIMESTAMPTZ := clock_timestamp();
+  v_now TIMESTAMPTZ := clock_timestamp();
   permitted BOOLEAN := true;
   retry_seconds INTEGER := 0;
   max_count INTEGER;
@@ -31,20 +31,20 @@ BEGIN
       RAISE EXCEPTION 'Invalid rate limit rule';
     END IF;
     INSERT INTO public.api_rate_limits AS b (bucket_key, request_count, expires_at)
-      VALUES (rule->>'key', 1, current_time + make_interval(secs => window_length))
+      VALUES (rule->>'key', 1, v_now + make_interval(secs => window_length))
     ON CONFLICT (bucket_key) DO UPDATE SET
-      request_count = CASE WHEN b.expires_at <= current_time THEN 1 ELSE LEAST(b.request_count + 1, 1000001) END,
-      expires_at = CASE WHEN b.expires_at <= current_time THEN current_time + make_interval(secs => window_length) ELSE b.expires_at END
+      request_count = CASE WHEN b.expires_at <= v_now THEN 1 ELSE LEAST(b.request_count + 1, 1000001) END,
+      expires_at = CASE WHEN b.expires_at <= v_now THEN v_now + make_interval(secs => window_length) ELSE b.expires_at END
     RETURNING * INTO stored;
     IF stored.request_count > max_count THEN
       permitted := false;
-      retry_seconds := GREATEST(retry_seconds, CEIL(EXTRACT(EPOCH FROM stored.expires_at - current_time))::INTEGER);
+      retry_seconds := GREATEST(retry_seconds, CEIL(EXTRACT(EPOCH FROM stored.expires_at - v_now))::INTEGER);
     END IF;
   END LOOP;
   -- Bounded opportunistic retention: no attendee identifiers or raw IPs are stored.
   IF random() < 0.01 THEN
     DELETE FROM public.api_rate_limits WHERE bucket_key IN (
-      SELECT bucket_key FROM public.api_rate_limits WHERE expires_at < current_time - INTERVAL '1 day' LIMIT 1000
+      SELECT bucket_key FROM public.api_rate_limits WHERE expires_at < v_now - INTERVAL '1 day' LIMIT 1000
     );
   END IF;
   RETURN jsonb_build_object('allowed', permitted, 'retry_after', retry_seconds);
