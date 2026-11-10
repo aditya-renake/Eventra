@@ -5,7 +5,7 @@ import { initFirebase } from './config/firebase.js';
 import { getSupabase, isSupabaseConfigured } from './config/supabase.js';
 import { staffRepo } from './models/staffRepo.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { createRateLimit } from './middleware/rateLimit.js';
+import { createRateLimit, consumeMemoryLimits } from './middleware/rateLimit.js';
 import { randomUUID } from 'node:crypto';
 import notificationRoutes from './routes/notificationRoutes.js';
 
@@ -50,10 +50,17 @@ app.use((req, res, next) => {
 app.use(createRateLimit({
   consume: async (rules) => {
     const client = getSupabase();
-    if (!client) throw new Error('Shared rate limiter requires Supabase');
-    const { data, error } = await client.rpc('consume_api_rate_limits', { p_rules: rules });
-    if (error) throw error;
-    return data;
+    if (client) {
+      try {
+        const { data, error } = await client.rpc('consume_api_rate_limits', { p_rules: rules });
+        if (!error && data && typeof data.allowed === 'boolean') {
+          return data;
+        }
+      } catch {
+        // Fall back to memory limiter if remote RPC is not installed or unreachable
+      }
+    }
+    return consumeMemoryLimits(rules);
   },
 }));
 

@@ -68,12 +68,50 @@ export function createRateLimit({ consume, env = process.env, log = console.erro
       res.setHeader('Cache-Control', 'private, no-store');
       return res.status(429).json({ success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please wait and try again.' });
     } catch (error) {
-      // Explicit opt-in for isolated development only; production always fails closed.
-      if (env.NODE_ENV !== 'production' && env.VERCEL !== '1' && env.RATE_LIMIT_DEVELOPMENT_BYPASS === 'true') return next();
-      log(JSON.stringify({ event: 'rate_limit_unavailable', code: error.code || 'LIMITER_UNAVAILABLE' }));
-      res.setHeader('Retry-After', '5');
-      res.setHeader('Cache-Control', 'private, no-store');
-      return res.status(503).json({ success: false, code: 'LIMITER_UNAVAILABLE', message: 'Requests are temporarily unavailable. Please retry shortly.' });
+      // If remote rate limit storage is temporarily degraded, fall back to in-memory sliding window
+      try {
+        const fallback = consumeMemoryLimits(rules);
+        if (fallback.allowed) return next();
+        res.setHeader('Retry-After', String(Math.max(1, Number(fallback.retry_after) || 60)));
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.status(429).json({ success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please wait and try again.' });
+      } catch (fallbackError) {
+        if (env.NODE_ENV !== 'production' && env.VERCEL !== '1' && env.RATE_LIMIT_DEVELOPMENT_BYPASS === 'true') return next();
+        log(JSON.stringify({ event: 'rate_limit_unavailable', code: error.code || 'LIMITER_UNAVAILABLE' }));
+        res.setHeader('Retry-After', '5');
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.status(503).json({ success: false, code: 'LIMITER_UNAVAILABLE', message: 'Requests are temporarily unavailable. Please retry shortly.' });
+      }
     }
   };
+}
+
+const memoryBuckets = new Map();
+
+export function consumeMemoryLimits(rules) {
+  const now = Date.now();
+  let retryAfter = 0;
+  let allowed = true;
+
+  if (memoryBuckets.size > 10000) {
+    for (const [k, v] of memoryBuckets.entries()) {
+      if (v.expiresAt <= now) memoryBuckets.delete(k);
+    }
+  }
+
+  for (const rule of rules) {
+    const existing = memoryBuckets.get(rule.key);
+    const active = existing && existing.expiresAt > now;
+    const count = active ? existing.count + 1 : 1;
+    const expiry = active ? existing.expiresAt : now + rule.window_seconds * 1000;
+    memoryBuckets.set(rule.key, { count, expiresAt: expiry });
+
+    if (count > rule.limit) {
+      allowed = false;
+      const wait = Math.max(1, Math.ceil((expiry - now) / 1000));
+      retryAfter = Math.max(retryAfter, wait);
+    }
+  }
+
+  return { allowed, retry_after: retryAfter };
 }
